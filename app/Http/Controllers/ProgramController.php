@@ -6,6 +6,10 @@ use App\Models\Program;
 use App\Models\MasterProgram;
 use App\Models\CompetencyUnit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Notification;
+use App\Notifications\GeneralActivityNotification;
+use App\Models\User;
 
 class ProgramController extends Controller
 {
@@ -49,8 +53,17 @@ class ProgramController extends Controller
             'max_participants' => 'nullable|integer|min:1',
         ]);
 
-        Program::create($validated);
+        $program = Program::create($validated);
 
+        // Kirim notifikasi
+        $admins = User::where('role', 'admin')->get(); // Sesuaikan kalau pakai role lain
+        Notification::send($admins, new GeneralActivityNotification(
+            $program,
+            Auth::user(),
+            'Pelatihan',
+            'ditambahkan'
+        ));
+        
         return redirect()->route('admin.programs.index')
             ->with('success', 'Program pelatihan berhasil dibuat!');
     }
@@ -74,8 +87,28 @@ class ProgramController extends Controller
 
         $program->update($validated);
 
+        $admins = User::where('role', 'admin')->get();
+        Notification::send($admins, new GeneralActivityNotification(
+            $program,
+            Auth::user(),
+            'Pelatihan',
+            'diperbarui'
+        ));
+
         return redirect()->route('admin.programs.index')
             ->with('success', 'Program pelatihan berhasil diperbarui!');
+    }
+
+    public function show(Program $program)
+    {
+        $program->load([
+            'masterProgram',
+            'participants',
+            'creator',
+            'updater'
+        ]);
+
+        return view('programs.show', compact('program'));
     }
 
     public function destroy(Program $program)
@@ -107,7 +140,7 @@ class ProgramController extends Controller
 
     public function showMaster(MasterProgram $masterProgram)
     {
-        $masterProgram->load('competencyUnits', 'programs');
+        $masterProgram->load('competencyUnits', 'programs', 'creator', 'updater');
         return view('programs.master-show', compact('masterProgram'));
     }
 
@@ -128,7 +161,15 @@ class ProgramController extends Controller
 
         $validated['is_active'] = $request->has('is_active') ? true : false;
 
-        MasterProgram::create($validated);
+        $masterProgram = MasterProgram::create($validated);
+
+        $admins = User::where('role', 'admin')->get();
+        Notification::send($admins, new GeneralActivityNotification(
+            $masterProgram,
+            Auth::user(),
+            'Master Program',
+            'ditambahkan'
+        ));
 
         return redirect()->route('admin.programs.master')
             ->with('success', 'Master program berhasil ditambahkan!');
@@ -147,6 +188,14 @@ class ProgramController extends Controller
         $validated['is_active'] = $request->has('is_active') ? true : false;
 
         $masterProgram->update($validated);
+
+        $admins = User::where('role', 'admin')->get();
+        Notification::send($admins, new GeneralActivityNotification(
+            $masterProgram,
+            Auth::user(),
+            'Master Program',
+            'diperbarui'
+        ));
 
         return redirect()->route('admin.programs.master')
             ->with('success', 'Master program berhasil diperbarui!');
@@ -186,7 +235,7 @@ class ProgramController extends Controller
 
     public function showUnit(CompetencyUnit $unit)
     {
-        $unit->load('masterProgram');
+        $unit->load('masterProgram', 'creator', 'updater');
         return view('programs.units-show', compact('unit'));
     }
 
@@ -205,7 +254,15 @@ class ProgramController extends Controller
             'description' => 'nullable|string',
         ]);
 
-        CompetencyUnit::create($validated);
+        $unit = CompetencyUnit::create($validated);
+
+        $admins = User::where('role', 'admin')->get();
+        Notification::send($admins, new GeneralActivityNotification(
+            $unit,
+            Auth::user(),
+            'Unit Kompetensi',
+            'ditambahkan'
+        ));
 
         return redirect()->route('admin.programs.units')
             ->with('success', 'Unit kompetensi berhasil ditambahkan!');
@@ -221,6 +278,14 @@ class ProgramController extends Controller
         ]);
 
         $unit->update($validated);
+
+        $admins = User::where('role', 'admin')->get();
+        Notification::send($admins, new GeneralActivityNotification(
+            $unit,
+            Auth::user(),
+            'Unit Kompetensi',
+            'diperbarui'
+        ));
 
         return redirect()->route('admin.programs.units')
             ->with('success', 'Unit kompetensi berhasil diperbarui!');

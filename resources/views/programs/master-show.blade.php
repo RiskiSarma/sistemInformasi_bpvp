@@ -49,6 +49,28 @@
             <p class="text-gray-700 leading-relaxed">{{ $masterProgram->description }}</p>
         </div>
         @endif
+        <div class="mt-6 pt-6 border-t">
+            <dl class="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Dibuat Oleh</dt>
+                    <dd class="mt-1 text-sm text-gray-900">
+                        {{ $masterProgram->creator?->name ?? 'Sistem' }}
+                        <span class="text-gray-500 text-xs">
+                            ({{ $masterProgram->created_at->format('d M Y H:i') }})
+                        </span>
+                    </dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Terakhir Diperbarui Oleh</dt>
+                    <dd class="mt-1 text-sm text-gray-900">
+                        {{ $masterProgram->updater?->name ?? 'Sistem' }}
+                        <span class="text-gray-500 text-xs">
+                            ({{ $masterProgram->updated_at->format('d M Y H:i') }})
+                        </span>
+                    </dd>
+                </div>
+            </dl>
+        </div>
     </div>
 
     <!-- Unit Kompetensi -->
@@ -108,6 +130,7 @@
                         {{ ucfirst($program->status) }}
                     </span>
                 </div>
+                
             </div>
             @endforeach
         </div>

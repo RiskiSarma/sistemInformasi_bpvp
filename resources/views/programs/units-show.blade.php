@@ -60,14 +60,29 @@
             @endif
 
             <!-- Metadata -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8 pt-8 border-t">
                 <div>
-                    <h3 class="text-sm font-medium text-gray-500 mb-1">Dibuat Pada</h3>
-                    <p class="text-gray-800">{{ $unit->created_at->format('d F Y, H:i') }}</p>
+                    <dt class="text-sm font-medium text-gray-500">Dibuat Oleh</dt>
+                    <dd class="mt-2 text-sm text-gray-900">
+                        <div class="font-semibold">
+                            {{ $unit->creator?->name ?? 'Sistem / Tidak Diketahui' }}
+                        </div>
+                        <div class="text-xs text-gray-500 mt-1">
+                            {{ $unit->created_at->format('d F Y, H:i') }}
+                        </div>
+                    </dd>
                 </div>
+
                 <div>
-                    <h3 class="text-sm font-medium text-gray-500 mb-1">Terakhir Diperbarui</h3>
-                    <p class="text-gray-800">{{ $unit->updated_at->format('d F Y, H:i') }}</p>
+                    <dt class="text-sm font-medium text-gray-500">Terakhir Diperbarui Oleh</dt>
+                    <dd class="mt-2 text-sm text-gray-900">
+                        <div class="font-semibold">
+                            {{ $unit->updater?->name ?? 'Belum pernah diupdate' }}
+                        </div>
+                        <div class="text-xs text-gray-500 mt-1">
+                            {{ $unit->updated_at->format('d F Y, H:i') }}
+                        </div>
+                    </dd>
                 </div>
             </div>
         </div>

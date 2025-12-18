@@ -64,6 +64,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
         Route::get('/units/{unit}/edit', [ProgramController::class, 'editUnit'])->name('units.edit');
         Route::put('/units/{unit}', [ProgramController::class, 'updateUnit'])->name('units.update');
         Route::delete('/units/{unit}', [ProgramController::class, 'destroyUnit'])->name('units.destroy');
+        Route::get('/{program}', [ProgramController::class, 'show'])->name('show');
     });
     
     // Peserta
