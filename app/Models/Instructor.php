@@ -28,6 +28,11 @@ class Instructor extends Model
         'experience_years' => 'integer',
     ];
 
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
     protected static function boot()
     {
         parent::boot();

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Traits\HasAudit;
+use Illuminate\Support\Facades\Auth;
 
 class Participant extends Model
 {
@@ -33,29 +34,28 @@ class Participant extends Model
     ];
 
     protected static function boot()
-{
-    parent::boot();
+    {
+        parent::boot();
 
-    static::creating(function ($model) {
-        $model->created_by = auth()->id();
-        $model->updated_by = auth()->id();
-    });
+        static::creating(function ($model) {
+            if (Auth::check()) {
+                $model->created_by = Auth::id();
+                $model->updated_by = Auth::id();
+            }
+        });
 
-    static::updating(function ($model) {
-        $model->updated_by = auth()->id();
-    });
-}
-    /**
-     * Relationship to User
-     */
+        static::updating(function ($model) {
+            if (Auth::check()) {
+                $model->updated_by = Auth::id();
+            }
+        });
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
-    /**
-     * Relationship to Program
-     */
     public function program()
     {
         return $this->belongsTo(Program::class);

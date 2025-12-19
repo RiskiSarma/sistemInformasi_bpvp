@@ -26,37 +26,60 @@ class GeneralActivityNotification extends Notification implements ShouldQueue
 
     public function via($notifiable)
     {
-        return ['database', 'broadcast']; // Simpan ke database + real-time (opsional)
+        return ['database', 'broadcast'];
     }
 
     public function toArray($notifiable)
     {
-        // Ambil nama data (name, code, atau fallback)
-        $name = $this->model->name ?? $this->model->code ?? $this->model->title ?? 'Data';
+        $name = 'Data';
+
+        if ($this->model instanceof \App\Models\User) {
+            $name = $this->model->name;
+        } elseif ($this->model instanceof \App\Models\Participant) {
+            $name = $this->model->user?->name ?? 'Peserta';
+        } elseif ($this->model instanceof \App\Models\Instructor) {
+            $name = $this->model->user?->name ?? 'Instruktur';
+        } elseif ($this->model instanceof \App\Models\MasterProgram) {
+            $name = $this->model->name;
+        } elseif ($this->model instanceof \App\Models\Program) {
+            $name = $this->model->masterProgram?->name ?? 'Program';
+        } elseif ($this->model instanceof \App\Models\CompetencyUnit) {
+            $name = $this->model->name;
+        }
 
         return [
-            'title'   => "$this->menu " . ucfirst($this->action),
-            'message' => $this->user->name . " telah {$this->action} {$this->menu}: {$name}",
+            'title'   => ucfirst($this->action) . ' ' . $this->menu,
+            'message' => $this->user->name . ' telah ' . $this->action . ' ' . $this->menu . ': ' . $name,
             'url'     => $this->getUrl(),
-            'icon'    => 'document-text',
+            'icon'    => 'activity',
+            'time'    => now()->diffForHumans(),
         ];
     }
 
     private function getUrl()
     {
-        // Sesuaikan route detail masing-masing model
+        if ($this->model instanceof \App\Models\User) {
+            return route('admin.users.index');
+        }
+
+        if ($this->model instanceof \App\Models\Participant) {
+            return route('admin.participants.show', $this->model);
+        }
+
+        if ($this->model instanceof \App\Models\Instructor) {
+            return route('admin.instructors.show', $this->model);
+        }
+
         if ($this->model instanceof \App\Models\MasterProgram) {
             return route('admin.programs.master.show', $this->model);
         }
 
-        if ($this->model instanceof \App\Models\Program) {
-            // Kalau ada route show untuk Program, tambahkan di sini
-            // return route('admin.programs.show', $this->model);
-            return route('admin.programs.index');
-        }
-
         if ($this->model instanceof \App\Models\CompetencyUnit) {
             return route('admin.programs.units.show', $this->model);
+        }
+
+        if ($this->model instanceof \App\Models\Program) {
+            return route('admin.programs.show', $this->model);
         }
 
         return route('admin.dashboard');

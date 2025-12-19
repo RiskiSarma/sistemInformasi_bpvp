@@ -9,6 +9,7 @@ use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ScheduleController;
+use App\Http\Controllers\UserController;
 use App\Http\Controllers\CertificateController;
 use Illuminate\Support\Facades\Route;
 
@@ -112,6 +113,16 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
         Route::get('/{certificate}/preview', [CertificateController::class, 'preview'])->name('preview');
         Route::delete('/{certificate}', [CertificateController::class, 'destroy'])->name('destroy');
     });
+
+        // MANAJEMEN USER - PERBAIKAN FINAL
+    Route::resource('users', UserController::class)->names([
+        'index'   => 'users.index',
+        'create'  => 'users.create',
+        'store'   => 'users.store',
+        'edit'    => 'users.edit',
+        'update'  => 'users.update',
+        'destroy' => 'users.destroy',
+    ]);
     
     // Notifications
     Route::prefix('notifications')->name('notifications.')->group(function () {

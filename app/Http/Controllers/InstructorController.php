@@ -2,12 +2,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\Instructor;
-use Illuminate\Http\Request;
 use App\Models\Program;
+use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Notification;
-use App\Notifications\InstructorActivityNotification;
-use App\Models\User;
+use App\Notifications\GeneralActivityNotification;
+use Illuminate\Validation\Rule;
 
 class InstructorController extends Controller
 {
@@ -39,14 +40,18 @@ class InstructorController extends Controller
 
     public function create()
     {
-        return view('instructors.create');
+        $users = User::where('role', 'instructor')
+                    ->whereDoesntHave('instructor')
+                    ->orderBy('name')
+                    ->get();
+                    
+        return view('instructors.create', compact('users'));
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:instructors,email',
+            'user_id' => 'required|exists:users,id|unique:instructors,user_id',
             'phone' => 'required|string|max:20',
             'expertise' => 'required|string|max:255',
             'experience_years' => 'nullable|integer|min:0',
@@ -55,31 +60,76 @@ class InstructorController extends Controller
             'status' => 'required|in:active,inactive',
         ]);
 
-        $instructor = Instructor::create($validated);
+        $instructor = Instructor::create($validated + [
+            'created_by' => auth()->id(),
+            'updated_by' => auth()->id(),
+        ]);
 
         // Kirim notifikasi ke semua user yang punya role admin
         $admins = User::where('role', 'admin')->get(); // Sesuaikan dengan kolom role kamu
         // Jika pakai Spatie Permission: User::role('admin')->get();
 
-        Notification::send($admins, new InstructorActivityNotification(
+        Notification::send($admins, new GeneralActivityNotification(
             $instructor,
-            Auth::user(),
+            auth()->user(),
+            'Instruktur',
             'ditambahkan'
         ));
 
-        return redirect()->route(' instructors.index')
+        return redirect()->route('admin.instructors.index')
             ->with('success', 'Instruktur berhasil ditambahkan!');
     }
 
     public function show(Instructor $instructor)
     {
-        $instructor->load('programs.masterProgram', 'creator', 'updater');
-        
-        return view('instructors.show', compact('instructor'));
-    }
+        // Load relasi dasar
+        $instructor->load([
+            'user',
+            'programs.masterProgram',
+            'programs.participants',
+            'creator',
+            'updater',
+            'schedules' => fn($q) => $q->with('program.masterProgram')->where('is_active', true)
+        ]);
 
+        // Load schedules aktif beserta programnya
+        $instructor->load([
+            'schedules' => function ($query) {
+                $query->with(['program.masterProgram'])
+                    ->where('is_active', true);
+            }
+        ]);
+
+        // Ambil program_id unik dari schedules aktif
+        $programIds = $instructor->schedules->pluck('program_id')->unique();
+        $programs = Program::whereIn('id', $programIds)->get();
+
+        // Ambil data program untuk statistik (hanya yang ada di jadwal aktif)
+        $programs = \App\Models\Program::whereIn('id', $programIds)->get();
+
+        // Hitung statistik - SAMA PERSIS seperti di schedule()
+        $totalPrograms = $programs->count();
+        $ongoingPrograms = $programs->where('status', 'ongoing')->count();
+        $plannedPrograms = $programs->where('status', 'planned')->count();
+        $completedPrograms = $programs->where('status', 'completed')->count();
+
+        return view('instructors.show', compact(
+            'instructor',
+            'totalPrograms',
+            'ongoingPrograms',
+            'plannedPrograms',
+            'completedPrograms'
+        ));
+    }
     public function edit(Instructor $instructor)
     {
+        $instructor->loadMissing('user');
+
+        if (!$instructor->user) {
+        return redirect()->route('admin.instructors.index')
+            ->with('error', 'Data instruktur ini tidak terhubung dengan akun user. Hubungi developer untuk perbaikan data.');
+    }
+
         return view('instructors.edit', compact('instructor'));
     }
 
@@ -96,14 +146,22 @@ class InstructorController extends Controller
             'status' => 'required|in:active,inactive',
         ]);
 
-        $instructor->update($validated);
+        $instructor->update($validated + [
+            'updated_by' => auth()->id(),
+        ]);
+
+        if ($instructor->user) {
+        $instructor->user->updated_by = auth()->id();
+        $instructor->user->touch();
+        $instructor->user->save();
+        }
 
         $admins = User::where('role', 'admin')->get();
-
-        Notification::send($admins, new InstructorActivityNotification(
-        $instructor,
-        Auth::user(),
-        'diperbarui'
+        Notification::send($admins, new GeneralActivityNotification(
+            $instructor,
+            auth()->user(),
+            'Instruktur',
+            'diperbarui'
         ));
 
         return redirect()->route('admin.instructors.index')

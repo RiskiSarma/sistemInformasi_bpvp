@@ -7,24 +7,24 @@ use App\Models\Program;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Notification;
+use App\Notifications\GeneralActivityNotification;
+use Illuminate\Validation\Rule;
 
 class ParticipantController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Participant::with(['user', 'program', 'creator', 'updater']);
+        $query = Participant::with(['user', 'program.masterProgram', 'creator', 'updater']);
 
-        // Filter by status
         if ($request->filled('status') && $request->status !== 'all') {
             $query->where('status', $request->status);
         }
 
-        // Filter by program
         if ($request->filled('program_id')) {
             $query->where('program_id', $request->program_id);
         }
 
-        // Search by name, email, or phone
         if ($request->filled('search')) {
             $search = $request->search;
             $query->whereHas('user', function($q) use ($search) {
@@ -34,26 +34,105 @@ class ParticipantController extends Controller
               ->orWhere('nik', 'like', "%{$search}%");
         }
 
-        $participants = $query->orderby('id','asc')->paginate(15);
-        $programs = Program::where('status', 'active')->get();
+        $participants = $query->orderBy('id', 'asc')->paginate(15);
+        $programs = Program::whereIn('status', ['planned', 'ongoing', 'completed'])->get();
 
         return view('participants.index', compact('participants', 'programs'));
     }
 
+    public function create()
+    {
+        $programs = Program::with('masterProgram')->get();
+        $users = User::where('role', 'participant')
+                     ->whereDoesntHave('participant') // user participant yang belum punya profil peserta
+                     ->orderBy('name')
+                     ->get();
+
+        return view('participants.create', compact('programs', 'users'));
+    }
+
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'user_id'     => 'required|exists:users,id|unique:participants,user_id',
+            'program_id'  => 'required|exists:programs,id',
+            'nik'         => 'nullable|string|max:16|unique:participants,nik',
+            'phone'       => 'nullable|string|max:20',
+            'education'   => 'nullable|string|max:100',
+            'address'     => 'nullable|string',
+            'status'      => 'required|in:active,graduated,dropout',
+        ]);
+
+        $participant = Participant::create($validated + [
+            'created_by' => auth()->id(),
+            'updated_by' => auth()->id(),
+        ]);
+
+        // NOTIFIKASI TAMBAH PESERTA
+        $admins = User::where('role', 'admin')->get();
+        Notification::send($admins, new GeneralActivityNotification(
+            $participant,
+            auth()->user(),
+            'Peserta Pelatihan',
+            'ditambahkan'
+        ));
+
+        return redirect()->route('admin.participants.index')
+            ->with('success', 'Peserta berhasil ditambahkan!');
+    }
+
+    public function edit(Participant $participant)
+    {
+        $participant->load(['user', 'program.masterProgram']);
+        $programs = Program::with('masterProgram')->get();
+
+        return view('participants.edit', compact('participant', 'programs'));
+    }
+
+    public function update(Request $request, Participant $participant)
+    {
+        $validated = $request->validate([
+            'program_id' => 'required|exists:programs,id',
+            'nik'        => ['nullable', 'string', 'max:16', Rule::unique('participants', 'nik')->ignore($participant->id)],
+            'phone'      => 'nullable|string|max:20',
+            'education'  => 'nullable|string|max:100',
+            'address'    => 'nullable|string',
+            'status'     => 'required|in:active,graduated,dropout',
+        ]);
+
+        $participant->update($validated + [
+            'updated_by' => auth()->id(),
+        ]);
+
+        $participant->user->updated_by = auth()->id();
+        $participant->user->touch();
+        $participant->user->save();
+        
+        // NOTIFIKASI UBAH PESERTA
+        $admins = User::where('role', 'admin')->get();
+        Notification::send($admins, new GeneralActivityNotification(
+            $participant,
+            auth()->user(),
+            'Peserta Pelatihan',
+            'diperbarui'
+        ));
+
+        return redirect()->route('admin.participants.index')
+            ->with('success', 'Data peserta berhasil diperbarui!');
+    }
+
     public function show(Participant $participant)
     {
-        // Load semua relasi yang dibutuhkan
         $participant->load(['user', 'program.masterProgram', 'creator', 'updater', 'attendances']);
 
-        // Hitung statistik kehadiran
-        $attendances = $participant->attendances; // asumsi relasi attendances sudah ada
+        $attendances = $participant->attendances;
         $totalAttendances = $attendances->count();
 
         if ($totalAttendances > 0) {
             $presentCount = $attendances->where('status', 'present')->count();
             $absentCount  = $attendances->where('status', 'absent')->count();
             $lateCount    = $attendances->where('status', 'late')->count();
-            $excusedCount = $attendances->where('status', 'excused')->count(); // atau 'izin'
+            $excusedCount = $attendances->where('status', 'excused')->count();
 
             $attendancePercentage = round(($presentCount / $totalAttendances) * 100, 2);
         } else {
@@ -72,103 +151,17 @@ class ParticipantController extends Controller
         ));
     }
 
-    public function create()
-    {
-        $programs = Program::with('masterProgram')
-            ->whereIn('status', ['planned', 'ongoing'])
-            ->get();
-        
-        return view('participants.create', compact('programs'));
-    }
-
-    public function store(Request $request)
-    {
-        $request->validate([
-            'program_id' => 'required|exists:programs,id',
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:participants,email',
-            'phone' => 'required|string|max:20',
-            'address' => 'nullable|string',
-            'education' => 'nullable|string|max:100',
-            'nik' => ['nullable', 'string', 'max:20', 'unique:participants'],
-            'status' => 'required|in:active,graduated,dropout',
-        ]);
-
-        // Create user
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'role' => 'participant',
-        ]);
-
-        // Create participant (created_by akan otomatis terisi oleh HasAudit trait)
-        Participant::create([
-            'user_id' => $user->id,
-            'program_id' => $request->program_id,
-            'nik' => $request->nik,
-            'phone' => $request->phone,
-            'address' => $request->address,
-            'batch' => $request->batch,
-            'status' => 'active',
-            'enrollment_date' => now(),
-        ]);
-
-        return redirect()->route('admin.participants.index')
-            ->with('success', 'Peserta berhasil ditambahkan!');
-    }
-
-    public function edit(Participant $participant)
-    {
-        $participant->load('user', 'program.masterProgram');
-        $programs = Program::with('masterProgram')
-        ->whereIn('status', ['planned', 'ongoing', 'active'])
-        ->get();
-
-        return view('participants.edit', compact('participant', 'programs'));
-    }
-
-    public function update(Request $request, Participant $participant)
-{
-    $request->validate([
-        'name' => ['required', 'string', 'max:255'],
-        'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,' . $participant->user_id],
-        'phone' => ['required', 'string', 'max:20'],
-        'program_id' => ['required', 'exists:programs,id'],
-        'nik' => ['nullable', 'string', 'max:20', 'unique:participants,nik,' . $participant->id],
-        'address' => ['nullable', 'string'],
-        // 'batch' => ['nullable', 'string', 'max:50'],  // HAPUS VALIDASI INI JUGA
-        'status' => ['required', 'in:active,inactive,graduated'],
-    ]);
-
-    // Update user
-    $participant->user->update([
-        'name' => $request->name,
-        'email' => $request->email,
-    ]);
-
-    // Update participant — HAPUS 'batch'
-    $participant->update([
-        'program_id' => $request->program_id,
-        'nik' => $request->nik,
-        'phone' => $request->phone,
-        'address' => $request->address,
-        'status' => $request->status,
-        'education' => $request->education,
-
-    ]);
-
-    return redirect()->route('admin.participants.index')
-        ->with('success', 'Data peserta berhasil diperbarui!');
-}
-
     public function destroy(Participant $participant)
     {
-        $user = $participant->user;
+        $userId = $participant->user_id;
         $participant->delete();
-        $user->delete();
 
-        return redirect()->route('participants.index')
+        // Hapus user kalau tidak dipakai lagi (opsional)
+        if (User::find($userId)->participant()->doesntExist()) {
+            User::find($userId)->delete();
+        }
+
+        return redirect()->route('admin.participants.index')
             ->with('success', 'Peserta berhasil dihapus!');
     }
 }

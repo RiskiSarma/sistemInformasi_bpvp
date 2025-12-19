@@ -29,14 +29,14 @@
                 <span class="text-3xl font-bold text-purple-600">{{ substr($instructor->name, 0, 1) }}</span>
             </div>
             <div class="flex-1">
-                <h2 class="text-2xl font-bold text-gray-800">{{ $instructor->name }}</h2>
+                <h2 class="text-2xl font-bold text-gray-800">{{ $instructor->user->name }}</h2>
                 <p class="text-lg text-purple-600 mt-1">{{ $instructor->expertise }}</p>
                 <div class="mt-3 space-y-1">
                     <p class="text-gray-600 flex items-center">
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
                         </svg>
-                        {{ $instructor->email }}
+                        {{ $instructor->user->email }}
                     </p>
                     <p class="text-gray-600 flex items-center">
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -52,6 +52,7 @@
         </div>
     </div>
 
+    
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Info Detail -->
         <div class="lg:col-span-2 bg-white rounded-lg shadow-sm border p-6">
@@ -97,20 +98,18 @@
         <div class="bg-white rounded-lg shadow-sm border p-6">
             <h3 class="text-lg font-semibold text-gray-800 mb-4">Statistik</h3>
             <div class="space-y-4">
-                <div class="p-4 bg-blue-50 rounded-lg">
-                    <div class="text-sm text-blue-600 mb-1">Total Program</div>
-                    <div class="text-2xl font-bold text-blue-700">{{ $instructor->programs->count() }}</div>
+                <div class="p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg border border-blue-200">
+                    <div class="text-sm text-blue-600 mb-1">Total Program (dari Jadwal Aktif)</div>
+                    <div class="text-3xl font-bold text-blue-700">{{ $totalPrograms }}</div>
                 </div>
-                <div class="p-4 bg-green-50 rounded-lg">
-                    <div class="text-sm text-green-600 mb-1">Program Aktif</div>
-                    <div class="text-2xl font-bold text-green-700">
-                        {{ $instructor->programs->where('status', 'ongoing')->count() }}
-                    </div>
+                <div class="p-4 bg-gradient-to-r from-green-50 to-green-100 rounded-lg border border-green-200">
+                    <div class="text-sm text-green-600 mb-1">Sedang Berjalan</div>
+                    <div class="text-3xl font-bold text-green-700">{{ $ongoingPrograms }}</div>
                 </div>
-                <div class="p-4 bg-purple-50 rounded-lg">
+                <div class="p-4 bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg border border-purple-200">
                     <div class="text-sm text-purple-600 mb-1">Total Peserta</div>
-                    <div class="text-2xl font-bold text-purple-700">
-                        {{ $instructor->programs->sum(function($program) { return $program->participants->count(); }) }}
+                    <div class="text-3xl font-bold text-purple-700">
+                        {{ $instructor->programs->sum(fn($p) => $p->participants->count()) }}
                     </div>
                 </div>
             </div>

@@ -22,6 +22,10 @@ class Attendance extends Model
         'date' => 'date',
     ];
 
+    public function recorder()
+    {
+        return $this->belongsTo(User::class, 'recorded_by');
+    }
     /**
      * Get the program that this attendance belongs to
      */
