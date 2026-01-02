@@ -61,6 +61,8 @@ class ParticipantController extends Controller
             'education'   => 'nullable|string|max:100',
             'address'     => 'nullable|string',
             'status'      => 'required|in:active,graduated,dropout',
+            'birth_place'  => 'nullable|string|max:100',
+            'birth_date'   => 'nullable|date|before_or_equal:today',
         ]);
 
         $participant = Participant::create($validated + [
@@ -98,6 +100,8 @@ class ParticipantController extends Controller
             'education'  => 'nullable|string|max:100',
             'address'    => 'nullable|string',
             'status'     => 'required|in:active,graduated,dropout',
+            'birth_place'  => 'nullable|string|max:100',
+            'birth_date'   => 'nullable|date|before_or_equal:today',
         ]);
 
         $participant->update($validated + [

@@ -18,7 +18,7 @@
 </head>
 <body class="min-h-screen flex items-center justify-center p-4">
     <div class="w-full max-w-md">
-        <!-- Card Reset Password -->
+        <!-- Card Lupa Password -->
         <div class="reset-card rounded-2xl shadow-2xl p-8">
             <!-- Header -->
             <div class="text-center mb-8">
@@ -29,27 +29,46 @@
                 <p class="text-gray-600 mt-2">Jangan khawatir, kami akan bantu!</p>
             </div>
 
-            <!-- Info Text -->
-            <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 rounded">
-                <div class="flex items-start">
-                    <i class="fas fa-info-circle text-blue-500 mt-1 mr-3"></i>
-                    <p class="text-sm text-gray-700">
-                        Masukkan email Anda dan kami akan mengirimkan link untuk reset password ke email tersebut.
-                    </p>
-                </div>
-            </div>
-
-            <!-- Session Status (Success Message) -->
-            @if (session('status'))
-                <div class="mb-6 p-4 bg-green-100 border border-green-400 rounded-lg">
-                    <div class="flex items-center">
-                        <i class="fas fa-check-circle text-green-600 mr-3"></i>
-                        <p class="text-green-700 text-sm">{{ session('status') }}</p>
+            <!-- Tampilkan Password Baru Jika Sukses -->
+            @if (session('new_password'))
+                <div class="mb-6 p-4 bg-green-100 border-l-4 border-green-500 rounded-lg">
+                    <div class="flex items-start">
+                        <i class="fas fa-check-circle text-green-600 mt-1 mr-3 text-2xl"></i>
+                        <div>
+                            <p class="text-green-800 font-bold text-lg">Password Baru Telah Digenerate!</p>
+                            <p class="text-green-700 mt-2">
+                                Gunakan password ini untuk login sekarang:
+                            </p>
+                            <div class="mt-4 p-5 bg-white border-2 border-green-300 rounded-lg font-mono text-xl text-center tracking-wider">
+                                {{ session('new_password') }}
+                            </div>
+                            <p class="text-green-700 mt-4 text-sm">
+                                <strong>Penting:</strong> Catat password ini sekarang juga! Password tidak akan muncul lagi.<br>
+                                Setelah login, segera ganti password di menu profil Anda.
+                            </p>
+                        </div>
                     </div>
                 </div>
             @endif
 
-            <!-- Form Reset Password -->
+            <!-- Info Text -->
+            <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 mb-6 rounded">
+                <div class="flex items-start">
+                    <i class="fas fa-exclamation-triangle text-yellow-500 mt-1 mr-3"></i>
+                    <p class="text-sm text-gray-700">
+                        Masukkan email terdaftar. Jika valid, password baru akan ditampilkan langsung di halaman ini (tidak dikirim via email).
+                    </p>
+                </div>
+            </div>
+
+            <!-- Error Email -->
+            @error('email')
+                <div class="mb-6 p-4 bg-red-100 border border-red-400 rounded-lg">
+                    <p class="text-red-700 text-sm">{{ $message }}</p>
+                </div>
+            @enderror
+
+            <!-- Form Lupa Password -->
             <form method="POST" action="{{ route('password.email') }}">
                 @csrf
 
@@ -68,11 +87,6 @@
                         class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition duration-200 outline-none"
                         placeholder="nama@email.com"
                     />
-                    @error('email')
-                        <p class="mt-2 text-sm text-red-600">
-                            <i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}
-                        </p>
-                    @enderror
                 </div>
 
                 <!-- Button Submit -->
@@ -80,7 +94,7 @@
                     type="submit"
                     class="w-full bg-gradient-to-r from-yellow-500 to-orange-600 text-white font-semibold py-3 rounded-lg hover:from-yellow-600 hover:to-orange-700 transform hover:scale-[1.02] transition duration-200 shadow-lg"
                 >
-                    <i class="fas fa-paper-plane mr-2"></i>Kirim Link Reset Password
+                    <i class="fas fa-paper-plane mr-2"></i>Generate Password Baru
                 </button>
             </form>
 
@@ -93,7 +107,7 @@
 
             <!-- Footer -->
             <div class="mt-6 text-center text-sm text-gray-600">
-                <p>© 2024 Balai Latihan Kerja</p>
+                <p>© 2025 Balai Latihan Kerja</p>
             </div>
         </div>
 
@@ -102,7 +116,7 @@
             <p class="text-white text-sm">
                 <i class="fas fa-question-circle mr-1"></i>
                 Butuh bantuan? Hubungi 
-                <a href="mailto:admin@blk.ac.id" class="font-semibold underline">admin@blk.ac.id</a>
+                <a href="https://www.instagram.com/blkbandaceh/" class="font-semibold underline">Admin BPVP Banda Aceh</a>
             </p>
         </div>
     </div>

@@ -11,8 +11,22 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        $instructor = auth()->user();
+        $user = auth()->user();
         
+        // Ambil data instruktur berdasarkan user yang login
+        $instructor = \App\Models\Instructor::where('user_id', $user->id)->first();
+        
+        if (!$instructor) {
+            // Opsional: handle jika belum ada data instruktur
+            return view('instructor-area.dashboard', [
+                'totalPrograms' => 0,
+                'activePrograms' => 0,
+                'totalParticipants' => 0,
+                'recentAttendances' => collect([]),
+                'error' => 'Data instruktur belum ditemukan. Hubungi admin.'
+            ]);
+        }
+
         // Get programs assigned to this instructor
         $programs = Program::where('instructor_id', $instructor->id)
             ->with(['participants'])
@@ -20,7 +34,10 @@ class DashboardController extends Controller
         
         // Statistics
         $totalPrograms = $programs->count();
-        $activePrograms = $programs->where('status', 'active')->count();
+        
+        // Ubah 'active' jadi sesuai status yang benar di DB kamu (lihat catatan di bawah)
+        $activePrograms = $programs->where('status', 'ongoing')->count(); // atau 'active', 'berjalan', dll.
+        
         $totalParticipants = $programs->sum(function($program) {
             return $program->participants->count();
         });
@@ -33,7 +50,6 @@ class DashboardController extends Controller
             ->get();
         
         return view('instructor-area.dashboard', compact(
-            'programs',
             'totalPrograms',
             'activePrograms',
             'totalParticipants',

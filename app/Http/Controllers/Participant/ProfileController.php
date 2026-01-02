@@ -33,11 +33,11 @@ class ProfileController extends Controller
 
         // Validasi data participant (termasuk NIK)
         $validatedParticipant = $request->validate([
-            'nik'     => 'required|string|size:16', // NIK wajib 16 digit
+            'nik'     => 'required|string|size:16', 
             'phone'   => 'nullable|string|max:20',
             'address' => 'nullable|string',
-            // Tambah field lain jika ada, misal:
-            // 'education' => 'nullable|string',
+            'birth_place' => 'nullable|string|max:100',
+            'birth_date'  => 'nullable|date|before_or_equal:today',
         ]);
 
         // Update user

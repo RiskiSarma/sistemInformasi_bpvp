@@ -21,7 +21,9 @@
                 </div>
                 <h3 class="font-semibold text-gray-800">{{ $certificate->participant->program->name }}</h3>
                 <p class="text-sm text-gray-600 mt-2">Batch {{ $certificate->participant->program->batch ?? '-' }}</p>
-                <p class="text-sm text-gray-500 mt-1">Diterbitkan: {{ $certificate->issued_at->format('d/m/Y') }}</p>
+                <p class="text-sm text-gray-500 mt-1">
+                    Diterbitkan: {{ $certificate->issue_date ? $certificate->issue_date->format('d/m/Y') : $certificate->created_at->format('d/m/Y') }}
+                </p>
 
                 <div class="mt-6 space-y-2">
                     <a href="{{ route('participant.certificate.download', $certificate) }}" 

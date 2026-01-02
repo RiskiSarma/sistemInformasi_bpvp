@@ -63,7 +63,21 @@ class AttendanceController extends Controller
             ->get()
             ->keyBy('participant_id');
         
-        return view('instructor-area.attendance.show', compact('program', 'participants', 'date', 'attendances', 'today'));
+        // Tambahan: Get riwayat kehadiran grouped by date
+        $attendanceHistory = Attendance::where('program_id', $program->id)
+            ->select(
+                'date',
+                DB::raw("COUNT(CASE WHEN status = 'present' THEN 1 END) as present"),
+                DB::raw("COUNT(CASE WHEN status = 'absent' THEN 1 END) as absent"),
+                DB::raw("COUNT(CASE WHEN status = 'excused' THEN 1 END) as excused"),
+                DB::raw("COUNT(CASE WHEN status = 'late' THEN 1 END) as late"),
+                DB::raw("COUNT(*) as total")
+            )
+            ->groupBy('date')
+            ->orderBy('date', 'desc')
+            ->get();
+
+        return view('instructor-area.attendance.show', compact('program', 'participants', 'date', 'attendances', 'today','attendanceHistory'));
     }
     
     public function record(Request $request)

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Participant;
 
+use Illuminate\Support\Facades\Storage;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Participant;
@@ -30,11 +31,11 @@ class CertificateController extends Controller
         return view('participant-area.certificate.index', compact('certificates', 'participant'));
     }
     
-    public function download($id = null)
+    public function download(Certificate $certificate)
     {
         $user = auth()->user();
         
-        // Cari data participant dari tabel participants
+        // Cari participant dari user
         $participant = Participant::where('user_id', $user->id)->first();
         
         if (!$participant) {
@@ -42,32 +43,26 @@ class CertificateController extends Controller
                 ->with('error', 'Data peserta tidak ditemukan');
         }
         
-        // Jika ada ID spesifik, cari berdasarkan ID
-        if ($id) {
-            $certificate = Certificate::where('participant_id', $participant->id)
-                ->where('id', $id)
-                ->first();
-        } else {
-            // Jika tidak, ambil sertifikat terbaru yang aktif
-            $certificate = Certificate::where('participant_id', $participant->id)
-                ->where('status', 'issued')
-                ->latest()
-                ->first();
+        // Pastikan sertifikat milik participant ini
+        if ($certificate->participant_id !== $participant->id) {
+            abort(403, 'Akses ditolak: Sertifikat bukan milik Anda');
         }
         
-        if (!$certificate) {
-            return redirect()->back()->with('error', 'Sertifikat tidak ditemukan');
+        // Cek file ada atau tidak
+        if ($certificate->pdf_path && Storage::exists($certificate->pdf_path)) {
+            $safeFilename = str_replace(['/', '\\'], '-', $certificate->certificate_number) . '.pdf';
+            return Storage::download($certificate->pdf_path, "Sertifikat_{$safeFilename}");
         }
         
-        // Check if file exists
-        if ($certificate->file_path && file_exists(storage_path('app/public/' . $certificate->file_path))) {
-            return response()->download(
-                storage_path('app/public/' . $certificate->file_path),
-                'Sertifikat_' . $participant->user->name . '.pdf'
-            );
+        // Kalau file hilang, regenerate (opsional, panggil method dari CertificateController)
+        app(\App\Http\Controllers\CertificateController::class)->generatePDF($certificate);
+        
+        // Coba download lagi setelah regenerate
+        if (Storage::exists($certificate->pdf_path)) {
+            $safeFilename = str_replace(['/', '\\'], '-', $certificate->certificate_number) . '.pdf';
+            return Storage::download($certificate->pdf_path, "Sertifikat_{$safeFilename}");
         }
         
-        // If no file, redirect with info
-        return redirect()->back()->with('info', 'File sertifikat sedang diproses. Silakan coba lagi nanti.');
+        return redirect()->back()->with('error', 'File sertifikat tidak ditemukan. Hubungi admin.');
     }
 }   

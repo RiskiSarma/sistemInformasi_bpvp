@@ -29,7 +29,7 @@
                         <option value="{{ $participant->id }}" 
                                 data-program="{{ $participant->program->masterProgram->name ?? 'N/A' }}"
                                 data-batch="{{ $participant->program->batch ?? '' }}"
-                                data-attendance="{{ $participant->getAttendancePercentage() }}"
+                                data-attendance="{{ $participant->calculated_percentage ?? $participant->getAttendancePercentage() ?? '0.00' }}" 
                                 {{ old('participant_id') == $participant->id ? 'selected' : '' }}>
                             {{ $participant->name }} - {{ $participant->program->masterProgram->name ?? 'N/A' }}
                         </option>
@@ -54,7 +54,10 @@
                     <div class="space-y-1 text-sm">
                         <p><span class="font-medium">Program:</span> <span id="infoProgram">-</span></p>
                         <p><span class="font-medium">Batch:</span> <span id="infoBatch">-</span></p>
-                        <p><span class="font-medium">Kehadiran:</span> <span id="infoAttendance">-</span>%</p>
+                        <p>
+                            <span class="font-medium">Kehadiran:</span> 
+                            <span id="infoAttendance" class="font-bold">-</span>%
+                        </p>
                     </div>
                 </div>
 

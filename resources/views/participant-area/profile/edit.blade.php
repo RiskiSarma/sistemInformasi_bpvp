@@ -37,6 +37,29 @@
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Telepon</label>
                             <input type="text" name="phone" value="{{ old('phone', $participant->phone ?? '') }}" class="w-full px-4 py-2 border rounded-lg">
+                            @error('phone') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                        </div>
+
+                        <!-- Tambahan: Tempat & Tanggal Lahir -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Tempat Lahir</label>
+                            <input 
+                                type="text" 
+                                name="birth_place" 
+                                value="{{ old('birth_place', $participant->birth_place ?? '') }}" 
+                                class="w-full px-4 py-2 border rounded-lg @error('birth_place') border-red-500 @enderror"
+                                placeholder="Kota / Kabupaten">
+                            @error('birth_place') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Lahir</label>
+                            <input 
+                                type="date" 
+                                name="birth_date" 
+                                value="{{ old('birth_date', $participant->birth_date ? $participant->birth_date->format('Y-m-d') : '') }}" 
+                                class="w-full px-4 py-2 border rounded-lg @error('birth_date') border-red-500 @enderror">
+                            @error('birth_date') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                         </div>
                     </div>
 
@@ -80,7 +103,7 @@
             </div>
         </div>
 
-        <!-- Card Profil -->
+        <!-- Card Profil – tambahkan tampilan tempat & tgl lahir di sini juga -->
         <div class="bg-white rounded-lg shadow-sm border p-6">
             <div class="text-center">
                 <div class="w-24 h-24 bg-blue-600 rounded-full mx-auto flex items-center justify-center text-white text-3xl font-bold">
@@ -97,12 +120,22 @@
                         <span class="font-medium">{{ $participant->nik ?? '-' }}</span>
                     </div>
                     <div class="flex justify-between">
+                        <span class="text-gray-600">Tempat Lahir</span>
+                        <span class="font-medium">{{ $participant->birth_place ?? '-' }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Tanggal Lahir</span>
+                        <span class="font-medium">
+                            {{ $participant->birth_date ? $participant->birth_date->format('d F Y') : '-' }}
+                        </span>
+                    </div>
+                    <div class="flex justify-between">
                         <span class="text-gray-600">Program</span>
-                        <span class="font-medium">{{ $participant->program?->name ?? '-' }}</span>
+                        <span class="font-medium">{{ $participant->program?->masterProgram?->name ?? '-' }} {{ $participant->program?->batch ? '(Batch '.$participant->program->batch.')' : '' }}</span>
                     </div>
                     <div class="flex justify-between">
                         <span class="text-gray-600">Status</span>
-                        <span class="px-2 py-1 text-xs rounded-full {{ $participant->status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' }}">
+                        <span class="px-2 py-1 text-xs rounded-full {{ $participant->status === 'active' ? 'bg-green-100 text-green-800' : ($participant->status === 'graduated' ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800') }}">
                             {{ ucfirst($participant->status ?? '-') }}
                         </span>
                     </div>

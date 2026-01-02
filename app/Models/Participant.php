@@ -24,13 +24,16 @@ class Participant extends Model
         'completion_date',
         'created_by',
         'updated_by',
+        'birth_place',
+        'birth_date',
     ];
 
     protected $casts = [
-        'enrollment_date' => 'date',
-        'completion_date' => 'date',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
+        'enrollment_date'   => 'date',
+        'completion_date'   => 'date',
+        'birth_date'        => 'date',
+        'created_at'        => 'datetime',
+        'updated_at'        => 'datetime',
     ];
 
     protected static function boot()
@@ -71,23 +74,22 @@ class Participant extends Model
 
     public function getAttendancePercentage()
     {
-        // Ambil total pertemuan dari program (asumsi ada kolom total_meetings di tabel programs)
-        $totalMeetings = $this->program?->total_meetings ?? 0;
+        // Ambil semua record attendance peserta ini (sudah di-load via eager loading atau fresh)
+        $attendances = $this->attendances;
 
-        // Jika program tidak punya total_meetings, atau 0, kembalikan 0
+        // Total pertemuan = jumlah record absensi yang sudah diinput
+        $totalMeetings = $attendances->count();
+
         if ($totalMeetings <= 0) {
             return '0.00';
         }
 
-        // Hitung jumlah kehadiran (status 'present')
-        $attended = $this->attendances()
-            ->where('status', 'present')
-            ->count();
+        // Hitung jumlah 'present' (sesuai scopePresent di model Attendance)
+        $attended = $attendances->where('status', 'present')->count();
 
-        // Hitung persentase
+        // Persentase
         $percentage = ($attended / $totalMeetings) * 100;
 
-        // Return dengan 2 desimal
         return number_format($percentage, 2);
     }
     /**
@@ -130,5 +132,29 @@ class Participant extends Model
     public function updater()
     {
         return $this->belongsTo(User::class, 'updated_by');
+    }
+    public function isEligibleForCertificate(): bool
+    {
+        // Harus status 'graduated'
+        if ($this->status !== 'graduated') {
+            return false;
+        }
+
+        // Harus belum punya sertifikat
+        if ($this->certificate !== null) {
+            return false;
+        }
+
+        // Kehadiran minimal 75%
+        $percentage = (float) $this->getAttendancePercentage();
+        if ($percentage < 75.00) {
+            return false;
+        }
+
+        return true;
+    }
+    public function getAgeAttribute()
+    {
+        return $this->birth_date ? $this->birth_date->age . ' tahun' : null;
     }
 }

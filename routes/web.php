@@ -112,6 +112,7 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
         Route::get('/{certificate}/download', [CertificateController::class, 'download'])->name('download');
         Route::get('/{certificate}/preview', [CertificateController::class, 'preview'])->name('preview');
         Route::delete('/{certificate}', [CertificateController::class, 'destroy'])->name('destroy');
+        Route::get('/certificate/verify/{certificate_number}', [CertificateController::class, 'verify'])->name('certificate.verify');
     });
 
         // MANAJEMEN USER - PERBAIKAN FINAL
@@ -184,7 +185,8 @@ Route::middleware(['auth', 'role:participant'])->prefix('participant')->name('pa
     // Certificate
     Route::prefix('certificate')->name('certificate.')->group(function () {
         Route::get('/', [\App\Http\Controllers\Participant\CertificateController::class, 'index'])->name('index');
-        Route::get('/download', [\App\Http\Controllers\Participant\CertificateController::class, 'download'])->name('download');
+        Route::get('/{certificate}', [\App\Http\Controllers\Participant\CertificateController::class, 'preview'])->name('preview');
+        Route::get('/{certificate}/download', [\App\Http\Controllers\Participant\CertificateController::class, 'download'])->name('download');
     });
     
     // Profile

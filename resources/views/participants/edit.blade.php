@@ -71,6 +71,21 @@
                 @enderror
                 <p class="mt-1 text-xs text-gray-500">NIK unik dan bisa diubah jika salah isi saat daftar.</p>
             </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="birth_place" class="block text-sm font-medium text-gray-700 mb-1">Tempat Lahir</label>
+                    <input type="text" name="birth_place" value="{{ old('birth_place', $participant->birth_place) }}"
+                        class="w-full px-3 py-2 border rounded-lg" placeholder="Kota / Kabupaten">
+                    @error('birth_place') <p class="text-red-600 text-sm mt-1">{{ $message }}</p> @enderror
+                </div>
+                <div>
+                    <label for="birth_date" class="block text-sm font-medium text-gray-700 mb-1">Tanggal Lahir</label>
+                    <input type="date" name="birth_date" 
+                        value="{{ old('birth_date', $participant->birth_date ? $participant->birth_date->format('Y-m-d') : '') }}"
+                        class="w-full px-3 py-2 border rounded-lg">
+                    @error('birth_date') <p class="text-red-600 text-sm mt-1">{{ $message }}</p> @enderror
+                </div>
+            </div>
             <div>
                 <label for="education" class="block text-sm font-medium text-gray-700 mb-1">Pendidikan Terakhir</label>
                 <select name="education" id="education" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">

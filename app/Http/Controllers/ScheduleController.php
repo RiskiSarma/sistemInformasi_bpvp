@@ -52,7 +52,7 @@ class ScheduleController extends Controller
 
         $validated['instructor_id'] = $instructor->id;
 
-        $schedule = Schedule::create($validated);
+        // $schedule = Schedule::create($validated);
         // Check for time conflicts
         $conflict = Schedule::where('instructor_id', $instructor->id)
             ->where('day_of_week', $validated['day_of_week'])
@@ -90,7 +90,7 @@ class ScheduleController extends Controller
         $admins = User::where('role', 'admin')->get(); // Sesuaikan dengan sistem role kamu
         Notification::send($admins, new ScheduleActivityNotification($schedule, Auth::user(), 'ditambahkan'));
         
-        return redirect()->route('instructors.schedule', $instructor)
+        return redirect()->route('admin.instructors.schedule', $instructor)
             ->with('success', 'Jadwal mengajar berhasil ditambahkan!');
     }
 

@@ -38,6 +38,16 @@
                 {{ ucfirst($participant->status) }}
             </span>
         </div>
+        <div>
+            <dt class="text-sm font-medium text-gray-500">Tempat Lahir</dt>
+            <dd class="mt-1 text-sm text-gray-900">{{ $participant->birth_place ?? '-' }}</dd>
+        </div>
+        <div>
+            <dt class="text-sm font-medium text-gray-500">Tanggal Lahir</dt>
+            <dd class="mt-1 text-sm text-gray-900">
+                {{ $participant->birth_date ? $participant->birth_date->format('d F Y') : '-' }}
+            </dd>
+        </div>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -72,30 +82,30 @@
                 </div>
             </dl>
             <div class="mt-8 pt-6 border-t">
-    <h3 class="text-lg font-semibold text-gray-800 mb-4">Informasi Audit</h3>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
-        <div class="bg-gray-50 p-4 rounded-lg">
-            <span class="text-gray-500">Dibuat oleh</span>
-            <p class="font-medium text-gray-900 mt-1">
-                {{ $participant->creator?->name ?? 'Sistem' }}
-            </p>
-            <p class="text-gray-500 text-xs">
-                {{ $participant->created_at->format('d F Y, H:i') }}
-            </p>
-        </div>
-        <div class="bg-gray-50 p-4 rounded-lg">
-            <span class="text-gray-500">Terakhir diupdate oleh</span>
-            <p class="font-medium text-gray-900 mt-1">
-                {{ $participant->updater?->name ?? 'Belum diupdate' }}
-            </p>
-            @if($participant->updater)
-            <p class="text-gray-500 text-xs">
-                {{ $participant->updated_at->format('d F Y, H:i') }}
-            </p>
-            @endif
-        </div>
-    </div>
-</div>
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Informasi Audit</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <span class="text-gray-500">Dibuat oleh</span>
+                        <p class="font-medium text-gray-900 mt-1">
+                            {{ $participant->creator?->name ?? 'Sistem' }}
+                        </p>
+                        <p class="text-gray-500 text-xs">
+                            {{ $participant->created_at->format('d F Y, H:i') }}
+                        </p>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <span class="text-gray-500">Terakhir diupdate oleh</span>
+                        <p class="font-medium text-gray-900 mt-1">
+                            {{ $participant->updater?->name ?? 'Belum diupdate' }}
+                        </p>
+                        @if($participant->updater)
+                        <p class="text-gray-500 text-xs">
+                            {{ $participant->updated_at->format('d F Y, H:i') }}
+                        </p>
+                        @endif
+                    </div>
+                </div>
+            </div>
         </div>
         
         <!-- Attendance Stats -->
