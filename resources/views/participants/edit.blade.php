@@ -36,6 +36,18 @@
             </div>
 
             <div>
+                <label for="gender" class="block text-sm font-medium text-gray-700 mb-1">Jenis Kelamin <span class="text-red-500">*</span></label>
+                <select name="gender" id="gender" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 @error('gender') border-red-500 @enderror">
+                    <option value="">-- Pilih Jenis Kelamin --</option>
+                    <option value="Laki-laki" {{ old('gender', $participant->gender) == 'Laki-laki' ? 'selected' : '' }}>Laki-laki</option>
+                    <option value="Perempuan" {{ old('gender', $participant->gender) == 'Perempuan' ? 'selected' : '' }}>Perempuan</option>
+                </select>
+                @error('gender')
+                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                @enderror
+            </div>
+            
+            <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Nama Lengkap</label>
                 <input type="text" value="{{ $participant->user->name }}" disabled class="w-full px-3 py-2 border bg-gray-50 rounded-lg">
             </div>

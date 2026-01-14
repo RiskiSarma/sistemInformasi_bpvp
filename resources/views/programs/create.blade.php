@@ -34,11 +34,59 @@
                 @enderror
             </div>
 
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Pilih Batch *</label>
+                <select name="batch_id" required class="w-full px-4 py-3 border rounded-lg">
+                    <option value="">-- Pilih Batch --</option>
+                    @foreach($batches as $batch)
+                        <option value="{{ $batch->id }}">
+                            {{ $batch->name }} ({{ $batch->jenis_pelatihan ?? '-' }})
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            <!-- Angkatan (Dropdown) -->
             <div>
-                <label for="batch" class="block text-sm font-medium text-gray-700 mb-1">Batch <span class="text-red-500">*</span></label>
-                <input type="text" name="batch" id="batch" value="{{ old('batch') }}" placeholder="Contoh: Batch I, Batch II" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 @error('batch') border-red-500 @enderror">
-                @error('batch')
-                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                <label for="angkatan" class="block text-sm font-medium text-gray-700 mb-1">Angkatan <span class="text-red-500">*</span></label>
+                <select name="angkatan" id="angkatan" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 @error('angkatan') border-red-500 @enderror">
+                    <option value="">-- Pilih Angkatan --</option>
+                    <option value="I" {{ old('angkatan', $program->angkatan ?? '') == 'I' ? 'selected' : '' }}> I</option>
+                    <option value="II" {{ old('angkatan', $program->angkatan ?? '') == 'II' ? 'selected' : '' }}> II</option>
+                    <option value="III" {{ old('angkatan', $program->angkatan ?? '') == 'III' ? 'selected' : '' }}> III</option>
+                    <option value="IV" {{ old('angkatan', $program->angkatan ?? '') == 'IV' ? 'selected' : '' }}> IV</option>
+                    <option value="V" {{ old('angkatan', $program->angkatan ?? '') == 'V' ? 'selected' : '' }}> V</option>
+                    <option value="VI" {{ old('angkatan', $program->angkatan ?? '') == 'VI' ? 'selected' : '' }}> VI</option>
+                    <!-- Bisa tambah lebih banyak atau buat dinamis jika perlu -->
+                </select>
+                @error('angkatan')
+                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                @enderror
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                    Unit Kompetensi Independen <span class="text-red-500">*</span>
+                </label>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-64 overflow-y-auto border border-gray-300 rounded-lg p-4 bg-gray-50">
+                    @foreach($independentUnits as $unit)
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" 
+                                name="independent_competency_unit_ids[]" 
+                                value="{{ $unit->id }}" 
+                                class="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                {{ in_array($unit->id, old('independent_competency_unit_ids', [])) ? 'checked' : '' }}>
+                            <span class="text-sm text-gray-700">
+                                {{ $unit->code }} - {{ $unit->name }}
+                            </span>
+                        </label>
+                    @endforeach
+                </div>
+                
+                <p class="mt-2 text-xs text-gray-500">Pilih satu atau lebih unit kompetensi.</p>
+                
+                @error('independent_competency_unit_ids')
+                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                 @enderror
             </div>
 

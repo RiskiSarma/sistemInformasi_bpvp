@@ -6,11 +6,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Traits\HasAudit;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Participant extends Model
 {
     use HasFactory, HasAudit;
-
+    use SoftDeletes;
+    
     protected $fillable = [
         'user_id',
         'program_id',
@@ -18,6 +20,7 @@ class Participant extends Model
         'phone',
         'address',
         'education',
+        'gender',
         'status',
         'batch',
         'enrollment_date',

@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
-    <link rel="icon" type="image/png" href="{{ asset('assets/img/logo blk banda.png') }}">
+    <link rel="icon" type="image/png" href="{{ asset('images/logo blk banda.png') }}">
     <style>
         @keyframes float {
             0%, 100% { transform: translateY(0px); }

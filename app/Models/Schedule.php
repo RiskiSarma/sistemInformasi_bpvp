@@ -6,11 +6,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Schedule extends Model
 {
     use HasFactory;
-
+    use SoftDeletes;
+    
     protected $fillable = [
         'program_id',
         'instructor_id',

@@ -63,6 +63,7 @@ class ParticipantController extends Controller
             'status'      => 'required|in:active,graduated,dropout',
             'birth_place'  => 'nullable|string|max:100',
             'birth_date'   => 'nullable|date|before_or_equal:today',
+            'gender'      => 'required|in:Laki-laki,Perempuan',
         ]);
 
         $participant = Participant::create($validated + [
@@ -102,6 +103,7 @@ class ParticipantController extends Controller
             'status'     => 'required|in:active,graduated,dropout',
             'birth_place'  => 'nullable|string|max:100',
             'birth_date'   => 'nullable|date|before_or_equal:today',
+            'gender'      => 'required|in:Laki-laki,Perempuan',
         ]);
 
         $participant->update($validated + [

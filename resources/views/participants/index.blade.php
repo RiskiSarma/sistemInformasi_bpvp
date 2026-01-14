@@ -111,6 +111,7 @@
                                 @endif
                             </a>
                         </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jenis Kelamin</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Program</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                             <a href="{{ route('admin.participants.index', array_merge(request()->all(), ['sort' => 'email', 'direction' => request('sort') == 'email' && request('direction') == 'asc' ? 'desc' : 'asc'])) }}" class="flex items-center space-x-1 hover:text-gray-700">
@@ -164,6 +165,9 @@
                         <td class="px-6 py-4">
                             <div class="font-medium text-gray-900">{{ $participant->name }}</div>
                             <div class="text-sm text-gray-500">{{ $participant->education ?? '-' }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {{ $participant->gender ?? '-' }}
                         </td>
                         <td class="px-6 py-4">
                             <div class="text-sm text-gray-900">{{ $participant->program->masterProgram->name ?? 'N/A' }}</div>

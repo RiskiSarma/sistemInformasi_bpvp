@@ -10,6 +10,7 @@
     <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('apple-touch-icon.png') }}">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/png" href="{{ asset('images/logo blk banda.png') }}">
     <style>
         body {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -26,8 +27,9 @@
         <div class="login-card rounded-2xl shadow-2xl p-8">
             <!-- Header -->
             <div class="text-center mb-8">
-                <div class="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full mx-auto mb-4 flex items-center justify-center">
-                    <i class="fas fa-user-shield text-white text-3xl"></i>
+                <div class="w-20 h-20  flex mx-auto mb-4 flex items-center justify-center">
+                        <img src="images/logo blk banda.png" alt="Logo Kemnaker" class="h-30 w-auto">
+                        {{-- <span class="ml-3 text-xl font-bold text-gray-800">BLK Banda Aceh</span> --}}
                 </div>
                 <h2 class="text-3xl font-bold text-gray-800">Selamat Datang</h2>
                 <p class="text-gray-600 mt-2">Sistem Informasi BLK</p>
@@ -155,7 +157,7 @@
 
             <!-- Footer -->
             <div class="mt-4 text-center text-sm text-gray-600">
-                <p>© 2025 Balai Latihan Kerja Banda Aceh</p>
+                <p>© {{ date('Y') }} Balai Latihan Kerja Banda Aceh</p>
             </div>
         </div>
     </div>

@@ -5,10 +5,14 @@ namespace App\Http\Controllers;
 use App\Models\Program;
 use App\Models\MasterProgram;
 use App\Models\CompetencyUnit;
+use App\Models\IndependentCompetencyUnit;
+use App\Models\Batch;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Notification;
 use App\Notifications\GeneralActivityNotification;
+use Illuminate\Support\Facades\Artisan;
+use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\User;
 
 class ProgramController extends Controller
@@ -38,25 +42,32 @@ class ProgramController extends Controller
 
     public function create()
     {
+        $batches = Batch::where('is_active', true)->get();
         $masterPrograms = MasterProgram::where('is_active', true)->get();
-        return view('programs.create', compact('masterPrograms'));
+        $independentUnits = \App\Models\IndependentCompetencyUnit::orderBy('code')->get();
+        return view('programs.create', compact('batches','masterPrograms', 'independentUnits'));
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
             'master_program_id' => 'required|exists:master_programs,id',
-            'batch' => 'required|string|max:50',
+            'batch_id' => 'required|exists:batches,id',
+            'angkatan'          => 'required|string|max:50',
+            'independent_competency_unit_id'  => 'nullable|exists:independent_competency_units,id',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after:start_date',
             'status' => 'required|in:planned,ongoing,completed',
             'max_participants' => 'nullable|integer|min:1',
+            'independent_competency_unit_ids' => 'required|array|min:1',
+            'independent_competency_unit_ids.*' => 'exists:independent_competency_units,id',
         ]);
 
         $program = Program::create($validated);
+        $program->independentCompetencyUnits()->sync($request->independent_competency_unit_ids);
 
         // Kirim notifikasi
-        $admins = User::where('role', 'admin')->get(); // Sesuaikan kalau pakai role lain
+        $admins = User::where('role', 'admin')->get(); 
         Notification::send($admins, new GeneralActivityNotification(
             $program,
             Auth::user(),
@@ -71,7 +82,9 @@ class ProgramController extends Controller
     public function edit(Program $program)
     {
         $masterPrograms = MasterProgram::where('is_active', true)->get();
-        return view('programs.edit', compact('program', 'masterPrograms'));
+        $batches = Batch::where('is_active', true)->get();
+        $independentUnits = \App\Models\IndependentCompetencyUnit::orderBy('code')->get();
+        return view('programs.edit', compact('program', 'masterPrograms', 'batches','independentUnits'));
     }
 
     public function update(Request $request, Program $program)
@@ -79,13 +92,18 @@ class ProgramController extends Controller
         $validated = $request->validate([
             'master_program_id' => 'required|exists:master_programs,id',
             'batch' => 'required|string|max:50',
+            'angkatan'          => 'required|string|max:50',
+            'independent_competency_unit_id'  => 'nullable|exists:independent_competency_units,id',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after:start_date',
             'status' => 'required|in:planned,ongoing,completed',
             'max_participants' => 'nullable|integer|min:1',
+            'independent_competency_unit_ids' => 'required|array|min:1',
+            'independent_competency_unit_ids.*' => 'exists:independent_competency_units,id',
         ]);
 
         $program->update($validated);
+        $program->independentCompetencyUnits()->sync($request->independent_competency_unit_ids);
 
         $admins = User::where('role', 'admin')->get();
         Notification::send($admins, new GeneralActivityNotification(
@@ -123,7 +141,11 @@ class ProgramController extends Controller
     
     public function master(Request $request)
     {
-        $query = MasterProgram::with('competencyUnits');
+        // $query = MasterProgram::with('competencyUnits');
+        $query = MasterProgram::query();
+
+        // Load relasi baru (independentCompetencyUnits)
+        // $query->with('independentCompetencyUnits');
 
         if ($request->has('search') && $request->search != '') {
             $search = $request->search;
@@ -140,7 +162,12 @@ class ProgramController extends Controller
 
     public function showMaster(MasterProgram $masterProgram)
     {
-        $masterProgram->load('competencyUnits', 'programs', 'creator', 'updater');
+        $masterProgram->load(
+            // 'competencyUnits', 
+            'programs.independentCompetencyUnits',
+            'programs', 
+            'creator', 
+            'updater');
         return view('programs.master-show', compact('masterProgram'));
     }
 
@@ -156,10 +183,15 @@ class ProgramController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'duration_hours' => 'required|integer|min:1',
+            'kejuruan'        => 'required|string|max:100',
+            'bidang'          => 'required|string|max:100',
+            'jenis_pelatihan' => 'required|string|max:50',
             'is_active' => 'boolean',
         ]);
 
-        $validated['is_active'] = $request->has('is_active') ? true : false;
+        $validated['is_active'] = $request->has('is_active') ? 1 : 0;
+        $validated['created_by'] = auth()->id();
+        $validated['updated_by'] = auth()->id();
 
         $masterProgram = MasterProgram::create($validated);
 
@@ -182,10 +214,14 @@ class ProgramController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'duration_hours' => 'required|integer|min:1',
+            'kejuruan'        => 'required|string|max:100',
+            'bidang'          => 'required|string|max:100',
+            'jenis_pelatihan' => 'required|string|max:50',
             'is_active' => 'boolean',
         ]);
 
         $validated['is_active'] = $request->has('is_active') ? true : false;
+        $validated['updated_by'] = auth()->id();
 
         $masterProgram->update($validated);
 
@@ -291,6 +327,21 @@ class ProgramController extends Controller
             ->with('success', 'Unit kompetensi berhasil diperbarui!');
     }
 
+    public function syncKemnaker()
+    {
+        // $this->info('Memulai sync program dari Kemnaker...');
+
+        Artisan::call('kemnaker:sync-programs', [
+            '--limit' => 100,
+            '--page' => 1,
+        ]);
+
+        $output = Artisan::output();
+
+        return redirect()->route('admin.programs.master')
+            ->with('success', 'Sync program dari Kemnaker berhasil! ' . trim($output));
+    }
+
     public function destroyUnit(CompetencyUnit $unit)
     {
         $unit->delete();
@@ -298,4 +349,49 @@ class ProgramController extends Controller
         return redirect()->route('admin.programs.units')
             ->with('success', 'Unit kompetensi berhasil dihapus!');
     }
+    public function storeIndependentUnitToMaster(Request $request, MasterProgram $masterProgram)
+{
+    $validated = $request->validate([
+        'code' => 'required|string|max:50|unique:independent_competency_units,code',
+        'name' => 'required|string|max:255',
+        'description' => 'nullable|string',
+    ]);
+
+    $unit = IndependentCompetencyUnit::create($validated);
+
+    // Attach ke semua programs di bawah master ini
+    foreach ($masterProgram->programs as $program) {
+        $program->independentCompetencyUnits()->syncWithoutDetaching($unit->id);
+    }
+
+    return redirect()->route('admin.programs.master.show', $masterProgram)
+        ->with('success', 'Unit kompetensi independen berhasil ditambahkan ke master!');
+}
+
+public function updateIndependentUnitInMaster(Request $request, MasterProgram $masterProgram, IndependentCompetencyUnit $independentCompetencyUnit)
+{
+    $validated = $request->validate([
+        'code' => 'required|string|max:50|unique:independent_competency_units,code,' . $independentCompetencyUnit->id,
+        'name' => 'required|string|max:255',
+        'description' => 'nullable|string',
+    ]);
+
+    $independentCompetencyUnit->update($validated);
+
+    return redirect()->route('admin.programs.master.show', $masterProgram)
+        ->with('success', 'Unit kompetensi independen berhasil diperbarui!');
+}
+
+public function destroyIndependentUnitInMaster(MasterProgram $masterProgram, IndependentCompetencyUnit $independentCompetencyUnit)
+{
+    // Detach dari semua programs di bawah master
+    foreach ($masterProgram->programs as $program) {
+        $program->independentCompetencyUnits()->detach($independentCompetencyUnit->id);
+    }
+
+    $independentCompetencyUnit->delete();
+
+    return redirect()->route('admin.programs.master.show', $masterProgram)
+        ->with('success', 'Unit kompetensi independen berhasil dihapus!');
+}
 }

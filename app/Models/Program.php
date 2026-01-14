@@ -6,14 +6,18 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Program extends Model
 {
     use HasFactory;
+    use SoftDeletes;
 
     protected $fillable = [
         'master_program_id',
         'batch',
+        'angkatan',
+        'independent_competency_unit_id',
         'start_date',
         'end_date',
         'status',
@@ -120,4 +124,18 @@ class Program extends Model
         
         return $this->masterProgram ? $this->masterProgram->code : '-';
     }
+    // public function independentCompetencyUnit()
+    // {
+    //     return $this->belongsTo(IndependentCompetencyUnit::class, 'independent_competency_unit_id');
+    // }
+    public function independentCompetencyUnits()
+    {
+        return $this->belongsToMany(
+            IndependentCompetencyUnit::class,
+            'independent_competency_unit_program',
+            'program_id',
+            'independent_competency_unit_id'
+        )->withTimestamps();
+    }
+    
 }

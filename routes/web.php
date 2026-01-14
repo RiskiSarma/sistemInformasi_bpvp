@@ -11,6 +11,12 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\CertificateController;
+use App\Http\Controllers\IndependentUnitController;
+use App\Http\Controllers\BatchController;
+use App\Http\Controllers\JenisPelatihanController;
+use App\Http\Controllers\PaketPelatihanController;
+
+
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -58,6 +64,40 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
         Route::put('/master/{masterProgram}', [ProgramController::class, 'updateMaster'])->name('master.update');
         Route::delete('/master/{masterProgram}', [ProgramController::class, 'destroyMaster'])->name('master.destroy');
         
+        // Sync Kemnaker - PINDAHKAN KE SINI
+        Route::get('/sync-kemnaker', [ProgramController::class, 'syncKemnaker'])->name('sync-kemnaker');
+        
+        // CRUD Unit Kompetensi Independen di Master Program (INI YANG BENAR & BERSIH)
+        Route::prefix('master/{masterProgram}/units')->name('master.units.')->group(function () {
+            Route::post('/', [ProgramController::class, 'storeUnitToMaster'])->name('store');
+            Route::put('/{independentCompetencyUnit}', [ProgramController::class, 'updateUnitInMaster'])->name('update');
+            Route::delete('/{independentCompetencyUnit}', [ProgramController::class, 'destroyUnitInMaster'])->name('destroy');
+        });
+
+        Route::resource('batches', BatchController::class)->names([
+            'index'   => 'batches.index',
+            'create'  => 'batches.create',
+            'store'   => 'batches.store',
+            'show'    => 'batches.show',
+            'edit'    => 'batches.edit',
+            'update'  => 'batches.update',
+            'destroy' => 'batches.destroy',
+        ]);
+
+        Route::prefix('jenis-pelatihan')->name('jenis-pelatihan.')->group(function () {
+            Route::get('/', [JenisPelatihanController::class, 'index'])->name('index');
+            Route::post('/', [JenisPelatihanController::class, 'store'])->name('store');
+            Route::put('/{jenis}', [JenisPelatihanController::class, 'update'])->name('update');
+            Route::delete('/{jenis}', [JenisPelatihanController::class, 'destroy'])->name('destroy');
+        });
+        
+        Route::prefix('paket-pelatihan')->name('paket-pelatihan.')->group(function () {
+            Route::get('/', [PaketPelatihanController::class, 'index'])->name('index');
+            Route::post('/', [PaketPelatihanController::class, 'store'])->name('store');
+            Route::put('/{paketPelatihan}', [PaketPelatihanController::class, 'update'])->name('update');
+            Route::delete('/{paketPelatihan}', [PaketPelatihanController::class, 'destroy'])->name('destroy');
+        });
+
         // Unit Kompetensi
         Route::get('/units', [ProgramController::class, 'units'])->name('units');
         Route::post('/units', [ProgramController::class, 'storeUnit'])->name('units.store');
@@ -113,6 +153,16 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
         Route::get('/{certificate}/preview', [CertificateController::class, 'preview'])->name('preview');
         Route::delete('/{certificate}', [CertificateController::class, 'destroy'])->name('destroy');
         Route::get('/certificate/verify/{certificate_number}', [CertificateController::class, 'verify'])->name('certificate.verify');
+    });
+
+    Route::prefix('independent-units')->name('independent-units.')->group(function () {
+        Route::get('/', [IndependentUnitController::class, 'index'])->name('index');
+        Route::get('/create', [IndependentUnitController::class, 'create'])->name('create');
+        Route::post('/', [IndependentUnitController::class, 'store'])->name('store');
+        Route::get('/{unit}', [IndependentUnitController::class, 'show'])->name('show');
+        Route::get('/{unit}/edit', [IndependentUnitController::class, 'edit'])->name('edit');
+        Route::put('/{unit}', [IndependentUnitController::class, 'update'])->name('update');
+        Route::delete('/{unit}', [IndependentUnitController::class, 'destroy'])->name('destroy');
     });
 
         // MANAJEMEN USER - PERBAIKAN FINAL

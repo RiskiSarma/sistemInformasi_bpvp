@@ -131,7 +131,7 @@
                     </div>
                     <div class="flex justify-between">
                         <span class="text-gray-600">Program</span>
-                        <span class="font-medium">{{ $participant->program?->masterProgram?->name ?? '-' }} {{ $participant->program?->batch ? '(Batch '.$participant->program->batch.')' : '' }}</span>
+                        <span class="font-medium">{{ $participant->program?->masterProgram?->name ?? '-' }} {{ $participant->program?->batch ? '('.$participant->program->batch.')' : '' }}</span>
                     </div>
                     <div class="flex justify-between">
                         <span class="text-gray-600">Status</span>

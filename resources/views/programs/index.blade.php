@@ -49,6 +49,7 @@
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">#</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Program</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Batch</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Angkatan</th> <!-- ← tambah ini -->
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Periode</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Peserta</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
@@ -58,15 +59,22 @@
                 <tbody class="divide-y">
                     @forelse($programs as $program)
                     <tr class="hover:bg-gray-50 transition">
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            {{ $program->id }}
-                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ $program->id }}</td>
                         <td class="px-6 py-4">
                             <div class="font-medium text-gray-900">{{ $program->masterProgram->name ?? 'N/A' }}</div>
                             <div class="text-sm text-gray-500">{{ $program->masterProgram->code ?? '' }}</div>
                         </td>
+                        <td class="px-6 py-4 text-sm">
+                            @if($program->batch_id && $program->batch instanceof \App\Models\Batch)
+                                {{ $program->batch->name }} ({{ $program->batch->jenis_pelatihan ?? '-' }})
+                            @elseif($program->batch)
+                                {{ $program->batch }} <!-- tampil string lama kalau batch_id null -->
+                            @else
+                                -
+                            @endif
+                        </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {{ $program->batch }}
+                            {{ $program->angkatan ? 'Angkatan ' . $program->angkatan : '-' }} <!-- ← tambah ini -->
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             <div>{{ $program->start_date->format('d M Y') }}</div>
@@ -115,7 +123,7 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
                             </svg>
                             <p class="text-gray-500 text-sm">Belum ada program pelatihan</p>
-                            <a href="{{ route('programs.create') }}" class="mt-3 inline-block text-blue-600 hover:text-blue-800 text-sm font-medium">
+                            <a href="{{ route('admin.programs.create') }}" class="mt-3 inline-block text-blue-600 hover:text-blue-800 text-sm font-medium">
                                 Buat Program Baru →
                             </a>
                         </td>

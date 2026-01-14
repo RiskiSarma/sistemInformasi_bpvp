@@ -11,7 +11,7 @@
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
-    <link rel="icon" type="image/png" href="{{ asset('assets/img/logo blk banda.png') }}">
+    <link rel="icon" type="image/png" href="{{ asset('images/logo blk banda.png') }}">
 
     <!-- Scripts -->
     {{-- @vite(['resources/css/app.css', 'resources/js/app.js']) --}}
@@ -50,8 +50,12 @@
                         request()->routeIs('admin.programs.create') || 
                         request()->routeIs('admin.programs.edit') || 
                         request()->routeIs('admin.programs.show') || 
-                        request()->routeIs('admin.programs.master') || 
-                        request()->routeIs('admin.programs.units') 
+                        request()->routeIs('admin.programs.master') ||
+                        request()->routeIs('admin.programs.master.*') ||          // semua route master (index, show, edit, dll)
+                        request()->routeIs('admin.programs.batches.*') ||         // semua route batch
+                        request()->routeIs('admin.independent-units.*') ||
+                        request()->routeIs('admin.programs.jenis-pelatihan.*') ||
+                        request()->routeIs('admin.programs.paket-pelatihan.*')         // unit kompetensi independen        // unit kompetensi independen
                         ? 'true' : 'false' 
                     }}
                 }">
@@ -74,7 +78,7 @@
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
                             </svg>
-                            <span class="font-medium">Program Pelatihan</span>
+                            <span class="font-medium">Master Data</span>
                         </div>
                         <svg class="w-4 h-4 transition-transform" :class="programOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
@@ -88,12 +92,28 @@
                             Kelola Pelatihan
                         </a>
                         <a href="{{ route('admin.programs.master') }}" 
-                        class="block px-4 py-2 text-sm rounded-lg transition {{ request()->routeIs('admin.programs.master') ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100' }}">
+                        class="block px-4 py-2 text-sm rounded-lg transition {{ request()->routeIs('admin.programs.master*') ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100' }}">
                             Program Pelatihan (Master)
                         </a>
-                        <a href="{{ route('admin.programs.units') }}" 
+                        {{-- <a href="{{ route('admin.programs.units') }}" 
                         class="block px-4 py-2 text-sm rounded-lg transition {{ request()->routeIs('admin.programs.units') ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100' }}">
                             Unit Kompetensi
+                        </a> --}}
+                        <a href="{{ route('admin.independent-units.index') }}" 
+                        class="block px-4 py-2 text-sm rounded-lg transition {{ request()->routeIs('admin.independent-units.*') ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100' }}">
+                            Unit Kompetensi 
+                        </a>
+                        <a href="{{ route('admin.programs.paket-pelatihan.index') }}" 
+                        class="block px-4 py-2 text-sm rounded-lg transition {{ request()->routeIs('admin.programs.paket-pelatihan.*') ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100' }}">
+                            Paket Pelatihan
+                        </a>
+                        <a href="{{ route('admin.programs.batches.index') }}" 
+                        class="block px-4 py-2 text-sm rounded-lg transition {{ request()->routeIs('admin.programs.batches.*') ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100' }}">
+                            Batch
+                        </a>
+                        <a href="{{ route('admin.programs.jenis-pelatihan.index') }}" 
+                        class="block px-4 py-2 text-sm rounded-lg transition {{ request()->routeIs('admin.programs.jenis-pelatihan.*') ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100' }}">
+                            Jenis Pelatihan
                         </a>
                     </div>
                 </div>
@@ -200,7 +220,7 @@
                                 @endif
                             </button>
                             
-                            <div x-show="open" @click.away="open = false" class="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border overflow-hidden z-50">
+                            <div x-show="open" @click.away="open = false" style="display: none;"  class="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border overflow-hidden z-50">
                                 <div class="p-4 border-b">
                                     <h3 class="font-semibold">Notifikasi</h3>
                                 </div>
@@ -230,7 +250,7 @@
                                 </div>
                             </button>
                             
-                            <div x-show="open" @click.away="open = false" class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border overflow-hidden z-50">
+                            <div x-show="open" @click.away="open = false" style="display: none;"  class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border overflow-hidden z-50">
                                 <a href="{{ route('admin.profile.edit') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                     <svg class="w-4 h-4 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>

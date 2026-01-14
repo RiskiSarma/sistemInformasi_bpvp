@@ -7,6 +7,7 @@
     <title>Daftar Akun - Sistem Informasi BLK</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" type="image/png" href="{{ asset('images/logo blk banda.png') }}">
     <style>
         body {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -23,8 +24,12 @@
         <div class="register-card rounded-2xl shadow-2xl p-8">
             <!-- Header -->
             <div class="text-center mb-8">
-                <div class="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full mx-auto mb-4 flex items-center justify-center">
+                {{-- <div class="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full mx-auto mb-4 flex items-center justify-center">
                     <i class="fas fa-user-plus text-white text-3xl"></i>
+                </div> --}}
+                <div class="w-20 h-20  flex mx-auto mb-4 flex items-center justify-center">
+                        <img src="images/logo blk banda.png" alt="Logo Kemnaker" class="h-30 w-auto">
+                        {{-- <span class="ml-3 text-xl font-bold text-gray-800">BLK Banda Aceh</span> --}}
                 </div>
                 <h2 class="text-3xl font-bold text-gray-800">Daftar Akun</h2>
                 <p class="text-gray-600 mt-2">Sistem Informasi BLK - Peserta</p>
@@ -124,56 +129,52 @@
                     @enderror
                 </div>
 
-                <!-- NIK (Nomor Induk Kependudukan) -->
-                <div class="mb-4">
-                    <label for="nik" class="block text-sm font-semibold text-gray-700 mb-2">
-                        <i class="fas fa-id-card mr-2"></i>NIK (Opsional)
-                    </label>
-                    <input 
-                        id="nik" 
-                        type="text" 
-                        name="nik" 
-                        value="{{ old('nik') }}"
-                        class="w-full px-4 py-3 rounded-lg border @error('nik') border-red-500 @else border-gray-300 @enderror focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition duration-200 outline-none"
-                        placeholder="Masukkan 16 digit NIK (jika ada)"
-                        maxlength="16"
-                    />
-                    <p class="mt-1 text-xs text-gray-500">NIK bersifat opsional, tapi jika diisi harus unik.</p>
-                    @error('nik')
-                        <p class="mt-2 text-sm text-red-600">
-                            <i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}
-                        </p>
-                    @enderror
-                </div>
+                <!-- NIK -->
+<div class="mb-4">
+    <label for="nik" class="block text-sm font-semibold text-gray-700 mb-2">
+        <i class="fas fa-id-card mr-2"></i>NIK <span class="text-red-500">*</span>
+    </label>
+    <input 
+        id="nik" 
+        type="text" 
+        name="nik" 
+        value="{{ old('nik') }}"
+        required 
+        minlength="16"
+        maxlength="16"
+        pattern="\d{16}"
+        title="NIK harus 16 digit angka"
+        class="w-full px-4 py-3 rounded-lg border @error('nik') border-red-500 @else border-gray-300 @enderror focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition duration-200 outline-none"
+        placeholder="Masukkan 16 digit NIK"
+    />
+    <p class="mt-1 text-xs text-gray-500">NIK harus unik per batch/program. Anda hanya boleh mendaftar sekali per batch.</p>
+    @error('nik')
+        <p class="mt-2 text-sm text-red-600"><i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}</p>
+    @enderror
+</div>
 
-                <!-- Program Pelatihan -->
+<!-- Program Pelatihan -->
 <div class="mb-4">
     <label for="program_id" class="block text-sm font-semibold text-gray-700 mb-2">
-        <i class="fas fa-graduation-cap mr-2"></i>Program Pelatihan yang Dibuka
+        <i class="fas fa-graduation-cap mr-2"></i>Program Pelatihan yang Dibuka <span class="text-red-500">*</span>
     </label>
-    <select 
-        id="program_id" 
-        name="program_id" 
-        required
-        class="w-full px-4 py-3 rounded-lg border @error('program_id') border-red-500 @else border-gray-300 @enderror focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition duration-200 outline-none"
-    >
+    <select id="program_id" name="program_id" required class="w-full px-4 py-3 rounded-lg border @error('program_id') border-red-500 @else border-gray-300 @enderror focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition duration-200 outline-none">
         <option value="">-- Pilih Program yang Sedang Dibuka --</option>
         @if($programs->count() > 0)
             @foreach($programs as $program)
                 <option value="{{ $program->id }}" {{ old('program_id') == $program->id ? 'selected' : '' }}>
                     {{ $program->masterProgram->name }} 
-                    @if($program->batch) - Batch {{ $program->batch }} @endif
-                    ({{ $program->start_date ? 'Mulai: ' . $program->start_date->format('d/m/Y') : 'Tanggal belum ditentukan' }})
+                    @if($program->batch) - {{ $program->batch }} @endif
+                    @if($program->angkatan) - Angkatan {{ $program->angkatan }} @endif
+                    (Mulai: {{ $program->start_date ? $program->start_date->format('d/m/Y') : 'TBD' }})
                 </option>
             @endforeach
         @else
-            <option value="" disabled>Pendaftaran belum dibuka untuk program apapun saat ini</option>
+            <option value="" disabled>Tidak ada program yang sedang dibuka pendaftaran</option>
         @endif
     </select>
     @error('program_id')
-        <p class="mt-2 text-sm text-red-600">
-            <i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}
-        </p>
+        <p class="mt-2 text-sm text-red-600"><i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}</p>
     @enderror
 </div>
                 <!-- Password -->
@@ -259,7 +260,7 @@
 
             <!-- Footer -->
             <div class="mt-6 text-center text-sm text-gray-600">
-                <p>© 2025 Balai Latihan Kerja Banda Aceh</p>
+                <p>© {{ date('Y') }} Balai Latihan Kerja Banda Aceh</p>
             </div>
         </div>
     </div>

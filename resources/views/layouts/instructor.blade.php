@@ -10,7 +10,7 @@
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
-    <link rel="icon" type="image/png" href="{{ asset('assets/img/logo blk banda.png') }}">
+    <link rel="icon" type="image/png" href="{{ asset('images/logo blk banda.png') }}">
 
     <!-- Tailwind CDN -->
     <script src="https://cdn.tailwindcss.com"></script>

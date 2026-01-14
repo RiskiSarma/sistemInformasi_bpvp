@@ -1,0 +1,86 @@
+<button @click="editModalOpen = true; editPaket({{ $paket->id }}, {{ $paket->jenis_pelatihan_id }}, {{ $paket->tahun }}, {{ $paket->batch ?? 'null' }}, {{ $paket->jp_harian }}, {{ $paket->jp_industri }}, '{{ $paket->sabtu_masuk }}', '{{ $paket->minggu_masuk }}', '{{ $paket->tanggal_mulai ? $paket->tanggal_mulai->format('Y-m-d') : '' }}', '{{ $paket->tanggal_akhir ? $paket->tanggal_akhir->format('Y-m-d') : '' }}', '{{ $paket->tanggal_awal_pendaftaran ? $paket->tanggal_awal_pendaftaran->format('Y-m-d') : '' }}', '{{ $paket->tanggal_akhir_pendaftaran ? $paket->tanggal_akhir_pendaftaran->format('Y-m-d') : '' }}', '{{ $paket->tanggal_awal_tes_tulis ? $paket->tanggal_awal_tes_tulis->format('Y-m-d') : '' }}', '{{ $paket->tanggal_akhir_tes_tulis ? $paket->tanggal_akhir_tes_tulis->format('Y-m-d') : '' }}', '{{ $paket->tanggal_awal_wawancara ? $paket->tanggal_awal_wawancara->format('Y-m-d') : '' }}', '{{ $paket->tanggal_akhir_wawancara ? $paket->tanggal_akhir_wawancara->format('Y-m-d') : '' }}', '{{ $paket->tanggal_awal_daftar_ulang ? $paket->tanggal_awal_daftar_ulang->format('Y-m-d') : '' }}', '{{ $paket->tanggal_akhir_daftar_ulang ? $paket->tanggal_akhir_daftar_ulang->format('Y-m-d') : '' }}', '{{ $paket->tanggal_pengumuman ? $paket->tanggal_pengumuman->format('Y-m-d') : '' }}', {{ $paket->user_id_pengumuman ?? 'null' }})" class="text-blue-600 hover:text-blue-900 transition">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                </svg>
+                            </button>
+                            <button @click="deleteId = {{ $paket->id }}; deleteModalOpen = true" class="text-red-600 hover:text-red-900 transition">
+                                
+                            </button>
+
+                            <div class="bg-white rounded-lg shadow-sm border overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full table-auto divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Jenis Pelatihan</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tahun</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Batch</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">JP Harian</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">JP Industri</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sabtu Masuk</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Minggu Masuk</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dibuat Oleh</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Diupdate</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    @forelse($pakets as $paket)
+                    @php
+                        // Konversi angka ke romawi
+                        $roman = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII', 'XIII', 'XIV', 'XV'];
+                        $no = $roman[$loop->iteration - 1] ?? $loop->iteration;
+                    @endphp
+                    <tr class="hover:bg-gray-50 transition">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $loop->iteration }}</td>
+                        <td class="px-6 py-4">{{ $paket->jenisPelatihan->jenis_pelatihan ?? '-' }}</td>
+                        <td class="px-6 py-4">{{ $paket->tahun }}</td>
+                        <td class="px-6 py-4">{{ $paket->batch ?? '-' }}
+                            @if($paket->batch)
+                            {{ \App\Helpers\Roman::convert($paket->batch) }} <!-- Romawi: I, II, III, dll -->
+                        @else
+                            -
+                        @endif
+                        </td>
+                        <td class="px-6 py-4">{{ $paket->jp_harian ? $paket->jp_harian . ' jam' : '-' }}</td>
+                        <td class="px-6 py-4">{{ $paket->jp_industri ? $paket->jp_industri . ' jam' : '-' }}</td>
+                        <td class="px-6 py-4">{{ $paket->sabtu_masuk == 'Y' ? 'Ya' : 'Tidak' }}</td>
+                        <td class="px-6 py-4">{{ $paket->minggu_masuk == 'Y' ? 'Ya' : 'Tidak' }}</td>
+                        <td class="px-6 py-4 text-sm text-gray-500">{{ $paket->user->name ?? 'Sistem' }}</td>
+                    <td class="px-6 py-4 text-sm text-gray-500">{{ $paket->updated_at->format('d M Y H:i') }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div class="flex items-center space-x-3">
+                                <button @click="editModalOpen = true; editPaket({{ $paket->id }}, {{ $paket->jenis_pelatihan_id }}, {{ $paket->tahun }}, {{ $paket->batch ?? 'null' }}, {{ $paket->jp_harian }}, {{ $paket->jp_industri }}, '{{ $paket->sabtu_masuk }}', '{{ $paket->minggu_masuk }}', '{{ $paket->tanggal_mulai ? $paket->tanggal_mulai->format('Y-m-d') : '' }}', '{{ $paket->tanggal_akhir ? $paket->tanggal_akhir->format('Y-m-d') : '' }}', '{{ $paket->tanggal_awal_pendaftaran ? $paket->tanggal_awal_pendaftaran->format('Y-m-d') : '' }}', '{{ $paket->tanggal_akhir_pendaftaran ? $paket->tanggal_akhir_pendaftaran->format('Y-m-d') : '' }}', '{{ $paket->tanggal_awal_tes_tulis ? $paket->tanggal_awal_tes_tulis->format('Y-m-d') : '' }}', '{{ $paket->tanggal_akhir_tes_tulis ? $paket->tanggal_akhir_tes_tulis->format('Y-m-d') : '' }}', '{{ $paket->tanggal_awal_wawancara ? $paket->tanggal_awal_wawancara->format('Y-m-d') : '' }}', '{{ $paket->tanggal_akhir_wawancara ? $paket->tanggal_akhir_wawancara->format('Y-m-d') : '' }}', '{{ $paket->tanggal_awal_daftar_ulang ? $paket->tanggal_awal_daftar_ulang->format('Y-m-d') : '' }}', '{{ $paket->tanggal_akhir_daftar_ulang ? $paket->tanggal_akhir_daftar_ulang->format('Y-m-d') : '' }}', '{{ $paket->tanggal_pengumuman ? $paket->tanggal_pengumuman->format('Y-m-d') : '' }}', {{ $paket->user_id_pengumuman ?? 'null' }})" class="text-blue-600 hover:text-blue-900 transition">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                    </svg>
+                                </button>
+                                <button @click="deleteId = {{ $paket->id }}; deleteModalOpen = true" class="text-red-600 hover:text-red-900 transition">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    @empty
+                    <tr>
+                        <td colspan="9" class="px-6 py-16 text-center text-gray-500 bg-gray-50">
+                            <svg class="w-12 h-12 mx-auto text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m-6-8h6M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                            <p class="text-lg font-medium">Belum ada paket pelatihan</p>
+                            <p class="text-sm mt-2">Klik tombol Tambah Paket untuk memulai</p>
+                        </td>
+                    </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+        @if($pakets->hasPages())
+        <div class="px-6 py-4 border-t bg-gray-50">
+            {{ $pakets->links() }}
+        </div>
+        @endif
+    </div>

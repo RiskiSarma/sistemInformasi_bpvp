@@ -1,4 +1,3 @@
-{{-- resources/views/programs/master.blade.php --}}
 @extends('layouts.app')
 
 @section('title', 'Program Pelatihan (Master)')
@@ -9,6 +8,15 @@
         <div>
             <h2 class="text-2xl font-bold text-gray-800">Program Pelatihan (Master)</h2>
             <p class="text-gray-600 mt-1">Kelola master data program pelatihan</p>
+        </div>
+        <div class="flex items-center space-x-4">
+            <a href="{{ route('admin.programs.sync-kemnaker') }}" 
+            class="px-5 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Sync dari Kemnaker
+            </a>
         </div>
     </div>
 
@@ -43,12 +51,67 @@
                 </div>
             </div>
 
-            <div>
-                <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Nama Program <span class="text-red-500">*</span></label>
-                <input type="text" name="name" id="name" value="{{ old('name') }}" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 @error('name') border-red-500 @enderror">
-                @error('name')
-                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                @enderror
+            
+
+
+            <!-- Field baru: Kejuruan, Bidang, Jenis Pelatihan -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label for="kejuruan" class="block text-sm font-medium text-gray-700 mb-1">Kejuruan <span class="text-red-500">*</span></label>
+                    <select name="kejuruan" id="kejuruan" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 @error('kejuruan') border-red-500 @enderror">
+                        <option value="">-- Pilih Kejuruan --</option>
+                        <option value="Bisnis dan Manajemen" {{ old('kejuruan') == 'Bisnis dan Manajemen' ? 'selected' : '' }}>Bisnis dan Manajemen</option>
+                        <option value="Las" {{ old('kejuruan') == 'Las' ? 'selected' : '' }}>Las</option>
+                        <option value="Fashion Technology" {{ old('kejuruan') == 'Fashion Technology' ? 'selected' : '' }}>Fashion Technology</option>
+                        <option value="Konstruksi" {{ old('kejuruan') == 'Konstruksi' ? 'selected' : '' }}>Konstruksi</option>
+                        <option value="Teknologi Informasi dan Komunikasi" {{ old('kejuruan') == 'Teknologi Informasi dan Komunikasi' ? 'selected' : '' }}>Teknologi Informasi dan Komunikasi</option>
+                        <option value="Elektronika" {{ old('kejuruan') == 'Elektronika' ? 'selected' : '' }}>Elektronika</option>
+                        <option value="Refrigerasi" {{ old('kejuruan') == 'Refrigerasi' ? 'selected' : '' }}>Refrigerasi</option>
+                        <option value="Listrik" {{ old('kejuruan') == 'Listrik' ? 'selected' : '' }}>Listrik</option>
+                        <option value="Otomotif" {{ old('kejuruan') == 'Otomotif' ? 'selected' : '' }}>Otomotif</option>
+                        <option value="Pariwisata" {{ old('kejuruan') == 'Pariwisata' ? 'selected' : '' }}>Pariwisata</option>
+                        <option value="Tailor Made Training" {{ old('kejuruan') == 'Tailor Made Training' ? 'selected' : '' }}>Tailor Made Training</option>
+                    </select>
+                    @error('kejuruan')
+                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div>
+                    <label for="bidang" class="block text-sm font-medium text-gray-700 mb-1">Bidang <span class="text-red-500">*</span></label>
+                    <select name="bidang" id="bidang" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 @error('bidang') border-red-500 @enderror">
+                        <option value="">-- Pilih Bidang --</option>
+                        <option value="Bidang Industri dan Jasa" {{ old('bidang') == 'Bidang Industri dan Jasa' ? 'selected' : '' }}>Bidang Industri dan Jasa</option>
+                        <option value="Bidang Pariwisata dan Industri Kreatif" {{ old('bidang') == 'Bidang Pariwisata dan Industri Kreatif' ? 'selected' : '' }}>Bidang Pariwisata dan Industri Kreatif</option>
+                        <option value="Bidang Infrastruktur" {{ old('bidang') == 'Bidang Infrastruktur' ? 'selected' : '' }}>Bidang Infrastruktur</option>
+                        <option value="Smart Creative IT Skills" {{ old('bidang') == 'Smart Creative IT Skills' ? 'selected' : '' }}>Smart Creative IT Skills</option>
+                        <option value="Bidang Pariwisata dan Industri Kreatif" {{ old('bidang') == 'Bidang Pariwisata dan Industri Kreatif' ? 'selected' : '' }}>Bidang Pariwisata dan Industri Kreatif</option>
+                        <option value="Bidang TIK" {{ old('bidang') == 'Bidang TIK' ? 'selected' : '' }}>Bidang TIK</option>
+                        <option value="Bidang Green Job" {{ old('bidang') == 'Bidang Green Job' ? 'selected' : '' }}>Bidang Green Job</option>
+                        <option value="Smart Office" {{ old('bidang') == 'Smart Office' ? 'selected' : '' }}>Smart Office</option>
+                        <option value="Smart Farming" {{ old('bidang') == 'Smart Farming' ? 'selected' : '' }}>Smart Farming</option>
+                        <option value="Smart Building" {{ old('bidang') == 'Smart Building' ? 'selected' : '' }}>Smart Building</option>
+                        <option value="Smart Tourism" {{ old('bidang') == 'Smart Tourism' ? 'selected' : '' }}>Smart Tourism</option>
+                    </select>
+                    @error('bidang')
+                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                {{-- <div>
+                    <label for="jenis_pelatihan" class="block text-sm font-medium text-gray-700 mb-1">Jenis Pelatihan <span class="text-red-500">*</span></label>
+                    <select name="jenis_pelatihan" id="jenis_pelatihan" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 @error('jenis_pelatihan') border-red-500 @enderror">
+                        <option value="">-- Pilih Jenis --</option>
+                        <option value="Non Boarding" {{ old('jenis_pelatihan') == 'Non Boarding' ? 'selected' : '' }}>Non Boarding</option>
+                        <option value="Project Based Learning (PBL)" {{ old('jenis_pelatihan') == 'Project Based Learning (PBL)' ? 'selected' : '' }}>Project Based Learning (PBL)</option>
+                        <option value="Boarding" {{ old('jenis_pelatihan') == 'Boarding' ? 'selected' : '' }}>Boarding</option>
+                        <option value="Tailor Made Training" {{ old('jenis_pelatihan') == 'Tailor Made Training' ? 'selected' : '' }}>Tailor Made Training</option>
+                        <option value="PFLK" {{ old('jenis_pelatihan') == 'PFLK' ? 'selected' : '' }}>PFLK</option>
+                    </select>
+                    @error('jenis_pelatihan')
+                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </div> --}}
             </div>
 
             <div>
@@ -85,12 +148,14 @@
     <!-- Master Programs List -->
     <div class="bg-white rounded-lg shadow-sm border overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="w-full">
+            <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50 border-b">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kode</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase w-48">Kode</th> <!-- tambah w-48 atau w-64 -->
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama Program</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Deskripsi</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kejuruan</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bidang</th>
+                        {{-- <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jenis Pelatihan</th> --}}
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Durasi</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Unit</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
@@ -100,22 +165,23 @@
                 <tbody class="divide-y">
                     @forelse($masterPrograms as $mp)
                     <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td class="px-6 py-4 whitespace-normal break-all text-sm font-mono text-gray-900">
                             <span class="font-mono text-sm font-medium text-gray-900">{{ $mp->code }}</span>
                         </td>
                         <td class="px-6 py-4">
                             <div class="font-medium text-gray-900">{{ $mp->name }}</div>
                         </td>
-                        <td class="px-6 py-4">
-                            <div class="text-sm text-gray-600 max-w-xs">
-                                {{ $mp->description ? Str::limit($mp->description, 80) : '-' }}
-                            </div>
-                        </td>
+                        <td class="px-6 py-4">{{ $mp->kejuruan ?? '-' }}</td>
+                        <td class="px-6 py-4">{{ $mp->bidang ?? '-' }}</td>
+                        {{-- <td class="px-6 py-4">{{ $mp->jenis_pelatihan_full }}</td> --}}
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             {{ $mp->duration_hours }} jam
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {{-- <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             {{ $mp->competencyUnits->count() }} unit
+                        </td> --}}
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {{ $mp->programs->sum(fn($program) => $program->independentCompetencyUnits->count()) }} unit
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <span class="px-2 py-1 text-xs rounded-full {{ $mp->is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' }}">
@@ -149,7 +215,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="7" class="px-6 py-12 text-center text-gray-500">
+                        <td colspan="9" class="px-6 py-12 text-center text-gray-500">
                             Belum ada master program
                         </td>
                     </tr>
@@ -166,4 +232,3 @@
     </div>
 </div>
 @endsection
-

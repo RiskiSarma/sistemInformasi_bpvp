@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
 use Illuminate\View\View;
+use Illuminate\Validation\ValidationException;
 
 class RegisteredUserController extends Controller
 {
@@ -37,13 +38,37 @@ class RegisteredUserController extends Controller
     {
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
             'phone' => ['required', 'string', 'max:20'],
             // 'program_id' => ['required', 'exists:programs,id'],
-            'nik' => ['nullable', 'string', 'max:20', 'unique:participants'],
+            'nik' => ['required', 'digits:16'],
+            'program_id' => ['required', 'exists:programs,id'],
         ]);
 
+        $program = Program::findOrFail($request->program_id);
+
+        // KUNCI NIK PER BATCH/PROGRAM
+        $existingNik = Participant::where('program_id', $program->id)
+            ->where('nik', $request->nik)
+            ->exists();
+
+        if ($existingNik) {
+            throw ValidationException::withMessages([
+                'nik' => 'NIK ini sudah terdaftar di batch/program ini. Satu orang hanya boleh mendaftar sekali per batch.',
+            ]);
+        }
+
+        // KUNCI EMAIL PER BATCH/PROGRAM (opsional, kalau ingin lebih ketat)
+        $existingEmail = Participant::where('program_id', $program->id)
+            ->whereHas('user', fn($q) => $q->where('email', $request->email))
+            ->exists();
+
+        if ($existingEmail) {
+            throw ValidationException::withMessages([
+                'email' => 'Email ini sudah terdaftar di batch/program ini.',
+            ]);
+        }
         // FORCE role to participant for public registration
         $user = User::create([
             'name' => $request->name,
