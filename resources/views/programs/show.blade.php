@@ -50,13 +50,10 @@
             <div>
                 <dt class="text-sm font-medium text-gray-500">Batch</dt>
                 <dd class="mt-1 text-lg font-semibold text-gray-900">
-                    @if($program->batch instanceof \App\Models\Batch)
-                        {{ $program->batch->name }}
-                        @if($program->batch->jenis_pelatihan)
-                            <span class="text-sm font-normal text-gray-600 ml-2">({{ $program->batch->jenis_pelatihan }})</span>
-                        @endif
+                    @if($program->paketPelatihan)
+                        {{ $program->paketPelatihan->name ?? $program->paketPelatihan->tahun . ' - Batch ' . $program->paketPelatihan->batch }}
                     @else
-                        {{ $program->batch ?? 'Belum dipilih' }}
+                        -
                     @endif
                 </dd>
             </div>
@@ -133,6 +130,41 @@
                 </dd>
             </div>
         </dl>
+        <div>
+    <dt class="text-sm font-medium text-gray-500">Ada Industri</dt>
+    <dd class="mt-1">
+        <span class="px-3 py-1 text-sm rounded-full {{ $program->ada_industri === 'Y' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
+            {{ $program->ada_industri === 'Y' ? 'Ya' : 'Tidak' }}
+        </span>
+    </dd>
+</div>
+
+<div>
+    <dt class="text-sm font-medium text-gray-500">JP Harian</dt>
+    <dd class="mt-1 text-lg font-semibold text-gray-900">{{ $program->jp_harian ? $program->jp_harian . ' jam/hari' : '-' }}</dd>
+</div>
+
+<div>
+    <dt class="text-sm font-medium text-gray-500">Total JP</dt>
+    <dd class="mt-1 text-lg font-semibold text-gray-900">{{ $program->jp ? $program->jp . ' jam total' : '-' }}</dd>
+</div>
+
+<!-- Daftar Unit Kompetensi yang dipilih -->
+<div class="mt-6">
+    <dt class="text-sm font-medium text-gray-500">Unit Kompetensi Terpilih</dt>
+    <dd class="mt-1">
+        <ul class="list-disc pl-5 space-y-1">
+            @forelse($program->independentCompetencyUnits as $unit)
+                <li>{{ $unit->code }} - {{ $unit->name }} (JP: {{ $unit->jp ?? '0' }})</li>
+            @empty
+                <li class="text-gray-500">Belum ada unit kompetensi yang dipilih</li>
+            @endforelse
+        </ul>
+        @if($program->independentCompetencyUnits->isEmpty())
+            <p class="text-gray-500">Tidak ada unit kompetensi terpilih</p>
+        @endif
+    </dd>
+</div>
     </div>
 </div>
 

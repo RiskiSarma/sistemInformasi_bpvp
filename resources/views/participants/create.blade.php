@@ -53,9 +53,15 @@
                 <select name="program_id" id="program_id" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 @error('program_id') border-red-500 @enderror">
                     <option value="">Pilih Program</option>
                     @foreach($programs as $program)
-                    <option value="{{ $program->id }}" {{ old('program_id') == $program->id ? 'selected' : '' }}>
-                        {{ $program->masterProgram->name ?? 'N/A' }} - {{ $program->batch }}
-                    </option>
+                        <option value="{{ $program->id }}" {{ old('program_id') == $program->id ? 'selected' : '' }}>
+                            {{ $program->masterProgram?->name ?? 'Program Tidak Diketahui' }}
+                            @if($program->paketPelatihan)
+                                - {{ $program->paketPelatihan->nama_batch ?? $program->paketPelatihan->batch ?? $program->paketPelatihan->code ?? 'Batch Tidak Diketahui' }}
+                            @else
+                                - Batch Tidak Diketahui
+                            @endif
+                            {{ $program->masterProgram?->angkatan ? ' (' . $program->masterProgram->angkatan . ')' : '' }}
+                        </option>
                     @endforeach
                 </select>
                 @error('program_id')

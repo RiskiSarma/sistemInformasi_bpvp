@@ -15,7 +15,7 @@ class ParticipantController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Participant::with(['user', 'program.masterProgram', 'creator', 'updater']);
+        $query = Participant::with(['user', 'program.masterProgram', 'program', 'creator', 'updater']);
 
         if ($request->filled('status') && $request->status !== 'all') {
             $query->where('status', $request->status);
@@ -129,7 +129,7 @@ class ParticipantController extends Controller
 
     public function show(Participant $participant)
     {
-        $participant->load(['user', 'program.masterProgram', 'creator', 'updater', 'attendances']);
+        $participant->load(['user', 'program.masterProgram', 'program', 'creator', 'updater', 'attendances']);
 
         $attendances = $participant->attendances;
         $totalAttendances = $attendances->count();

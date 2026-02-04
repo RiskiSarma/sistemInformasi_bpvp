@@ -160,7 +160,7 @@
                     @forelse($participants as $participant)
                     <tr class="hover:bg-gray-50 transition">
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            {{ $participant->id }}
+                            {{ ($participants->currentPage() - 1) * $participants->perPage() + $loop->iteration }}
                         </td>
                         <td class="px-6 py-4">
                             <div class="font-medium text-gray-900">{{ $participant->name }}</div>
@@ -170,8 +170,19 @@
                             {{ $participant->gender ?? '-' }}
                         </td>
                         <td class="px-6 py-4">
-                            <div class="text-sm text-gray-900">{{ $participant->program->masterProgram->name ?? 'N/A' }}</div>
-                            <div class="text-xs text-gray-500">{{ $participant->program->batch ?? '' }}</div>
+                            <div class="text-sm text-gray-900 font-medium">
+                                {{ $participant->program?->masterProgram?->name ?? 'Tidak ada program' }}
+                            </div>
+                            <div class="text-xs text-gray-600">
+                                @if($participant->program && $participant->program->masterProgram)
+                                    {{ $participant->program->masterProgram->batch?->name ?? '-' }} 
+                                    @if($participant->program->masterProgram->angkatan)
+                                        ({{ $participant->program->masterProgram->angkatan }})
+                                    @endif
+                                @else
+                                    Tidak ada program
+                                @endif
+                            </div>
                         </td>
                         <td class="px-6 py-4 text-sm text-gray-900">
                             <div>{{ $participant->email }}</div>

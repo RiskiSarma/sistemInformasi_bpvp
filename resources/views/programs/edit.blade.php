@@ -36,7 +36,7 @@
                 @enderror
             </div>
 
-            <!-- Batch (Dropdown dari table batches) -->
+            {{-- <!-- Batch (Dropdown dari table batches) -->
             <div>
                 <label for="batch_id" class="block text-sm font-medium text-gray-700 mb-1">Batch <span class="text-red-500">*</span></label>
                 <select name="batch_id" id="batch_id" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 @error('batch_id') border-red-500 @enderror">
@@ -50,8 +50,19 @@
                 @error('batch_id')
                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                 @enderror
+            </div> --}}
+            <!-- Tambahkan setelah field batch_id, misalnya -->
+            <div>
+                <label for="paket_pelatihan_id" class="block text-sm font-medium text-gray-700 mb-1">Paket Induk (opsional)</label>
+                <select name="paket_pelatihan_id" id="paket_pelatihan_id" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                    <option value="">-- Tidak pakai paket --</option>
+                    @foreach($paketPelatihans as $paket)
+                        <option value="{{ $paket->id }}" {{ old('paket_pelatihan_id', $program->paket_pelatihan_id ?? '') == $paket->id ? 'selected' : '' }}>
+                            {{ $paket->nama ?? $paket->tahun . ' - Batch ' . $paket->batch }}
+                        </option>
+                    @endforeach
+                </select>
             </div>
-
             <!-- Angkatan (Dropdown) -->
             <div>
                 <label for="angkatan" class="block text-sm font-medium text-gray-700 mb-1">Angkatan <span class="text-red-500">*</span></label>
@@ -98,6 +109,74 @@
                 @enderror
             </div>
 
+            <!-- Checkbox Ada Industri -->
+<div class="col-span-6">
+    <div x-data="{ hasIndustry: {{ old('ada_industri') == 'Y' || ($program ?? false && $program->ada_industri == 'Y') ? 'true' : 'false' }} }">
+        <label class="flex items-center space-x-3 cursor-pointer">
+            <input type="hidden" name="ada_industri" value="N">
+            <input type="checkbox" name="ada_industri" value="Y" 
+                   x-model="hasIndustry"
+                   class="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+            <span class="text-sm font-medium text-gray-700">Ada Komponen Industri</span>
+        </label>
+
+        <!-- Section yang muncul saat checkbox dicentang -->
+        <div x-show="hasIndustry" x-transition class="mt-6 space-y-6 pl-8 border-l-4 border-blue-200">
+            <!-- Unit Kompetensi Industri -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Unit Kompetensi Industri</label>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-60 overflow-y-auto border border-gray-300 rounded-lg p-4 bg-gray-50">
+                    @foreach($independentUnits as $unit)
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" name="industry_unit_ids[]" value="{{ $unit->id }}" 
+                                   class="h-4 w-4 text-blue-600 border-gray-300 rounded">
+                            <span class="text-sm text-gray-700">{{ $unit->code }} - {{ $unit->name }}</span>
+                        </label>
+                    @endforeach
+                </div>
+            </div>
+
+            <!-- Input JP per Unit + Total Otomatis -->
+            <div x-data="{
+                jpUnits: [{ jp: 0 }],
+                totalJp: 0,
+                addUnit() { this.jpUnits.push({ jp: 0 }); this.calculate(); },
+                removeUnit(index) { this.jpUnits.splice(index, 1); this.calculate(); },
+                calculate() { 
+                    this.totalJp = this.jpUnits.reduce((sum, u) => sum + Number(u.jp || 0), 0);
+                    document.getElementById('jp_total').value = this.totalJp;
+                }
+            }" x-init="calculate()">
+                <label class="block text-sm font-medium text-gray-700 mb-2">JP per Unit Industri</label>
+                <template x-for="(unit, index) in jpUnits" :key="index">
+                    <div class="flex items-center space-x-4 mb-3">
+                        <input type="number" x-model="unit.jp" @input="calculate" min="0" 
+                               class="w-32 px-3 py-2 border rounded-lg focus:ring-blue-500" placeholder="JP Unit">
+                        <button @click="removeUnit(index)" type="button" class="text-red-600 hover:text-red-800">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                </template>
+                <button @click="addUnit" type="button" class="text-blue-600 hover:text-blue-800 text-sm flex items-center space-x-1 mt-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    <span>Tambah Unit</span>
+                </button>
+            </div>
+
+            <!-- Total JP -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Total JP (otomatis)</label>
+                <input type="number" name="jp" id="jp_total" readonly 
+                       value="{{ old('jp', $program->jp ?? 0) }}" 
+                       class="w-full px-3 py-2 border rounded-lg bg-gray-100 cursor-not-allowed">
+            </div>
+        </div>
+    </div>
+</div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                     <label for="start_date" class="block text-sm font-medium text-gray-700 mb-1">Tanggal Mulai <span class="text-red-500">*</span></label>

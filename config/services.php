@@ -30,5 +30,9 @@ return [
         'secret' => env('AWS_SECRET_ACCESS_KEY'),
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
+    'proglat' => [
+        'api_url' => env('PROGLAT_API_URL', 'https://api.proglat.example.com'),
+        'api_token' => env('PROGLAT_API_TOKEN'),
+    ],
 
 ];

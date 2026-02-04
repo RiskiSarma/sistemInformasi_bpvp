@@ -12,6 +12,7 @@
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
     <link rel="icon" type="image/png" href="{{ asset('images/logo blk banda.png') }}">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 
     <!-- Scripts -->
     {{-- @vite(['resources/css/app.css', 'resources/js/app.js']) --}}
@@ -20,6 +21,8 @@
 
     <!-- Font Awesome (kalau butuh icon) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <!-- Alpine.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
@@ -55,7 +58,8 @@
                         request()->routeIs('admin.programs.batches.*') ||         // semua route batch
                         request()->routeIs('admin.independent-units.*') ||
                         request()->routeIs('admin.programs.jenis-pelatihan.*') ||
-                        request()->routeIs('admin.programs.paket-pelatihan.*')         // unit kompetensi independen        // unit kompetensi independen
+                        request()->routeIs('admin.programs.paket-pelatihan.*') ||
+                        request()->routeIs('admin.programs.kejuruan-bidang.*')               // unit kompetensi independen        // unit kompetensi independen
                         ? 'true' : 'false' 
                     }}
                 }">
@@ -99,9 +103,13 @@
                         class="block px-4 py-2 text-sm rounded-lg transition {{ request()->routeIs('admin.programs.units') ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100' }}">
                             Unit Kompetensi
                         </a> --}}
-                        <a href="{{ route('admin.independent-units.index') }}" 
+                        {{-- <a href="{{ route('admin.independent-units.index') }}" 
                         class="block px-4 py-2 text-sm rounded-lg transition {{ request()->routeIs('admin.independent-units.*') ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100' }}">
                             Unit Kompetensi 
+                        </a> --}}
+                        <a href="{{ route('admin.independent-units.index') }}" 
+                        class="block px-4 py-2 text-sm rounded-lg transition {{ request()->routeIs('admin.independent-units.*') ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100' }}">
+                            SKKNI & Unit Kompetensi 
                         </a>
                         <a href="{{ route('admin.programs.paket-pelatihan.index') }}" 
                         class="block px-4 py-2 text-sm rounded-lg transition {{ request()->routeIs('admin.programs.paket-pelatihan.*') ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100' }}">
@@ -115,9 +123,13 @@
                         class="block px-4 py-2 text-sm rounded-lg transition {{ request()->routeIs('admin.programs.jenis-pelatihan.*') ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100' }}">
                             Jenis Pelatihan
                         </a>
+                        <a href="{{ route('admin.programs.kejuruan-bidang.index') }}" 
+                        class="block px-4 py-2 text-sm rounded-lg transition {{ request()->routeIs('admin.programs.kejuruan-bidang.*') ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100' }}">
+                            KejuruanBidang
+                        </a>
                     </div>
                 </div>
-
+                
                 <!-- Menu lainnya (sama seperti sebelumnya, tapi konsisten) -->
                 <a href="{{ route('admin.participants.index') }}" 
                 class="flex items-center space-x-3 px-4 py-3 rounded-lg transition {{ request()->routeIs('admin.participants.*') ? 'bg-blue-600 text-white shadow-md' : 'text-gray-700 hover:bg-gray-100' }}">
@@ -302,4 +314,17 @@
         </div>
     </div>
 </body>
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<script>
+    $(document).ready(function() {
+        $('select[name="program_pelatihan_unit_id"]').select2({
+            placeholder: "Cari nama unit kompetensi...",
+            allowClear: true,
+            width: '100%',
+            minimumInputLength: 2  // baru muncul setelah ketik 2 huruf
+        });
+    });
+</script>
 </html>

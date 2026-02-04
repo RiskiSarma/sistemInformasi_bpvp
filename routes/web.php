@@ -15,6 +15,13 @@ use App\Http\Controllers\IndependentUnitController;
 use App\Http\Controllers\BatchController;
 use App\Http\Controllers\JenisPelatihanController;
 use App\Http\Controllers\PaketPelatihanController;
+use App\Http\Controllers\KejuruanBidangController;
+use App\Http\Controllers\ProgramUnitController;
+use App\Http\Controllers\PaketUnitController;
+use App\Http\Controllers\PaketSubUnitController;
+use App\Http\Controllers\PaketPengajarProgramController;
+use App\Http\Controllers\PaketPengajarSubUnitController;
+
 
 
 use Illuminate\Support\Facades\Route;
@@ -56,6 +63,20 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
         Route::put('/{program}', [ProgramController::class, 'update'])->name('update');
         Route::delete('/{program}', [ProgramController::class, 'destroy'])->name('destroy');
         
+         Route::prefix('{program}')->group(function () {
+            Route::resource('units', ProgramUnitController::class)->names([
+                'index' => 'units.index',
+                'create' => 'units.create',
+                'store' => 'units.store',
+                'show' => 'units.show',
+                'edit' => 'units.edit',
+                'update' => 'units.update',
+                'destroy' => 'units.destroy',
+            ]);
+            
+            
+        });
+
         // Master Program
         Route::get('/master', [ProgramController::class, 'master'])->name('master');
         Route::post('/master', [ProgramController::class, 'storeMaster'])->name('master.store');
@@ -63,6 +84,8 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
         Route::get('/master/{masterProgram}/edit', [ProgramController::class, 'editMaster'])->name('master.edit');
         Route::put('/master/{masterProgram}', [ProgramController::class, 'updateMaster'])->name('master.update');
         Route::delete('/master/{masterProgram}', [ProgramController::class, 'destroyMaster'])->name('master.destroy');
+        // Di dalam group Master Program
+        Route::get('/master/{masterProgram}/preview-file', [ProgramController::class, 'previewFile'])->name('master.preview-file');
         
         // Sync Kemnaker - PINDAHKAN KE SINI
         Route::get('/sync-kemnaker', [ProgramController::class, 'syncKemnaker'])->name('sync-kemnaker');
@@ -91,12 +114,46 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
             Route::delete('/{jenis}', [JenisPelatihanController::class, 'destroy'])->name('destroy');
         });
         
-        Route::prefix('paket-pelatihan')->name('paket-pelatihan.')->group(function () {
-            Route::get('/', [PaketPelatihanController::class, 'index'])->name('index');
-            Route::post('/', [PaketPelatihanController::class, 'store'])->name('store');
-            Route::put('/{paketPelatihan}', [PaketPelatihanController::class, 'update'])->name('update');
-            Route::delete('/{paketPelatihan}', [PaketPelatihanController::class, 'destroy'])->name('destroy');
+        // Kejuruan & Bidang (gabungan)
+        Route::prefix('kejuruan-bidang')->name('kejuruan-bidang.')->group(function () {
+            Route::get('/', [KejuruanBidangController::class, 'index'])->name('index');
+
+             // ✅ TAMBAHKAN BARIS INI (ROUTE BARU)
+            Route::post('/sync-kejuruan', [KejuruanBidangController::class, 'syncKejuruan'])->name('sync-kejuruan');
+            // Kejuruan CRUD
+            Route::post('/', [KejuruanBidangController::class, 'storeKejuruan'])->name('kejuruan.store');
+            Route::put('/kejuruan/{kejuruan}', [KejuruanBidangController::class, 'updateKejuruan'])->name('kejuruan.update');
+            Route::delete('/kejuruan/{kejuruan}', [KejuruanBidangController::class, 'destroyKejuruan'])->name('kejuruan.destroy');
+
+            // Bidang CRUD
+            Route::post('/bidang', [KejuruanBidangController::class, 'storeBidang'])->name('bidang.store');
+            Route::put('/bidang/{bidang}', [KejuruanBidangController::class, 'updateBidang'])->name('bidang.update');
+            Route::delete('/bidang/{bidang}', [KejuruanBidangController::class, 'destroyBidang'])->name('bidang.destroy');
         });
+
+        Route::prefix('paket-pelatihan')->name('paket-pelatihan.')->group(function () {
+
+        // Route utama paket pelatihan tetap
+        Route::get('/', [PaketPelatihanController::class, 'index'])->name('index');
+        Route::post('/', [PaketPelatihanController::class, 'store'])->name('store');
+        Route::put('/{paket}', [PaketPelatihanController::class, 'update'])->name('update');
+        Route::delete('/{paket}', [PaketPelatihanController::class, 'destroy'])->name('destroy');
+
+        // API-like routes untuk paket units (tidak perlu resource view)
+        Route::prefix('{paket}')->group(function () {
+            Route::get('paket-units', [PaketUnitController::class, 'getUnits'])->name('paket-units.data');
+            Route::post('paket-units', [PaketUnitController::class, 'store'])->name('paket-units.store');
+            Route::put('paket-units/{paketUnit}', [PaketUnitController::class, 'update'])->name('paket-units.update');
+            Route::delete('paket-units/{paketUnit}', [PaketUnitController::class, 'destroy'])->name('paket-units.destroy');
+
+            // Sama untuk sub-units
+            Route::get('paket-sub-units', [PaketSubUnitController::class, 'getSubUnits'])->name('paket-sub-units.data');
+            Route::post('paket-sub-units', [PaketSubUnitController::class, 'store'])->name('paket-sub-units.store');
+            Route::put('paket-sub-units/{paketSubUnit}', [PaketSubUnitController::class, 'update'])->name('paket-sub-units.update');
+            Route::delete('paket-sub-units/{paketSubUnit}', [PaketSubUnitController::class, 'destroy'])->name('paket-sub-units.destroy');
+        });
+    });
+        
 
         // Unit Kompetensi
         Route::get('/units', [ProgramController::class, 'units'])->name('units');
@@ -107,6 +164,13 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
         Route::delete('/units/{unit}', [ProgramController::class, 'destroyUnit'])->name('units.destroy');
         Route::get('/{program}', [ProgramController::class, 'show'])->name('show');
     });
+
+        // Route::prefix('programs/{program}')->group(function () {
+        // Route::resource('units', ProgramUnitController::class); // untuk program_pelatihan_units (nested di master program)
+        // Route::resource('paket-units', PaketUnitController::class); // untuk paket_pelatihan_units
+        // Route::resource('paket-sub-units', PaketSubUnitController::class); // untuk paket_pelatihan_sub_units
+        // Route::resource('paket-pengajar-programs', PaketPengajarProgramController::class); // untuk paket_pelatihan_pengajar_programs
+        // Route::resource('paket-pengajar-sub-units', PaketPengajarSubUnitController::class); // untuk paket_pelatihan_pengajar_sub_units
     
     // Peserta
     Route::resource('participants', ParticipantController::class);
@@ -156,13 +220,33 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     });
 
     Route::prefix('independent-units')->name('independent-units.')->group(function () {
-        Route::get('/', [IndependentUnitController::class, 'index'])->name('index');
+       Route::get('/', [IndependentUnitController::class, 'index'])->name('index');
         Route::get('/create', [IndependentUnitController::class, 'create'])->name('create');
         Route::post('/', [IndependentUnitController::class, 'store'])->name('store');
-        Route::get('/{unit}', [IndependentUnitController::class, 'show'])->name('show');
-        Route::get('/{unit}/edit', [IndependentUnitController::class, 'edit'])->name('edit');
-        Route::put('/{unit}', [IndependentUnitController::class, 'update'])->name('update');
-        Route::delete('/{unit}', [IndependentUnitController::class, 'destroy'])->name('destroy');
+        Route::get('/{skkni}', [IndependentUnitController::class, 'show'])->name('show');
+        Route::get('/{skkni}/edit', [IndependentUnitController::class, 'edit'])->name('edit');
+        Route::put('/{skkni}', [IndependentUnitController::class, 'update'])->name('update');
+        Route::delete('/{skkni}', [IndependentUnitController::class, 'destroy'])->name('destroy');
+
+        Route::post('/store-skkni', [IndependentUnitController::class, 'storeSkkni'])->name('store-skkni');
+        Route::match(['get', 'post'], '/sync-proglat', [IndependentUnitController::class, 'syncProglat'])
+            ->name('sync-proglat');
+            Route::put('/independent-units/{skkni}/file', [IndependentUnitController::class, 'updateFile'])->name('independent-units.file.update');
+// ✅ TAMBAHKAN 2 BARIS INI
+    Route::get('/{skkni}/preview-file', [IndependentUnitController::class, 'previewFile'])->name('preview-file');
+    Route::get('/{skkni}/download-file', [IndependentUnitController::class, 'downloadFile'])->name('download-file');
+            // CRUD SKKNI Manual
+        Route::post('/store-skkni', [IndependentUnitController::class, 'storeSkkni'])->name('store-skkni');
+        Route::put('/{skkni}/update-skkni', [IndependentUnitController::class, 'updateSkkni'])->name('update-skkni');
+        Route::delete('/{skkni}/delete-skkni', [IndependentUnitController::class, 'destroySkkni'])->name('delete-skkni');
+        
+        // Show detail SKKNI dengan unit-unitnya (PENTING: Taruh setelah route CRUD SKKNI)
+        Route::get('/{skkni}', [IndependentUnitController::class, 'show'])->name('show');
+        
+        // CRUD Unit Kompetensi di bawah SKKNI
+        Route::post('/{skkni}/store-unit', [IndependentUnitController::class, 'storeUnit'])->name('store-unit');
+        Route::put('/{unit}/update-unit', [IndependentUnitController::class, 'updateUnit'])->name('update-unit');
+        Route::delete('/{unit}/delete-unit', [IndependentUnitController::class, 'destroyUnit'])->name('delete-unit');
     });
 
         // MANAJEMEN USER - PERBAIKAN FINAL

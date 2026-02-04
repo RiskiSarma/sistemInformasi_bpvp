@@ -12,7 +12,7 @@ class Program extends Model
 {
     use HasFactory;
     use SoftDeletes;
-
+    
     protected $fillable = [
         'master_program_id',
         'batch',
@@ -24,6 +24,10 @@ class Program extends Model
         'max_participants',
         'created_by',
         'updated_by',
+        'ada_industri',
+        'jp_harian',
+        'jp',
+        'paket_pelatihan_id',
     ];
 
     protected $casts = [
@@ -64,6 +68,11 @@ class Program extends Model
         return $this->belongsTo(MasterProgram::class, 'master_program_id');
     }
 
+    public function paketPelatihan()
+    {
+        return $this->belongsTo(PaketPelatihan::class, 'paket_pelatihan_id');
+    }
+    
     /**
      * Relasi ke instructor
      */
@@ -83,7 +92,10 @@ class Program extends Model
     {
         return $this->hasMany(Attendance::class);
     }
-
+    public function batch()
+    {
+        return $this->belongsTo(Batch::class, 'batch_id'); // ← foreign key 'batch_id'
+    }
     // Accessor untuk mendapatkan nama program dari master_programs
     public function getNameAttribute()
     {
@@ -93,6 +105,15 @@ class Program extends Model
         }
         
         return $this->masterProgram ? $this->masterProgram->name : '-';
+    }
+    // app/Models/Program.php
+    public function getDisplayNameAttribute()
+    {
+        $master = $this->masterProgram->name ?? 'N/A';
+        $batchName = $this->batch->name ?? $this->batch->code ?? 'Batch Tidak Diketahui';
+        $angkatan = $this->angkatan ? " ({$this->angkatan})" : '';
+
+        return "{$master} - {$batchName}{$angkatan}";
     }
 
     // Accessor untuk mendapatkan deskripsi dari master_programs
@@ -137,5 +158,59 @@ class Program extends Model
             'independent_competency_unit_id'
         )->withTimestamps();
     }
+    public function getAdaIndustriLabelAttribute()
+    {
+        return $this->ada_industri === 'Y' ? 'Ya' : 'Tidak';
+    }
+    public function getJpHarianLabelAttribute()
+    {
+        return $this->jp_harian ? $this->jp_harian . ' jam/hari' : '-';
+    }
+
+    public function getJpLabelAttribute()
+    {
+        return $this->jp ? $this->jp . ' jam total' : '-';
+    }
     
+    // =====================
+    // RELASI PIVOT UNITS & SUB UNITS
+    // =====================
+
+    /**
+     * Relasi ke Paket Pelatihan Units
+     * Program -> PaketPelatihanUnit
+     */
+    public function paketPelatihanUnits()
+    {
+        return $this->hasMany(PaketPelatihanUnit::class, 'programs_id', 'id');
+    }
+    public function units()
+{
+    return $this->belongsToMany(
+        IndependentCompetencyUnit::class, // atau CompetencyUnit tergantung model unit kamu
+        'paket_pelatihan_units',
+        'programs_id',
+        'program_pelatihan_unit_id' // atau nama kolom yang sesuai di pivot
+    )->withPivot('jp', 'sub_unit_kompetensi', 'master_program_sub_unit_id');
+}
+    public function getTotalJpAttribute()
+    {
+        return $this->paketPelatihanUnits()->sum('jp') ?? 0;
+    }
+
+    /**
+     * Relasi ke Paket Pelatihan Sub Units (nested via units)
+     * Program -> PaketPelatihanUnit -> PaketPelatihanSubUnit
+     */
+    public function paketPelatihanSubUnits()
+    {
+        return $this->hasManyThrough(
+            PaketPelatihanSubUnit::class,
+            PaketPelatihanUnit::class,
+            'paket_pelatihan_programs_id',
+            'paket_pelatihan_unit_id',
+            'id',
+            'id'
+        );
+    }
 }

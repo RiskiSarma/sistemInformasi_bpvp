@@ -43,49 +43,67 @@
     <!-- Programs Table -->
     <div class="bg-white rounded-lg shadow-sm border overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="w-full">
+            <table class="w-full min-w-max">
                 <thead class="bg-gray-50 border-b">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">#</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Program</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Batch</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Angkatan</th> <!-- ← tambah ini -->
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Periode</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Peserta</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">#</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap uppercase w-[260px]">Program</th>
+                        {{-- <th class="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Batch</th> --}}
+                        {{-- <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Angkatan</th> --}}
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Paket Induk</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Periode</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Peserta</th>
+                        {{-- <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Ada Industri</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">JP Harian</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Total JP</th> --}}
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Status</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Aksi</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y">
                     @forelse($programs as $program)
                     <tr class="hover:bg-gray-50 transition">
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ $program->id }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ $loop->iteration }}</td>
                         <td class="px-6 py-4">
                             <div class="font-medium text-gray-900">{{ $program->masterProgram->name ?? 'N/A' }}</div>
                             <div class="text-sm text-gray-500">{{ $program->masterProgram->code ?? '' }}</div>
                         </td>
-                        <td class="px-6 py-4 text-sm">
+                        {{-- <td class="px-2 py-4 text-sm whitespace-nowrap">
                             @if($program->batch_id && $program->batch instanceof \App\Models\Batch)
                                 {{ $program->batch->name }} ({{ $program->batch->jenis_pelatihan ?? '-' }})
                             @elseif($program->batch)
-                                {{ $program->batch }} <!-- tampil string lama kalau batch_id null -->
+                                {{ $program->batch }}
                             @else
                                 -
                             @endif
+                        </td> --}}
+                        {{-- <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {{ $program->angkatan ? 'Angkatan ' . $program->angkatan : '-' }}
+                        </td> --}}
+                        <td class="px-6 py-4 text-sm whitespace-nowrap">
+                            {{ $program->paketPelatihan ? $program->paketPelatihan->tahun . ' - Batch ' . $program->paketPelatihan->batch : '-' }}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {{ $program->angkatan ? 'Angkatan ' . $program->angkatan : '-' }} <!-- ← tambah ini -->
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            <div>{{ $program->start_date->format('d M Y') }}</div>
-                            <div class="text-xs text-gray-500">s/d {{ $program->end_date->format('d M Y') }}</div>
+                            <div>{{ $program->start_date ? $program->start_date->format('d M Y') : '-' }}</div>
+                            <div class="text-xs text-gray-500">s/d {{ $program->end_date ? $program->end_date->format('d M Y') : '-' }}</div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm">
                             <span class="font-medium">{{ $program->participants->count() }}</span>
                             @if($program->max_participants)
-                            <span class="text-gray-500">/ {{ $program->max_participants }}</span>
+                                <span class="text-gray-500">/ {{ $program->max_participants }}</span>
                             @endif
                         </td>
+                        {{-- <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-2 py-1 text-xs rounded-full {{ $program->ada_industri === 'Y' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
+                                {{ $program->ada_industri === 'Y' ? 'Ya' : 'Tidak' }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                            {{ $program->jp_harian ? $program->jp_harian . ' jam/hari' : '-' }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                            {{ $program->jp ? $program->jp . ' jam total' : '-' }}
+                        </td> --}}
                         <td class="px-6 py-4 whitespace-nowrap">
                             <span class="px-2 py-1 text-xs rounded-full {{ $program->status === 'ongoing' ? 'bg-green-100 text-green-800' : ($program->status === 'planned' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800') }}">
                                 {{ ucfirst($program->status) }}
@@ -118,7 +136,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="7" class="px-6 py-12 text-center">
+                        <td colspan="11" class="px-6 py-12 text-center">
                             <svg class="w-12 h-12 mx-auto text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
                             </svg>

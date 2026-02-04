@@ -27,6 +27,7 @@ class User extends Authenticatable
         'created_by',
         'updated_by',
     ];
+    
 
     // Auto fill created_by & updated_by
     protected static function boot()

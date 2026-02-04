@@ -55,10 +55,19 @@
         <div class="lg:col-span-2 bg-white rounded-lg shadow-sm border p-6">
             <h3 class="text-lg font-semibold text-gray-800 mb-4">Informasi Detail</h3>
             <dl class="space-y-4">
-                <div>
-                    <dt class="text-sm font-medium text-gray-500">Program</dt>
-                    <dd class="mt-1 text-sm text-gray-900">{{ $participant->program->masterProgram->name ?? 'N/A' }} - {{ $participant->program->batch }}</dd>
-                </div>
+                @if($participant->program && $participant->program->masterProgram)
+    <p class="text-lg font-semibold">
+        {{ $participant->program->masterProgram->name }}
+    </p>
+    <p class="text-sm text-gray-600">
+        Angkatan: {{ $participant->program->masterProgram->angkatan ?? '-' }}
+        @if($participant->program->masterProgram->batch)
+            | Batch: {{ $participant->program->masterProgram->batch->name ?? '-' }}
+        @endif
+    </p>
+@else
+    <p class="text-red-600">Tidak ada program terkait</p>
+@endif
                 <div>
                     <dt class="text-sm font-medium text-gray-500">NIK</dt>
                     <dd class="mt-1 text-sm text-gray-900 font-medium">
