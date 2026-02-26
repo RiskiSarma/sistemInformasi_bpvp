@@ -14,6 +14,9 @@ use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use App\Notifications\GeneralActivityNotification;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
+use App\Models\Instructor;
+use App\Models\ProgramInstructor;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Validation\Rule;
 use App\Models\User;
@@ -24,128 +27,283 @@ class ProgramController extends Controller
     
     public function index(Request $request)
     {
-        $query = Program::with(['masterProgram', 'participants', 'paketPelatihan']);
+        $query = Program::with([
+            'masterProgram', 
+            'participants', 
+            'paketPelatihan',
+            'programInstructors.instructor'
+        ]);
 
         if ($request->has('status') && $request->status != '') {
             $query->where('status', $request->status);
         }
 
-        if ($request->has('search') && $request->search != '') {
-            $search = $request->search;
-            $query->whereHas('masterProgram', function($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('code', 'like', "%{$search}%");
-            })->orWhere('batch', 'like', "%{$search}%");
+        if ($request->has('jenis_pelatihan') && $request->jenis_pelatihan != '') {
+            $query->whereHas('paketPelatihan', function($q) use ($request) {
+                $q->where('jenis_pelatihan', $request->jenis_pelatihan);
+            });
         }
 
-        $programs = $query->orderby('id','asc')->paginate(10);
+        if ($request->has('search') && $request->search != '') {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->whereHas('masterProgram', function($subQ) use ($search) {
+                    $subQ->where('name', 'like', "%{$search}%")
+                         ->orWhere('code', 'like', "%{$search}%");
+                })
+                ->orWhere('angkatan', 'like', "%{$search}%")
+                ->orWhere('batch', 'like', "%{$search}%");
+            });
+        }
+
+        $programs = $query->orderby('id','desc')->paginate(10);
         
         return view('programs.index', compact('programs'));
     }
 
     public function create()
     {
-        // $batches = Batch::where('is_active', true)->get();
-        $programs = Program::with(['masterProgram', 'paketPelatihan'])->get();
-        $masterPrograms = MasterProgram::where('is_active', true)->get();
-        $independentUnits = \App\Models\IndependentCompetencyUnit::orderBy('code')->get();
-        $paketPelatihans = PaketPelatihan::all();
+        // Load master programs dengan units nya
+        $masterPrograms = MasterProgram::where('is_active', true)
+            ->with(['independentCompetencyUnits' => function($q) {
+                $q->orderBy('code');
+            }])
+            ->get();
+        
+        $paketPelatihans = PaketPelatihan::orderBy('tahun', 'desc')->get();
+        $instructors = Instructor::where('status', 'active')->orderBy('name')->get();
 
-        return view('programs.create', compact('masterPrograms', 'independentUnits', 'paketPelatihans'));
+        return view('programs.create', compact(
+            'masterPrograms',
+            'paketPelatihans',
+            'instructors'
+        ));
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
             'master_program_id' => 'required|exists:master_programs,id',
-            // 'batch_id' => 'required|exists:batches,id',
-            'angkatan'          => 'required|string|max:50',
-            'independent_competency_unit_id'  => 'nullable|exists:independent_competency_units,id',
+            'paket_pelatihan_id' => 'required|exists:paket_pelatihans,id',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after:start_date',
             'status' => 'required|in:planned,ongoing,completed',
             'max_participants' => 'nullable|integer|min:1',
-            'independent_competency_unit_ids' => 'required|array|min:1',
-            'independent_competency_unit_ids.*' => 'exists:independent_competency_units,id',
-            'paket_pelatihan_id' => 'nullable|exists:paket_pelatihans,id', // opsional
             'ada_industri' => 'required|in:Y,N',
             'jp_harian' => 'nullable|integer|min:0',
-            'jp' => 'nullable|integer|min:0',
+            'angkatan'  => 'required|in:I,II,III,IV,V,VI,VII,VIII,IX,X',
+            
+            // Units yang dipilih dari master
+            'selected_units' => 'required|array|min:1',
+            'selected_units.*' => 'exists:independent_competency_units,id',
+            
+            // Custom duration per unit
+            'unit_durations' => 'required|array',
+            'unit_durations.*' => 'integer|min:0',
+            
+            // Unit types
+            'unit_types' => 'required|array',
+            'unit_types.*' => 'in:reguler,softskill,industri,skkni',
+            
+            // Instruktur
+            'instructors' => 'required|array|min:1',
+            'instructors.*' => 'exists:instructors,id',
+            'penanggung_jawab' => 'required|exists:instructors,id',
         ],
         [
-            'independent_competency_unit_ids.required' => 'Silakan pilih minimal satu unit kompetensi independen.',
-            'independent_competency_unit_ids.*.exists' => 'Unit kompetensi independen yang dipilih tidak valid.',
-        ]        
-        );
+            'paket_pelatihan_id.required' => 'Paket Pelatihan harus dipilih.',
+            'selected_units.required' => 'Minimal pilih satu unit kompetensi.',
+            'instructors.required' => 'Minimal pilih satu instruktur.',
+            'penanggung_jawab.required' => 'Harus ada satu instruktur sebagai penanggung jawab.',
+        ]);
 
-        $program = Program::create($validated);
-        $program->independentCompetencyUnits()->sync($request->input('independent_competency_unit_ids', []));
+        DB::beginTransaction();
+        try {
+            // Build selected units config
+            $unitsConfig = [];
+            foreach ($request->selected_units as $index => $unitId) {
+                $unitsConfig[] = [
+                    'unit_id' => (int)$unitId,
+                    'custom_duration' => (int)($request->unit_durations[$unitId] ?? 0),
+                    'type' => $request->unit_types[$unitId] ?? 'reguler',
+                ];
+            }
 
-        // Kirim notifikasi
-        $admins = User::where('role', 'admin')->get(); 
-        Notification::send($admins, new GeneralActivityNotification(
-            $program,
-            Auth::user(),
-            'Pelatihan',
-            'ditambahkan'
-        ));
-        
-        return redirect()->route('admin.programs.index')
-            ->with('success', 'Program pelatihan berhasil dibuat!');
+            // Hitung total JP
+            $totalJp = collect($unitsConfig)->sum('custom_duration');
+            
+            $programData = [
+            'master_program_id'     => $validated['master_program_id'],
+            'paket_pelatihan_id'    => $validated['paket_pelatihan_id'],
+            'angkatan'              => $validated['angkatan'],               // ← PASTIKAN ADA
+            'start_date'            => $validated['start_date'],
+            'end_date'              => $validated['end_date'],
+            'status'                => $validated['status'],
+            'max_participants'      => $validated['max_participants'] ?? null,
+            'ada_industri'          => $validated['ada_industri'],
+            'jp_harian'             => $validated['jp_harian'] ?? null,
+            'jp'                    => $totalJp,
+            'selected_units_config' => $unitsConfig,
+            'instructor_id'         => $request->penanggung_jawab,
+            'created_by'            => Auth::id(),
+            'updated_by'            => Auth::id(),
+        ];
+            
+            
+            // Create program
+            $program = Program::create($validated);
+
+            // Simpan instruktur
+            foreach ($request->instructors as $instructorId) {
+                ProgramInstructor::create([
+                    'program_id' => $program->id,
+                    'instructor_id' => $instructorId,
+                    'is_penanggung_jawab' => ($instructorId == $request->penanggung_jawab),
+                ]);
+            }
+
+            // Kirim notifikasi
+            $admins = User::where('role', 'admin')->get(); 
+            Notification::send($admins, new GeneralActivityNotification(
+                $program,
+                Auth::user(),
+                'Pelatihan',
+                'ditambahkan'
+            ));
+
+            DB::commit();
+            
+            return redirect()->route('admin.programs.index')
+                ->with('success', 'Program pelatihan berhasil dibuat dengan Angkatan ' . $program->angkatan . '!');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
     }
 
     public function edit(Program $program)
     {
-        $programs = Program::with(['masterProgram', 'paketPelatihan'])->get();
-        $masterPrograms = MasterProgram::where('is_active', true)->get();
-        // $batches = Batch::where('is_active', true)->get();
-        $independentUnits = \App\Models\IndependentCompetencyUnit::orderBy('code')->get();
-        $paketPelatihans = PaketPelatihan::all();
+        $masterPrograms = MasterProgram::where('is_active', true)
+            ->with(['independentCompetencyUnits' => function($q) {
+                $q->orderBy('code');
+            }])
+            ->get();
+            
+        $paketPelatihans = PaketPelatihan::orderBy('tahun', 'desc')->get();
+        $instructors = Instructor::where('status', 'active')->orderBy('name')->get();
+
+        // Load relasi
+        $program->load(['programInstructors.instructor', 'masterProgram.independentCompetencyUnits']);
         
-        return view('programs.edit', compact('program', 'masterPrograms', 'independentUnits', 'paketPelatihans'));
+        return view('programs.edit', compact(
+            'program',
+            'masterPrograms',
+            'paketPelatihans',
+            'instructors'
+        ));
     }
 
     public function update(Request $request, Program $program)
     {
         $validated = $request->validate([
             'master_program_id' => 'required|exists:master_programs,id',
-            // 'batch_id'          => 'required|exists:batches,id',
-            'angkatan'          => 'required|string|max:50',
-            // 'independent_competency_unit_id'  => 'nullable|exists:independent_competency_units,id',
+            'paket_pelatihan_id' => 'required|exists:paket_pelatihans,id',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after:start_date',
             'status' => 'required|in:planned,ongoing,completed',
             'max_participants' => 'nullable|integer|min:1',
-            'independent_competency_unit_ids' => 'required|array|min:1',
-            'independent_competency_unit_ids.*' => 'exists:independent_competency_units,id',
-            'paket_pelatihan_id' => 'nullable|exists:paket_pelatihans,id',
             'ada_industri' => 'required|in:Y,N',
             'jp_harian' => 'nullable|integer|min:0',
-            'jp' => 'nullable|integer|min:0',
+            'angkatan' => 'required|string|in:I,II,III,IV,V,VI,VII,VIII,IX,X',
+            
+            'selected_units' => 'required|array|min:1',
+            'selected_units.*' => 'exists:independent_competency_units,id',
+            'unit_durations' => 'required|array',
+            'unit_durations.*' => 'integer|min:0',
+            'unit_types' => 'required|array',
+            'unit_types.*' => 'in:reguler,softskill,industri,skkni',
+            
+            'instructors' => 'required|array|min:1',
+            'instructors.*' => 'exists:instructors,id',
+            'penanggung_jawab' => 'required|exists:instructors,id',
         ]);
 
-        $program->update($validated);
-        $program->independentCompetencyUnits()->sync($request->input('independent_competency_unit_ids', []));
+        DB::beginTransaction();
+        try {
+            // Build config
+            $unitsConfig = [];
+            foreach ($request->selected_units as $index => $unitId) {
+                $unitsConfig[] = [
+                    'unit_id' => (int)$unitId,
+                    'custom_duration' => (int)($request->unit_durations[$unitId] ?? 0),
+                    'type' => $request->unit_types[$unitId] ?? 'reguler',
+                ];
+            }
 
-        $admins = User::where('role', 'admin')->get();
-        Notification::send($admins, new GeneralActivityNotification(
-            $program,
-            Auth::user(),
-            'Pelatihan',
-            'diperbarui'
-        ));
+            $totalJp = collect($unitsConfig)->sum('custom_duration');
+            
+            $programData = [
+                'master_program_id'     => $validated['master_program_id'],
+                'paket_pelatihan_id'    => $validated['paket_pelatihan_id'],
+                'angkatan'              => $validated['angkatan'],               // ← PASTIKAN ADA
+                'start_date'            => $validated['start_date'],
+                'end_date'              => $validated['end_date'],
+                'status'                => $validated['status'],
+                'max_participants'      => $validated['max_participants'] ?? null,
+                'ada_industri'          => $validated['ada_industri'],
+                'jp_harian'             => $validated['jp_harian'] ?? null,
+                'jp'                    => $totalJp,
+                'selected_units_config' => $unitsConfig,
+                'instructor_id'         => $request->penanggung_jawab,
+                'updated_by'            => Auth::id(),
+            ];
+            
+            
+            $program->update($validated);
 
-        return redirect()->route('admin.programs.index')
-            ->with('success', 'Program pelatihan berhasil diperbarui!');
+            // Update instruktur
+            $program->programInstructors()->delete();
+            foreach ($request->instructors as $instructorId) {
+                ProgramInstructor::create([
+                    'program_id' => $program->id,
+                    'instructor_id' => $instructorId,
+                    'is_penanggung_jawab' => ($instructorId == $request->penanggung_jawab),
+                ]);
+            }
+
+            $admins = User::where('role', 'admin')->get();
+            Notification::send($admins, new GeneralActivityNotification(
+                $program,
+                Auth::user(),
+                'Pelatihan',
+                'diperbarui'
+            ));
+
+            DB::commit();
+
+            return redirect()->route('admin.programs.index')
+                ->with('success', 'Program pelatihan berhasil diperbarui!');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
     }
 
     public function show(Program $program)
     {
         $program->load([
             'masterProgram',
+            'paketPelatihan',
             'participants',
             'creator',
-            'updater'
+            'updater',
+            'programInstructors.instructor'
         ]);
 
         return view('programs.show', compact('program'));
@@ -153,10 +311,133 @@ class ProgramController extends Controller
 
     public function destroy(Program $program)
     {
-        $program->delete();
-        
-        return redirect()->route('admin.programs.index')
-            ->with('success', 'Program pelatihan berhasil dihapus!');
+        DB::beginTransaction();
+        try {
+            $program->programInstructors()->delete();
+            $program->delete();
+            
+            DB::commit();
+            
+            return redirect()->route('admin.programs.index')
+                ->with('success', 'Program pelatihan berhasil dihapus!');
+                
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()
+                ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
+    }
+
+    // ========================================
+    // ✅ AUTO-GENERATE ANGKATAN
+    // ========================================
+
+    /**
+     * Hitung angkatan berikutnya secara otomatis
+     * GET /admin/programs/next-angkatan
+     */
+    public function nextAngkatan(Request $request)
+    {
+        $masterProgramId  = $request->query('master_program_id');
+        $paketPelatihanId = $request->query('paket_pelatihan_id');
+        $excludeProgramId = $request->query('exclude_program_id'); // untuk edit
+
+        if (!$masterProgramId || !$paketPelatihanId) {
+            return response()->json(['angkatan' => 'I', 'info' => 'Angkatan pertama']);
+        }
+
+        $angkatanUrutan = ['I','II','III','IV','V','VI','VII','VIII','IX','X',
+                           'XI','XII','XIII','XIV','XV','XVI','XVII','XVIII','XIX','XX'];
+
+        $query = Program::where('master_program_id', $masterProgramId)
+            ->where('paket_pelatihan_id', $paketPelatihanId);
+
+        if ($excludeProgramId) {
+            $query->where('id', '!=', $excludeProgramId);
+        }
+
+        $usedAngkatan = $query->pluck('angkatan')->filter()->toArray();
+
+        foreach ($angkatanUrutan as $angkatan) {
+            if (!in_array($angkatan, $usedAngkatan)) {
+                $info = empty($usedAngkatan)
+                    ? 'Angkatan pertama untuk program & paket ini'
+                    : 'Sudah ada ' . count($usedAngkatan) . ' angkatan (' . implode(', ', $usedAngkatan) . ')';
+
+                return response()->json([
+                    'angkatan' => $angkatan,
+                    'info'     => $info,
+                ]);
+            }
+        }
+
+        $next = count($usedAngkatan) + 1;
+        return response()->json([
+            'angkatan' => 'A-' . $next,
+            'info'     => 'Angkatan ke-' . $next,
+        ]);
+    }
+
+    // ========================================
+    // ✅ GENERATE DOKUMEN ADMINISTRASI
+    // ========================================
+
+    public function dokumenSkPeserta(Program $program)
+    {
+        $program->load(['masterProgram', 'paketPelatihan.jenisPelatihan', 'participants', 'programInstructors.instructor']);
+        $pj = $program->programInstructors->where('is_penanggung_jawab', true)->first();
+
+        return view('programs.dokumen.sk-peserta', compact('program', 'pj'));
+    }
+
+    public function dokumenStInstruktur(Program $program)
+    {
+        $program->load(['masterProgram', 'paketPelatihan.jenisPelatihan', 'programInstructors.instructor']);
+        $pj = $program->programInstructors->where('is_penanggung_jawab', true)->first();
+
+        return view('programs.dokumen.st-instruktur', compact('program', 'pj'));
+    }
+
+    public function dokumenJadwal(Program $program)
+    {
+        $program->load(['masterProgram', 'paketPelatihan.jenisPelatihan', 'programInstructors.instructor']);
+        $unitsData = $program->selected_units_with_details;
+
+        return view('programs.dokumen.jadwal', compact('program', 'unitsData'));
+    }
+
+    public function dokumenDaftarHadir(Program $program)
+    {
+        $program->load(['masterProgram', 'paketPelatihan.jenisPelatihan', 'participants']);
+
+        return view('programs.dokumen.daftar-hadir', compact('program'));
+    }
+
+    public function dokumenBiodataPeserta(Program $program)
+    {
+        $program->load(['masterProgram', 'paketPelatihan.jenisPelatihan', 'participants']);
+
+        return view('programs.dokumen.biodata-peserta', compact('program'));
+    }
+
+    // public function dokumenRekapNilai(Program $program)
+    // {
+    //     $program->load(['masterProgram', 'paketPelatihan.jenisPelatihan', 'participants']);
+    //     $unitsData = $program->selected_units_with_details;
+
+    //     return view('programs.dokumen.rekap-nilai', compact('program', 'unitsData'));
+    // }
+
+    public function dokumenSkPenyelenggara(Program $program)
+    {
+        $program->load([
+            'masterProgram.kejuruan',
+            'paketPelatihan.jenisPelatihan',
+            'participants',
+            'programInstructors.instructor',
+        ]);
+
+        return view('programs.dokumen.sk-penyelenggara', compact('program'));
     }
 
     // ========== MASTER PROGRAM ==========
@@ -187,8 +468,8 @@ class ProgramController extends Controller
         $masterProgram->load([
             'programs' => function ($query) {
                 $query->with([
-                    'programUnits' => function ($q) {
-                        $q->with('independentCompetencyUnit.skkni');
+                    'independentCompetencyUnits' => function ($q) {
+                        $q->with('skkni');
                     },
                     'participants' => function ($q) {
                         $q->select('id', 'program_id'); // cukup untuk count

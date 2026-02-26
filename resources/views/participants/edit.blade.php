@@ -105,16 +105,18 @@
                 </div>
             </div>
             <div>
-                <label for="education" class="block text-sm font-medium text-gray-700 mb-1">Pendidikan Terakhir</label>
-                <select name="education" id="education" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                <label for="pendidikan_id" class="block text-sm font-medium text-gray-700 mb-1">Pendidikan Terakhir <span class="text-red-500">*</span></label>
+                <select name="pendidikan_id" id="pendidikan_id" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 @error('pendidikan_id') border-red-500 @enderror">
                     <option value="">Pilih Pendidikan</option>
-                    <option value="SD" {{ old('education', $participant->education) == 'SD' ? 'selected' : '' }}>SD</option>
-                    <option value="SMP" {{ old('education', $participant->education) == 'SMP' ? 'selected' : '' }}>SMP</option>
-                    <option value="SMA" {{ old('education', $participant->education) == 'SMA' ? 'selected' : '' }}>SMA/SMK</option>
-                    <option value="D3" {{ old('education', $participant->education) == 'D3' ? 'selected' : '' }}>D3</option>
-                    <option value="S1" {{ old('education', $participant->education) == 'S1' ? 'selected' : '' }}>S1</option>
-                    <option value="S2" {{ old('education', $participant->education) == 'S2' ? 'selected' : '' }}>S2</option>
+                    @foreach(\App\Models\Pendidikan::orderBy('pendidikan')->get() as $pend)
+                        <option value="{{ $pend->id }}" {{ old('pendidikan_id', $participant->pendidikan_id) == $pend->id ? 'selected' : '' }}>
+                            {{ $pend->pendidikan }}
+                        </option>
+                    @endforeach
                 </select>
+                @error('pendidikan_id')
+                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                @enderror
             </div>
 
             <div>

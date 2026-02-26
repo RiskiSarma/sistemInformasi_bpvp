@@ -3,42 +3,58 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Str;
 
 class PaketPelatihanPengajarSubUnit extends Model
 {
+    use HasUuids;
     use SoftDeletes;
 
+    protected $table = 'paket_pelatihan_pengajar_sub_units';
+
+    // ✅ TAMBAHKAN 2 BARIS INI
     protected $keyType = 'string';
     public $incrementing = false;
 
     protected $fillable = [
-        'paket_pelatihan_unit_id',
-        'paket_pelatihan_program_id',
+        'pp_unit_id',
+        'programs_id',
+        'pengajar_eksternal',
         'pengajar_internal_id',
         'pengajar_eksternal_id',
-        'pengajar_eksternal',
         'user_id',
     ];
 
-    protected static function booted()
+    protected $dates = ['deleted_at'];
+    
+    protected static function boot()
     {
+        parent::boot();
+
         static::creating(function ($model) {
-            if (empty($model->id)) {
-                $model->id = (string) Str::uuid();
+            if (Auth::check() && !$model->user_id) {
+                $model->user_id = Auth::id();
             }
         });
     }
 
-    public function paketPelatihanUnit()
+    // ✅ FIXED: Relation name sesuai yang dipanggil di controller
+    public function paketUnit()
     {
-        return $this->belongsTo(PaketPelatihanUnit::class);
+        return $this->belongsTo(PaketPelatihanUnit::class, 'pp_unit_id');
     }
 
-    public function paketPelatihanProgram()
+    // ✅ ALIAS untuk backward compatibility (opsional)
+    public function paketPelatihanUnit()
     {
-        return $this->belongsTo(PaketPelatihanProgram::class);
+        return $this->belongsTo(PaketPelatihanUnit::class, 'pp_unit_id');
+    }
+
+    public function program()
+    {
+        return $this->belongsTo(Program::class, 'programs_id');
     }
 
     public function pengajarInternal()
@@ -46,6 +62,13 @@ class PaketPelatihanPengajarSubUnit extends Model
         return $this->belongsTo(Instructor::class, 'pengajar_internal_id');
     }
 
+    // ✅ FIXED: Nama relation sesuai yang dipanggil di controller
+    public function pengajarEksternalData()
+    {
+        return $this->belongsTo(PengajarEksternal::class, 'pengajar_eksternal_id');
+    }
+
+    // ✅ ALIAS untuk backward compatibility
     public function pengajarEksternal()
     {
         return $this->belongsTo(PengajarEksternal::class, 'pengajar_eksternal_id');
@@ -54,5 +77,15 @@ class PaketPelatihanPengajarSubUnit extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function scopeEksternal($query)
+    {
+        return $query->where('pengajar_eksternal', 'Y');
+    }
+
+    public function scopeInternal($query)
+    {
+        return $query->where('pengajar_eksternal', 'N');
     }
 }

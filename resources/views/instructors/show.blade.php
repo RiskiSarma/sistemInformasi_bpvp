@@ -59,8 +59,10 @@
             <h3 class="text-lg font-semibold text-gray-800 mb-4">Informasi Detail</h3>
             <dl class="space-y-4">
                 <div>
-                    <dt class="text-sm font-medium text-gray-500">Pendidikan</dt>
-                    <dd class="mt-1 text-sm text-gray-900">{{ $instructor->education ?? '-' }}</dd>
+                    <dt class="text-sm font-medium text-gray-500">Pendidikan Terakhir</dt>
+                    <dd class="mt-1 text-sm text-gray-900 font-medium">
+                        {{ $instructor->pendidikan?->pendidikan ?? 'Belum diisi' }}
+                    </dd>
                 </div>
                 <div>
                     <dt class="text-sm font-medium text-gray-500">Pengalaman</dt>

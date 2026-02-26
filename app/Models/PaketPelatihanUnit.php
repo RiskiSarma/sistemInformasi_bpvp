@@ -37,7 +37,7 @@ class PaketPelatihanUnit extends Model
 
     public function programPelatihanUnit()
     {
-        return $this->belongsTo(ProgramPelatihanUnits::class, 'program_pelatihan_unit_id');
+        return $this->belongsTo(ProgramPelatihanUnit::class, 'program_pelatihan_unit_id');
     }
 
     public function masterProgramSubUnit()

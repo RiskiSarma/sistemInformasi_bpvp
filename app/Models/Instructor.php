@@ -15,13 +15,14 @@ class Instructor extends Model
     use SoftDeletes;
     
     protected $fillable = [
+        'user_id',
         'name',
         'email',
         'phone',
         'expertise',
-        'education',
         'experience_years',
         'status',
+        'pendidikan_id',
         'created_by',
         'updated_by',
     ];
@@ -77,6 +78,11 @@ class Instructor extends Model
     public function schedules(): HasMany
     {
         return $this->hasMany(Schedule::class);
+    }
+
+    public function pendidikan()
+    {
+        return $this->belongsTo(Pendidikan::class, 'pendidikan_id', 'id');
     }
 
     /**

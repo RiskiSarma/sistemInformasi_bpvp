@@ -2,43 +2,34 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Str;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 
 class PaketPelatihanPengajarProgram extends Model
 {
-    use SoftDeletes;
+    use HasFactory, HasUuids;
 
-    protected $keyType = 'string';
-    public $incrementing = false;
-
+    protected $table = 'paket_pelatihan_pengajar_programs';
+    
     protected $fillable = [
-        'paket_pelatihan_program_id',
         'jenis_materi_pelatihan_id',
-        'pengajar_eksternal',
+        'pengajar_eksternal', // enum: Y/N
         'pengajar_internal_id',
         'pengajar_eksternal_id',
+        'programs_id',
         'user_id',
     ];
 
-    protected static function booted()
+    // ✅ Relasi
+    public function jenisMateri()
     {
-        static::creating(function ($model) {
-            if (empty($model->id)) {
-                $model->id = (string) Str::uuid();
-            }
-        });
+        return $this->belongsTo(JenisMateriPelatihan::class, 'jenis_materi_pelatihan_id');
     }
 
-    public function paketPelatihanProgram()
+    public function program()
     {
-        return $this->belongsTo(PaketPelatihanProgram::class);
-    }
-
-    public function jenisMateriPelatihan()
-    {
-        return $this->belongsTo(JenisMateriPelatihan::class);
+        return $this->belongsTo(Program::class, 'programs_id');
     }
 
     public function pengajarInternal()
@@ -46,7 +37,7 @@ class PaketPelatihanPengajarProgram extends Model
         return $this->belongsTo(Instructor::class, 'pengajar_internal_id');
     }
 
-    public function pengajarEksternal()
+    public function pengajarEksternalData()
     {
         return $this->belongsTo(PengajarEksternal::class, 'pengajar_eksternal_id');
     }
@@ -54,5 +45,16 @@ class PaketPelatihanPengajarProgram extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    // ✅ Scope
+    public function scopeEksternal($query)
+    {
+        return $query->where('pengajar_eksternal', 'Y');
+    }
+
+    public function scopeInternal($query)
+    {
+        return $query->where('pengajar_eksternal', 'N');
     }
 }

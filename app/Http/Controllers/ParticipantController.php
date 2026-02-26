@@ -104,6 +104,7 @@ class ParticipantController extends Controller
             'birth_place'  => 'nullable|string|max:100',
             'birth_date'   => 'nullable|date|before_or_equal:today',
             'gender'      => 'required|in:Laki-laki,Perempuan',
+            'pendidikan_id' => 'required|exists:pendidikans,id',
         ]);
 
         $participant->update($validated + [
@@ -129,7 +130,7 @@ class ParticipantController extends Controller
 
     public function show(Participant $participant)
     {
-        $participant->load(['user', 'program.masterProgram', 'program', 'creator', 'updater', 'attendances']);
+        $participant->load(['user', 'program.paketPelatihan','program.masterProgram', 'program', 'creator', 'updater', 'attendances']);
 
         $attendances = $participant->attendances;
         $totalAttendances = $attendances->count();

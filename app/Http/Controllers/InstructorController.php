@@ -44,8 +44,9 @@ class InstructorController extends Controller
                     ->whereDoesntHave('instructor')
                     ->orderBy('name')
                     ->get();
-                    
-        return view('instructors.create', compact('users'));
+        
+        $pendidikans = \App\Models\Pendidikan::orderBy('pendidikan')->get();
+        return view('instructors.create', compact('users', 'pendidikans'));
     }
 
     public function store(Request $request)
@@ -55,15 +56,27 @@ class InstructorController extends Controller
             'phone' => 'required|string|max:20',
             'expertise' => 'required|string|max:255',
             'experience_years' => 'nullable|integer|min:0',
-            'education' => 'nullable|string',
+            'pendidikan_id'    => 'nullable|exists:pendidikans,id',
             'certifications' => 'nullable|string',
             'status' => 'required|in:active,inactive',
         ]);
+
+        // Ambil data user yang dipilih
+        $user = User::findOrFail($request->user_id);
+
+        // Isi name dan email otomatis dari user
+        $validated['name']  = $user->name;
+        $validated['email'] = $user->email;
 
         $instructor = Instructor::create($validated + [
             'created_by' => auth()->id(),
             'updated_by' => auth()->id(),
         ]);
+
+        // $instructor = Instructor::create($validated + [
+        //     'created_by' => auth()->id(),
+        //     'updated_by' => auth()->id(),
+        // ]);
 
         // Kirim notifikasi ke semua user yang punya role admin
         $admins = User::where('role', 'admin')->get(); // Sesuaikan dengan kolom role kamu
@@ -89,6 +102,7 @@ class InstructorController extends Controller
             'programs.participants',
             'creator',
             'updater',
+            'pendidikan',
             'schedules' => fn($q) => $q->with('program.masterProgram')->where('is_active', true)
         ]);
 
@@ -126,22 +140,24 @@ class InstructorController extends Controller
         $instructor->loadMissing('user');
 
         if (!$instructor->user) {
-        return redirect()->route('admin.instructors.index')
-            ->with('error', 'Data instruktur ini tidak terhubung dengan akun user. Hubungi developer untuk perbaikan data.');
-    }
+            return redirect()->route('admin.instructors.index')
+                ->with('error', 'Data instruktur ini tidak terhubung dengan akun user. Hubungi developer untuk perbaikan data.');
+        }
 
-        return view('instructors.edit', compact('instructor'));
+        $pendidikans = \App\Models\Pendidikan::orderBy('pendidikan')->get();
+
+        return view('instructors.edit', compact('instructor', 'pendidikans'));
     }
 
     public function update(Request $request, Instructor $instructor)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:instructors,email,' . $instructor->id,
+            // 'name' => 'required|string|max:255',
+            // 'email' => 'required|email|unique:instructors,email,' . $instructor->id,
             'phone' => 'required|string|max:20',
             'expertise' => 'required|string|max:255',
             'experience_years' => 'nullable|integer|min:0',
-            'education' => 'nullable|string',
+            'pendidikan_id'    => 'nullable|exists:pendidikans,id',
             'certifications' => 'nullable|string',
             'status' => 'required|in:active,inactive',
         ]);

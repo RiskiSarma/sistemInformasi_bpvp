@@ -7,6 +7,8 @@ use App\Models\JenisPelatihan;
 use App\Models\MasterProgram;
 use App\Models\Program;
 use App\Models\User;
+use App\Models\PaketPelatihanSubUnit;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 
 class PaketPelatihanController extends Controller
@@ -21,7 +23,7 @@ class PaketPelatihanController extends Controller
 
         $jenisPelatihans = JenisPelatihan::all();
         $masterPrograms = MasterProgram::all();
-        $programPelatihanUnits = \App\Models\ProgramPelatihanUnits::with('independentCompetencyUnit')->get();
+        $programPelatihanUnits = \App\Models\ProgramPelatihanUnit::with('independentCompetencyUnit')->get();
         $masterProgramSubUnits = \App\Models\MasterProgram::all(); // Load untuk dropdown
         $allCompetencyUnits = \App\Models\IndependentCompetencyUnit::select('id', 'name', 'code')
             ->orderBy('name')
@@ -144,5 +146,61 @@ class PaketPelatihanController extends Controller
         
         return redirect()->route('admin.programs.paket-pelatihan.index')
                          ->with('success', 'Paket pelatihan berhasil dihapus!');
+    }
+     /**
+     * ✅ STORE PAKET SUB UNIT (FIXED)
+     */
+    public function storePaketSubUnit(Request $request, $paketId)
+    {
+        $validated = $request->validate([
+            'paket_pelatihan_unit_id' => 'required|exists:paket_pelatihan_units,id',
+            'master_programs_id' => 'required|exists:master_programs,id',
+            'independent_competency_unit_id' => 'required|exists:independent_competency_units,id',  // ✅ NAMA KOLOM BENAR
+            'jp' => 'nullable|integer|min:0',
+        ], [
+            'paket_pelatihan_unit_id.required' => 'Paket unit harus dipilih',
+            'master_programs_id.required' => 'Master program harus dipilih',
+            'independent_competency_unit_id.required' => 'Unit kompetensi harus dipilih',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            // ✅ Cek duplikasi
+            $exists = PaketPelatihanSubUnit::where('paket_pelatihan_unit_id', $validated['paket_pelatihan_unit_id'])
+                ->where('independent_competency_unit_id', $validated['independent_competency_unit_id'])
+                ->exists();
+
+            if ($exists) {
+                return back()->with('error', 'Sub unit ini sudah ditambahkan!');
+            }
+
+            // ✅ Insert data
+            PaketPelatihanSubUnit::create($validated);
+
+            DB::commit();
+
+            return back()->with('success', 'Sub unit berhasil ditambahkan ke paket!');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error('Error storing paket sub unit: ' . $e->getMessage());
+            return back()->with('error', 'Gagal menambahkan sub unit: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * ✅ DELETE PAKET SUB UNIT
+     */
+    public function destroyPaketSubUnit($paketId, $subUnitId)
+    {
+        try {
+            $subUnit = PaketPelatihanSubUnit::findOrFail($subUnitId);
+            $subUnit->delete();
+
+            return back()->with('success', 'Sub unit berhasil dihapus!');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Gagal menghapus sub unit: ' . $e->getMessage());
+        }
     }
 }

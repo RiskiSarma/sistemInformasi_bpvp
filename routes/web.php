@@ -19,6 +19,10 @@ use App\Http\Controllers\KejuruanBidangController;
 use App\Http\Controllers\ProgramUnitController;
 use App\Http\Controllers\PaketUnitController;
 use App\Http\Controllers\PaketSubUnitController;
+use App\Http\Controllers\PengajarEksternalController;
+use App\Http\Controllers\JenisMateriPelatihanController;
+use App\Http\Controllers\PengajarAssignmentController;
+use App\Http\Controllers\PendidikanController;
 use App\Http\Controllers\PaketPengajarProgramController;
 use App\Http\Controllers\PaketPengajarSubUnitController;
 
@@ -132,21 +136,21 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
         });
 
         Route::prefix('paket-pelatihan')->name('paket-pelatihan.')->group(function () {
-
-        // Route utama paket pelatihan tetap
+        // Route utama paket pelatihan
         Route::get('/', [PaketPelatihanController::class, 'index'])->name('index');
         Route::post('/', [PaketPelatihanController::class, 'store'])->name('store');
         Route::put('/{paket}', [PaketPelatihanController::class, 'update'])->name('update');
         Route::delete('/{paket}', [PaketPelatihanController::class, 'destroy'])->name('destroy');
 
-        // API-like routes untuk paket units (tidak perlu resource view)
+        // ✅ ROUTES UNTUK PAKET UNITS & SUB UNITS (DIPERBAIKI)
         Route::prefix('{paket}')->group(function () {
+            // Paket Units
             Route::get('paket-units', [PaketUnitController::class, 'getUnits'])->name('paket-units.data');
             Route::post('paket-units', [PaketUnitController::class, 'store'])->name('paket-units.store');
             Route::put('paket-units/{paketUnit}', [PaketUnitController::class, 'update'])->name('paket-units.update');
             Route::delete('paket-units/{paketUnit}', [PaketUnitController::class, 'destroy'])->name('paket-units.destroy');
 
-            // Sama untuk sub-units
+            // ✅ PAKET SUB UNITS (NAMA ROUTE DIPERBAIKI - SESUAI DENGAN FORM ACTION)
             Route::get('paket-sub-units', [PaketSubUnitController::class, 'getSubUnits'])->name('paket-sub-units.data');
             Route::post('paket-sub-units', [PaketSubUnitController::class, 'store'])->name('paket-sub-units.store');
             Route::put('paket-sub-units/{paketSubUnit}', [PaketSubUnitController::class, 'update'])->name('paket-sub-units.update');
@@ -163,6 +167,21 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
         Route::put('/units/{unit}', [ProgramController::class, 'updateUnit'])->name('units.update');
         Route::delete('/units/{unit}', [ProgramController::class, 'destroyUnit'])->name('units.destroy');
         Route::get('/{program}', [ProgramController::class, 'show'])->name('show');
+
+        // ✅ [2] ROUTES EDIT, UPDATE, DELETE (sebelum /{program}/dokumen & /{program} show)
+        Route::get('/{program}/edit', [ProgramController::class, 'edit'])->name('edit');
+        Route::put('/{program}', [ProgramController::class, 'update'])->name('update');
+        Route::delete('/{program}', [ProgramController::class, 'destroy'])->name('destroy');
+
+        // ✅ [3] DOKUMEN ADMINISTRASI — HARUS SEBELUM /{program} SHOW
+        Route::prefix('/{program}/dokumen')->name('dokumen.')->group(function () {
+            Route::get('/sk-peserta',      [ProgramController::class, 'dokumenSkPeserta'])->name('sk-peserta');
+            Route::get('/st-instruktur',   [ProgramController::class, 'dokumenStInstruktur'])->name('st-instruktur');
+            Route::get('/jadwal',          [ProgramController::class, 'dokumenJadwal'])->name('jadwal');
+            Route::get('/daftar-hadir',    [ProgramController::class, 'dokumenDaftarHadir'])->name('daftar-hadir');
+            Route::get('/biodata-peserta', [ProgramController::class, 'dokumenBiodataPeserta'])->name('biodata-peserta');
+            Route::get('/sk-penyelenggara',     [ProgramController::class, 'dokumenSkPenyelenggara'])->name('sk-penyelenggara');
+        });
     });
 
         // Route::prefix('programs/{program}')->group(function () {
@@ -178,7 +197,94 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     // Instruktur
     Route::resource('instructors', InstructorController::class);
     Route::get('/instructors/{instructor}/schedule', [InstructorController::class, 'schedule'])->name('instructors.schedule');
+    // ✅ ROUTES LENGKAP - TAMBAHKAN DI web.php
+
+// ========================================
+    // PENGAJAR EKSTERNAL ROUTES
+    // ========================================
+    Route::prefix('pengajar-eksternal')->name('pengajar-eksternal.')->group(function () {
+        Route::get('/', [PengajarEksternalController::class, 'index'])->name('index');
+        Route::get('/create', [PengajarEksternalController::class, 'create'])->name('create');
+        Route::post('/', [PengajarEksternalController::class, 'store'])->name('store');
+        Route::get('/{pengajarEksternal}', [PengajarEksternalController::class, 'show'])->name('show');
+        Route::get('/{pengajarEksternal}/edit', [PengajarEksternalController::class, 'edit'])->name('edit');
+        Route::put('/{pengajarEksternal}', [PengajarEksternalController::class, 'update'])->name('update');
+        Route::delete('/{pengajarEksternal}', [PengajarEksternalController::class, 'destroy'])->name('destroy');
+        
+        // API untuk modal detail
+        Route::get('/{pengajarEksternal}/detail', [PengajarEksternalController::class, 'getDetail'])
+            ->name('get-detail');
+        
+        // Assign ke program & sub unit
+        Route::post('/{pengajarEksternal}/assign-program', [PengajarEksternalController::class, 'assignProgram'])
+            ->name('assign-program');
+        
+        Route::post('/{pengajarEksternal}/assign-sub-unit', [PengajarEksternalController::class, 'assignSubUnit'])
+            ->name('assign-sub-unit');
+    });
+
+    // ========================================
+    // PENGAJAR ASSIGNMENT ROUTES (INI YANG DIPERBAIKI)
+    // ========================================
     
+    // Assign ke program (dari halaman program jika ada)
+    Route::post('programs/{program}/assign-pengajar', [PengajarAssignmentController::class, 'assignToProgram'])
+        ->name('programs.assign-pengajar');
+
+    // UPDATE assignment program → HANYA SATU INI SAJA
+    Route::put('pengajar-programs/{assignment}', [PengajarAssignmentController::class, 'updateProgram'])
+        ->name('pengajar-programs.update');
+
+    // Hapus assignment program
+    Route::delete('pengajar-programs/{assignment}', [PengajarAssignmentController::class, 'removeFromProgram'])
+        ->name('pengajar-programs.destroy');
+
+    // Assign ke sub unit
+    Route::post('assign-pengajar-sub-unit', [PengajarAssignmentController::class, 'assignToSubUnit'])
+        ->name('assign-pengajar-sub-unit');
+
+    // UPDATE assignment sub unit
+    Route::put('pengajar-sub-units/{assignment}', [PengajarAssignmentController::class, 'updateSubUnit'])
+        ->name('pengajar-sub-units.update');
+
+    // Hapus assignment sub unit
+    Route::delete('pengajar-sub-units/{assignment}', [PengajarAssignmentController::class, 'removeFromSubUnit'])
+        ->name('pengajar-sub-units.destroy');
+
+    // ========================================
+    // JENIS MATERI PELATIHAN (SUBMENU BARU)
+    // ========================================
+    Route::prefix('jenis-materi-pelatihan')->name('jenis-materi-pelatihan.')->group(function () {
+        Route::get('/', [JenisMateriPelatihanController::class, 'index'])->name('index');
+        Route::post('/', [JenisMateriPelatihanController::class, 'store'])->name('store');
+        Route::put('/{jenisMateriPelatihan}', [JenisMateriPelatihanController::class, 'update'])->name('update');
+        Route::delete('/{jenisMateriPelatihan}', [JenisMateriPelatihanController::class, 'destroy'])->name('destroy');
+    });
+
+    // ========================================
+    // PENDIDIKAN (dipindah ke sini – level admin langsung)
+    // ========================================
+    Route::prefix('pendidikan')->name('pendidikan.')->group(function () {
+        Route::get('/', [PendidikanController::class, 'index'])->name('index');
+        Route::post('/', [PendidikanController::class, 'store'])->name('store');
+        Route::put('/{pendidikan}', [PendidikanController::class, 'update'])->name('update');
+        Route::delete('/{pendidikan}', [PendidikanController::class, 'destroy'])->name('destroy');
+    });
+//    // ========================================
+//     // ASSIGN PENGAJAR (KE PROGRAM & SUB UNIT)
+//     // ========================================
+//     Route::post('programs/{program}/assign-pengajar', [PengajarAssignmentController::class, 'assignToProgram'])
+//         ->name('programs.assign-pengajar');
+//     Route::post('assign-pengajar-sub-unit', [PengajarAssignmentController::class, 'assignToSubUnit'])
+//         ->name('assign-pengajar-sub-unit');
+//     Route::delete('pengajar-programs/{assignment}', [PengajarAssignmentController::class, 'removeFromProgram'])
+//         ->name('pengajar-programs.destroy');
+//     Route::delete('pengajar-sub-units/{assignment}', [PengajarAssignmentController::class, 'removeFromSubUnit'])
+//         ->name('pengajar-sub-units.destroy');
+
+    // // TAMBAHKAN BARIS INI DI SINI (di luar group pengajar-eksternal)
+    // Route::put('pengajar-programs/{assignment}', [PengajarAssignmentController::class, 'updateAssignment'])
+    //     ->name('pengajar-programs.update');
     // Schedule CRUD
     Route::get('/schedules/instructor/{instructor}/create', [ScheduleController::class, 'create'])->name('schedules.create');
     Route::post('/schedules/instructor/{instructor}', [ScheduleController::class, 'store'])->name('schedules.store');

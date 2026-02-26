@@ -67,9 +67,14 @@ class UserController extends Controller
 
         // Buat profil kosong kalau perlu
         if ($user->isInstructor()) {
-            Instructor::create(['user_id' => $user->id]);
+            Instructor::create([
+                'user_id' => $user->id,
+                'name'    => $user->name,
+                'email'   => $user->email,]);
         } elseif ($user->isParticipant()) {
-            Participant::create(['user_id' => $user->id]);
+            Participant::create([
+                'user_id' => $user->id,
+                'name'    => $user->name,]);
         }
 
         // === TAMBAHKAN NOTIFIKASI DI SINI ===
@@ -83,6 +88,7 @@ class UserController extends Controller
 
         if ($user->isInstructor()) {
             Instructor::create(['user_id' => $user->id]);
+            
         } elseif ($user->isParticipant()) {
             Participant::create(['user_id' => $user->id]);
         }

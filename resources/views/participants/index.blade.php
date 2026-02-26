@@ -164,24 +164,17 @@
                         </td>
                         <td class="px-6 py-4">
                             <div class="font-medium text-gray-900">{{ $participant->name }}</div>
-                            <div class="text-sm text-gray-500">{{ $participant->education ?? '-' }}</div>
+                            <div class="text-sm text-gray-500">{{ $participant->pendidikan->pendidikan ?? '-' }}</div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             {{ $participant->gender ?? '-' }}
                         </td>
                         <td class="px-6 py-4">
                             <div class="text-sm text-gray-900 font-medium">
-                                {{ $participant->program?->masterProgram?->name ?? 'Tidak ada program' }}
+                                {{ $participant->program?->masterProgram?->name ?? $participant->program?->name ?? 'Tidak ada program' }}
                             </div>
                             <div class="text-xs text-gray-600">
-                                @if($participant->program && $participant->program->masterProgram)
-                                    {{ $participant->program->masterProgram->batch?->name ?? '-' }} 
-                                    @if($participant->program->masterProgram->angkatan)
-                                        ({{ $participant->program->masterProgram->angkatan }})
-                                    @endif
-                                @else
-                                    Tidak ada program
-                                @endif
+                                Angkatan {{ $participant->program?->angkatan ?? '-' }}
                             </div>
                         </td>
                         <td class="px-6 py-4 text-sm text-gray-900">

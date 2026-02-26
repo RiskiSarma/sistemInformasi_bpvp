@@ -16,6 +16,7 @@ class Participant extends Model
     protected $fillable = [
         'user_id',
         'program_id',
+        'pendidikan_id',
         'nik',
         'phone',
         'address',
@@ -57,14 +58,19 @@ class Participant extends Model
         });
     }
 
+    public function pendidikan()
+    {
+        return $this->belongsTo(Pendidikan::class, 'pendidikan_id', 'id');
+    }
+
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'user_id', 'id');
     }
 
     public function program()
     {
-        return $this->belongsTo(Program::class);
+        return $this->belongsTo(Program::class, 'program_id', 'id');
     }
 
     /**

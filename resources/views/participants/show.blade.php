@@ -55,19 +55,30 @@
         <div class="lg:col-span-2 bg-white rounded-lg shadow-sm border p-6">
             <h3 class="text-lg font-semibold text-gray-800 mb-4">Informasi Detail</h3>
             <dl class="space-y-4">
-                @if($participant->program && $participant->program->masterProgram)
-    <p class="text-lg font-semibold">
-        {{ $participant->program->masterProgram->name }}
-    </p>
-    <p class="text-sm text-gray-600">
-        Angkatan: {{ $participant->program->masterProgram->angkatan ?? '-' }}
-        @if($participant->program->masterProgram->batch)
-            | Batch: {{ $participant->program->masterProgram->batch->name ?? '-' }}
-        @endif
-    </p>
-@else
-    <p class="text-red-600">Tidak ada program terkait</p>
-@endif
+                @if($participant->program)
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Program</dt>
+                        <dd class="mt-1 text-lg font-semibold text-gray-900">
+                            {{ $participant->program->masterProgram?->name ?? $participant->program->name ?? 'Tidak ada program' }}
+                        </dd>
+                    </div>
+
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Angkatan</dt>
+                        <dd class="mt-1 text-sm text-gray-900 font-medium">
+                            Angkatan {{ $participant->program->angkatan ?? '-' }}
+                        </dd>
+                    </div>
+
+                    {{-- <div>
+                        <dt class="text-sm font-medium text-gray-500">Batch</dt>
+                        <dd class="mt-1 text-sm text-gray-900">
+                            {{ $participant->program->batch ?? '-' }}
+                        </dd>
+                    </div> --}}
+                @else
+                    <p class="text-red-600">Tidak ada program terkait</p>
+                @endif
                 <div>
                     <dt class="text-sm font-medium text-gray-500">NIK</dt>
                     <dd class="mt-1 text-sm text-gray-900 font-medium">
@@ -78,7 +89,7 @@
                 <div>
                     <dt class="text-sm font-medium text-gray-500">Pendidikan Terakhir</dt>
                     <dd class="mt-1 text-sm text-gray-900 font-medium">
-                        {{ $participant->education ? ucwords($participant->education) : 'Belum diisi' }}
+                        {{ $participant->pendidikan->pendidikan ?? 'Belum diisi' }}
                     </dd>
                 </div>
                 <div>

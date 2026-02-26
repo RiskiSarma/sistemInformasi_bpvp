@@ -2,24 +2,29 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Str;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Support\Facades\Auth;
 
 class JenisMateriPelatihan extends Model
 {
-    use SoftDeletes;
+    use HasFactory, HasUuids;
 
-    protected $keyType = 'string';
-    public $incrementing = false;
+    protected $table = 'jenis_materi_pelatihan';
+    
+    protected $fillable = [
+        'jenis_materi_pelatihan',
+        'user_id',
+    ];
 
-    protected $fillable = ['nama', 'user_id'];
-
-    protected static function booted()
+    protected static function boot()
     {
+        parent::boot();
+
         static::creating(function ($model) {
-            if (empty($model->id)) {
-                $model->id = (string) Str::uuid();
+            if (Auth::check()) {
+                $model->user_id = Auth::id();
             }
         });
     }
@@ -27,5 +32,11 @@ class JenisMateriPelatihan extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    // Relasi dengan pivot programs
+    public function pengajarPrograms()
+    {
+        return $this->hasMany(PaketPelatihanPengajarProgram::class);
     }
 }

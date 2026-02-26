@@ -3,7 +3,7 @@
 @section('title', 'Buat Program Baru')
 
 @section('content')
-<div class="max-w-3xl mx-auto">
+<div class="max-w-5xl mx-auto">
     <div class="mb-6">
         <a href="{{ route('admin.programs.index') }}" class="text-blue-600 hover:text-blue-800 flex items-center space-x-2">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -13,197 +13,436 @@
         </a>
     </div>
 
+    @if(session('error'))
+    <div class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+        {{ session('error') }}
+    </div>
+    @endif
+
     <div class="bg-white rounded-lg shadow-sm border p-6">
         <h2 class="text-2xl font-bold text-gray-800 mb-6">Buat Program Pelatihan Baru</h2>
 
-        <form method="POST" action="{{ route('admin.programs.store') }}" class="space-y-6">
+        <form method="POST" action="{{ route('admin.programs.store') }}" class="space-y-10">
             @csrf
 
-            <div>
-                <label for="master_program_id" class="block text-sm font-medium text-gray-700 mb-1">Program <span class="text-red-500">*</span></label>
-                <select name="master_program_id" id="master_program_id" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 @error('master_program_id') border-red-500 @enderror">
-                    <option value="">Pilih Program</option>
-                    @foreach($masterPrograms as $mp)
-                    <option value="{{ $mp->id }}" {{ old('master_program_id') == $mp->id ? 'selected' : '' }}>
-                        {{ $mp->code }} - {{ $mp->name }}
-                    </option>
-                    @endforeach
-                </select>
-                @error('master_program_id')
-                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                @enderror
-            </div>
+            <div x-data="{
+                selectedMaster: '',
+                masterName: '',
+                selectedPaket: '',
+                jenisPelatihan: '',
+                availableUnits: [],
+                selectedUnits: [],
+                unitDurations: {},
+                unitTypes: {},
+                adaIndustri: 'N',
+                totalJP: 0,
+                selectedInstructors: [],
+                penanggungJawab: '',
+                angkatan: '',
+                angkatanLoading: false,
+                angkatanInfo: '',
 
-            {{-- <div class="mb-6">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Pilih Batch *</label>
-                <select name="batch_id" required class="w-full px-4 py-3 border rounded-lg">
-                    <option value="">-- Pilih Batch --</option>
-                    @foreach($batches as $batch)
-                        <option value="{{ $batch->id }}">
-                            {{ $batch->name }} ({{ $batch->jenis_pelatihan ?? '-' }})
-                        </option>
-                    @endforeach
-                </select>
-            </div> --}}
-            <div>
-                <label for="paket_pelatihan_id" class="block text-sm font-medium text-gray-700 mb-1">Paket Induk (opsional)</label>
-                <select name="paket_pelatihan_id" id="paket_pelatihan_id" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
-                    <option value="">-- Tidak pakai paket --</option>
-                    @foreach($paketPelatihans as $paket)
-                        <option value="{{ $paket->id }}" {{ old('paket_pelatihan_id', $program->paket_pelatihan_id ?? '') == $paket->id ? 'selected' : '' }}>
-                            {{ $paket->nama ?? $paket->tahun . ' - Batch ' . $paket->batch }}
-                        </option>
-                    @endforeach
-                </select>
-            </div>
-            <!-- Angkatan (Dropdown) -->
-            <div>
-                <label for="angkatan" class="block text-sm font-medium text-gray-700 mb-1">Angkatan <span class="text-red-500">*</span></label>
-                <select name="angkatan" id="angkatan" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 @error('angkatan') border-red-500 @enderror">
-                    <option value="">-- Pilih Angkatan --</option>
-                    <option value="I" {{ old('angkatan') == 'I' ? 'selected' : '' }}> I</option>
-                    <option value="II" {{ old('angkatan') == 'II' ? 'selected' : '' }}> II</option>
-                    <option value="III" {{ old('angkatan') == 'III' ? 'selected' : '' }}> III</option>
-                    <option value="IV" {{ old('angkatan') == 'IV' ? 'selected' : '' }}> IV</option>
-                    <option value="V" {{ old('angkatan') == 'V' ? 'selected' : '' }}> V</option>
-                    <option value="VI" {{ old('angkatan') == 'VI' ? 'selected' : '' }}> VI</option>
-                </select>
-                @error('angkatan')
-                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                @enderror
-            </div>
+                loadUnits(event) {
+                    const option = event.target.options[event.target.selectedIndex];
+                    const unitsData = option.getAttribute('data-units');
+                    this.masterName = option.getAttribute('data-name') || '';
+                    this.availableUnits = unitsData ? JSON.parse(unitsData) : [];
+                    this.selectedUnits = [];
+                    this.unitDurations = {};
+                    this.unitTypes = {};
+                    this.totalJP = 0;
+                    this.autoGenerateAngkatan();
+                },
 
-            <!-- Field checkbox Ada Industri + unit industri + hitung JP -->
-<div class="mt-6" x-data="jpCalculator()">
-    <!-- Checkbox Ada Industri -->
-    <div class="flex items-center">
-        <input type="checkbox" 
-               id="ada_industri" 
-               name="ada_industri" 
-               value="Y" 
-               x-model="hasIndustri"
-               class="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-        <label for="ada_industri" class="ml-2 text-sm font-medium text-gray-700">
-            Ada Komponen Industri
-        </label>
-    </div>
+                autoGenerateAngkatan() {
+                    if (!this.selectedMaster || !this.selectedPaket) {
+                        this.angkatan = '';
+                        this.angkatanInfo = '';
+                        return;
+                    }
+                    this.angkatanLoading = true;
+                    this.angkatan = '';
+                    fetch(`/admin/programs/next-angkatan?master_program_id=${this.selectedMaster}&paket_pelatihan_id=${this.selectedPaket}`)
+                        .then(res => res.json())
+                        .then(data => {
+                            this.angkatan = data.angkatan;
+                            this.angkatanInfo = data.info || '';
+                            this.angkatanLoading = false;
+                        })
+                        .catch(() => {
+                            this.angkatan = 'I';
+                            this.angkatanInfo = 'Angkatan pertama';
+                            this.angkatanLoading = false;
+                        });
+                },
 
-    <!-- Unit Kompetensi Industri (muncul jika checkbox dicentang) -->
-    <div x-show="hasIndustri" class="mt-4">
-        <label class="block text-sm font-medium text-gray-700 mb-1">Pilih Unit Kompetensi Industri</label>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-64 overflow-y-auto border border-gray-300 rounded-lg p-4 bg-gray-50">
-            @foreach($independentUnits as $unit)
-                <label class="flex items-center space-x-2">
-                    <input type="checkbox" 
-                           name="industri_unit_ids[]" 
-                           value="{{ $unit->id }}" 
-                           x-model="selectedIndustriUnits"
-                           class="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                    <span class="text-sm text-gray-700">
-                        {{ $unit->code }} - {{ $unit->name }} (JP: {{ $unit->jp ?? '0' }})
-                    </span>
-                </label>
-            @endforeach
-        </div>
-    </div>
+                toggleUnit(unitId, unit) {
+                    const index = this.selectedUnits.indexOf(unitId);
+                    if (index > -1) {
+                        this.selectedUnits.splice(index, 1);
+                        delete this.unitDurations[unitId];
+                        delete this.unitTypes[unitId];
+                    } else {
+                        this.selectedUnits.push(unitId);
+                        this.unitDurations[unitId] = unit.pivot?.jp || unit.jp || 0;
+                        this.unitTypes[unitId] = unit.pivot?.type_unit || 'reguler';
+                    }
+                    this.calculateTotal();
+                },
 
-    <!-- Unit Kompetensi Independen (non-industri) -->
-    <div class="mt-6">
-        <label class="block text-sm font-medium text-gray-700 mb-1">
-            Unit Kompetensi Independen <span class="text-red-500">*</span>
-        </label>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-64 overflow-y-auto border border-gray-300 rounded-lg p-4 bg-gray-50">
-            @foreach($independentUnits as $unit)
-                <label class="flex items-center space-x-2">
-                    <input type="checkbox" 
-                           name="independent_competency_unit_ids[]" 
-                           value="{{ $unit->id }}" 
-                           x-model="selectedUnits"
-                           class="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                           {{ in_array($unit->id, old('independent_competency_unit_ids', [])) ? 'checked' : '' }}>
-                    <span class="text-sm text-gray-700">
-                        {{ $unit->code }} - {{ $unit->name }} (JP: {{ $unit->jp ?? '0' }})
-                    </span>
-                </label>
-            @endforeach
-        </div>
-    </div>
+                updateDuration(unitId, value) {
+                    this.unitDurations[unitId] = parseInt(value) || 0;
+                    this.calculateTotal();
+                },
 
-    <!-- Total JP Otomatis -->
-    <div class="mt-6">
-        <label class="block text-sm font-medium text-gray-700 mb-1">Total JP (Otomatis)</label>
-        <div class="text-lg font-bold text-gray-900" x-text="totalJp"></div>
-    </div>
-</div>
+                calculateTotal() {
+                    this.totalJP = Object.values(this.unitDurations).reduce((sum, val) => sum + (parseInt(val) || 0), 0);
+                },
 
-<!-- Script Alpine untuk hitung JP -->
-<script>
-document.addEventListener('alpine:init', () => {
-    Alpine.data('jpCalculator', () => ({
-        selectedUnits: @json(old('independent_competency_unit_ids', [])),
-        selectedIndustriUnits: @json(old('industri_unit_ids', [])),
-        hasIndustri: {{ old('ada_industri') === 'Y' ? 'true' : 'false' }},
-        unitJpMap: @json($independentUnits->pluck('jp', 'id')->toArray()),
+                updateJenis(event) {
+                    const option = event.target.options[event.target.selectedIndex];
+                    this.jenisPelatihan = option.getAttribute('data-jenis') || '';
+                },
 
-        get totalJp() {
-            let total = 0;
-            this.selectedUnits.forEach(id => {
-                total += parseInt(this.unitJpMap[id] || 0);
-            });
-            if (this.hasIndustri) {
-                this.selectedIndustriUnits.forEach(id => {
-                    total += parseInt(this.unitJpMap[id] || 0);
-                });
-            }
-            return total > 0 ? total + ' jam total' : '0 jam total';
-        }
-    }));
-});
-</script>
+                init() {
+                    // Watch selectedInstructors untuk auto-select PJ
+                    this.$watch('selectedInstructors', (value) => {
+                        // Jika hanya 1 instruktur dipilih, otomatis jadi PJ
+                        if (value.length === 1) {
+                            this.penanggungJawab = value[0];
+                        }
+                        // Jika PJ yang dipilih di-uncheck, reset PJ
+                        if (!value.includes(this.penanggungJawab)) {
+                            this.penanggungJawab = '';
+                        }
+                    });
+                }
+            }">
 
-            <!-- Sisanya sama (periode, status, kuota, tombol submit) -->
+            <!-- Master Program & Paket -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                    <label for="start_date" class="block text-sm font-medium text-gray-700 mb-1">Tanggal Mulai <span class="text-red-500">*</span></label>
-                    <input type="date" name="start_date" id="start_date" value="{{ old('start_date') }}" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 @error('start_date') border-red-500 @enderror">
-                    @error('start_date')
-                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                <div>
-                    <label for="end_date" class="block text-sm font-medium text-gray-700 mb-1">Tanggal Selesai <span class="text-red-500">*</span></label>
-                    <input type="date" name="end_date" id="end_date" value="{{ old('end_date') }}" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 @error('end_date') border-red-500 @enderror">
-                    @error('end_date')
-                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                    @enderror
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    <label for="status" class="block text-sm font-medium text-gray-700 mb-1">Status <span class="text-red-500">*</span></label>
-                    <select name="status" id="status" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 @error('status') border-red-500 @enderror">
-                        <option value="planned" {{ old('status') == 'planned' ? 'selected' : '' }}>Rencana</option>
-                        <option value="ongoing" {{ old('status') == 'ongoing' ? 'selected' : '' }}>Berjalan</option>
-                        <option value="completed" {{ old('status') == 'completed' ? 'selected' : '' }}>Selesai</option>
+                    <label for="master_program_id" class="block text-sm font-medium text-gray-700 mb-1">
+                        Master Program <span class="text-red-500">*</span>
+                    </label>
+                    <select name="master_program_id" 
+                            id="master_program_id" 
+                            required 
+                            x-model="selectedMaster"
+                            @change="loadUnits($event)"
+                            class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                        <option value="">Pilih Master Program</option>
+                        @foreach($masterPrograms as $mp)
+                        <option value="{{ $mp->id }}" 
+                                data-units='@json($mp->independentCompetencyUnits)'
+                                data-name="{{ $mp->name }}">
+                            {{ $mp->code }} - {{ $mp->name }}
+                        </option>
+                        @endforeach
                     </select>
-                    @error('status')
+                    @error('master_program_id')
                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                     @enderror
                 </div>
 
                 <div>
-                    <label for="max_participants" class="block text-sm font-medium text-gray-700 mb-1">Maks. Peserta</label>
-                    <input type="number" name="max_participants" id="max_participants" value="{{ old('max_participants') }}" min="1" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                    <label for="paket_pelatihan_id" class="block text-sm font-medium text-gray-700 mb-1">
+                        Paket Pelatihan <span class="text-red-500">*</span>
+                    </label>
+                    <select name="paket_pelatihan_id" 
+                            id="paket_pelatihan_id" 
+                            required
+                            x-model="selectedPaket"
+                            @change="updateJenis($event)"
+                            class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                        <option value="">Pilih Paket</option>
+                        @foreach($paketPelatihans as $paket)
+                        <option value="{{ $paket->id }}" 
+                                data-jenis="{{ $paket->jenisPelatihan->jenis_pelatihan ?? 'Unknown' }}">
+                            {{ $paket->jenisPelatihan->jenis_pelatihan ?? 'Unknown' }} - {{ $paket->tahun }} - Batch {{ $paket->batch }}
+                        </option>
+                        @endforeach
+                    </select>
+                    @error('paket_pelatihan_id')
+                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
                 </div>
             </div>
 
-            <div class="flex items-center justify-end space-x-3 pt-4 border-t">
-                <a href="{{ route('admin.programs.index') }}" class="px-4 py-2 border rounded-lg hover:bg-gray-50 transition">
+            <!-- Info Jenis & Auto-Generate Angkatan -->
+            <div class="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 rounded-lg p-5" 
+                 x-show="selectedMaster && selectedPaket" style="display: none;">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                    <div>
+                        <span class="text-sm font-medium text-gray-700 mb-2 block">Jenis Pelatihan:</span>
+                        <div class="px-4 py-2 inline-block text-sm rounded-full bg-purple-600 text-white font-medium" 
+                             x-text="jenisPelatihan || '-'"></div>
+                    </div>
+                    <div>
+                        <span class="text-sm font-medium text-gray-700 mb-3 block">
+                            Angkatan <span class="text-red-500">*</span>
+                            <span class="text-xs text-gray-500 font-normal ml-1">(otomatis dihitung)</span>
+                        </span>
+
+                        <!-- Hidden input -->
+                        <input type="hidden" name="angkatan" :value="angkatan">
+
+                        <!-- Loading -->
+                        <div x-show="angkatanLoading" class="flex items-center gap-2 text-blue-600 text-sm">
+                            <svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                            </svg>
+                            <span>Menghitung angkatan...</span>
+                        </div>
+
+                        <!-- Result badge -->
+                        <div x-show="!angkatanLoading && angkatan" class="flex items-center gap-3">
+                            <div class="px-5 py-2 bg-blue-600 text-white text-lg font-bold rounded-lg shadow flex items-center gap-2">
+                                <svg class="w-5 h-5 text-blue-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                Angkatan <span x-text="angkatan" class="ml-1"></span>
+                            </div>
+                        </div>
+
+                        <p x-show="angkatanInfo && !angkatanLoading" class="text-xs text-gray-600 mt-2 flex items-center gap-1">
+                            <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <span x-text="angkatanInfo"></span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Unit Kompetensi -->
+            <div x-show="availableUnits.length > 0" class="pt-8 mt-8 border-t-2 border-gray-200" style="display: none;">
+                <h3 class="text-lg font-semibold text-gray-800 mb-3">Unit Kompetensi (dari Master Program)</h3>
+                
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4 text-sm text-yellow-800">
+                    Unit kompetensi diambil dari <strong>Master Program</strong>. Pilih unit dan atur <strong>durasi custom</strong>.
+                </div>
+
+                <div class="space-y-3">
+                    <template x-for="unit in availableUnits" :key="unit.id">
+                        <div class="border rounded-lg p-5 mb-4"
+                             :class="selectedUnits.includes(unit.id) ? 'border-blue-500 bg-blue-50' : 'border-gray-200'">
+                            <div class="flex items-start gap-4">
+                                <!-- Checkbox & Info -->
+                                <div class="flex items-start flex-1">
+                                    <input type="checkbox" 
+                                           :id="'unit-' + unit.id"
+                                           :value="unit.id"
+                                           :checked="selectedUnits.includes(unit.id)"
+                                           @change="toggleUnit(unit.id, unit)"
+                                           class="mt-1 h-5 w-5 text-blue-600 border-gray-300 rounded">
+                                    
+                                    <label :for="'unit-' + unit.id" class="ml-3 flex-1 cursor-pointer">
+                                        <div class="font-mono text-sm font-bold" x-text="unit.code"></div>
+                                        <div class="text-sm text-gray-700 mt-1" x-text="unit.name"></div>
+                                        <div class="text-xs text-gray-500 mt-1">
+                                            JP Default: <span x-text="unit.pivot?.jp || unit.jp || 0"></span> jam
+                                        </div>
+                                    </label>
+                                </div>
+
+                                <!-- Input Durasi & Tipe (tampil jika checked) -->
+                                <template x-if="selectedUnits.includes(unit.id)">
+                                    <div class="flex items-center gap-3 bg-white p-3 rounded border">
+                                        <!-- Hidden inputs for form submission -->
+                                        <input type="hidden" :name="'selected_units[]'" :value="unit.id">
+                                        
+                                        <!-- Tipe -->
+                                        <div>
+                                            <label class="block text-xs font-medium text-gray-600 mb-1">Tipe</label>
+                                            <select :name="'unit_types[' + unit.id + ']'"
+                                                    x-model="unitTypes[unit.id]"
+                                                    class="px-2 py-1.5 text-sm border rounded w-28">
+                                                <option value="reguler">Reguler</option>
+                                                <option value="softskill">Softskill</option>
+                                                <option value="skkni">SKKNI</option>
+                                                <option value="industri" x-show="adaIndustri === 'Y'">Industri</option>
+                                            </select>
+                                        </div>
+
+                                        <!-- Durasi -->
+                                        <div>
+                                            <label class="block text-xs font-medium text-gray-600 mb-1">Durasi (JP) *</label>
+                                            <input type="number" 
+                                                   :name="'unit_durations[' + unit.id + ']'"
+                                                   :value="unitDurations[unit.id]"
+                                                   @input="updateDuration(unit.id, $event.target.value)"
+                                                   min="0"
+                                                   required
+                                                   class="w-24 px-2 py-1.5 text-sm border rounded">
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                @error('selected_units')
+                <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                @enderror
+            </div>
+
+            <!-- Empty State -->
+            <div class="bg-gray-50 border-2 border-dashed rounded-lg p-10 text-center" 
+                 x-show="availableUnits.length === 0"
+                 style="display: none;">
+                <svg class="w-16 h-16 mx-auto text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                <p class="text-gray-600">Pilih Master Program untuk melihat unit kompetensi</p>
+            </div>
+
+            <!-- Checkbox Industri -->
+            <div class="flex items-center gap-3 p-4 bg-orange-50 border border-orange-200 rounded-lg mt-8">
+                <input type="hidden" name="ada_industri" value="N">
+                <input type="checkbox" 
+                       name="ada_industri" 
+                       id="ada_industri" 
+                       value="Y" 
+                       x-model="adaIndustri"
+                       class="h-5 w-5 text-orange-600 rounded">
+                <label for="ada_industri" class="text-sm font-medium text-gray-800">
+                    Ada Komponen Industri (Tipe "Industri" akan muncul di pilihan)
+                </label>
+            </div>
+
+            <!-- Total JP -->
+            <div class="bg-green-50 border-2 border-green-300 rounded-lg p-5 mt-8">
+                <div class="flex items-center justify-between">
+                    <span class="text-sm font-medium text-gray-700">Total Jam Pelajaran:</span>
+                    <div class="text-right">
+                        <span class="text-4xl font-bold text-green-700" x-text="totalJP"></span>
+                        <span class="text-sm text-green-600 ml-2">jam</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Instruktur -->
+            <div class="pt-8 mt-8 border-t-2 border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-800 mb-3">
+                    Instruktur Pengajar 
+                    <span class="text-sm text-gray-500 font-normal">(minimal 1, pilih yang ✓ untuk penanggung jawab)</span>
+                </h3>
+                
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3 text-sm text-blue-800">
+                    <div class="flex items-start gap-2">
+                        <svg class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <div>
+                            <strong>Cara memilih:</strong>
+                            <ol class="mt-1 ml-4 list-decimal text-xs">
+                                <li>Centang minimal 1 instruktur</li>
+                                <li>Klik tombol <strong>"Penanggung Jawab"</strong> pada salah satu instruktur yang dicentang</li>
+                                <li>Tombol akan berubah hijau tua (✓) jika sudah terpilih sebagai PJ</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="space-y-2 max-h-64 overflow-y-auto border rounded-lg p-3 bg-gray-50">
+                    @foreach($instructors as $instructor)
+                    <label class="flex items-center justify-between p-3 bg-white border rounded-lg hover:border-blue-400 cursor-pointer"
+                           :class="selectedInstructors.includes({{ $instructor->id }}) ? 'border-blue-500 bg-blue-50' : ''">
+                        <div class="flex items-center gap-3 flex-1">
+                            <input type="checkbox" 
+                                   name="instructors[]" 
+                                   value="{{ $instructor->id }}"
+                                   x-model="selectedInstructors"
+                                   class="h-5 w-5 text-blue-600 rounded">
+                            <div>
+                                <div class="font-medium">{{ $instructor->name }}</div>
+                                <div class="text-sm text-gray-500">{{ $instructor->email ?? '-' }}</div>
+                            </div>
+                        </div>
+                        
+                        <div x-show="selectedInstructors.includes({{ $instructor->id }})" style="display: none;">
+                            <label class="flex items-center gap-2 px-3 py-1.5 rounded cursor-pointer transition"
+                                   :class="penanggungJawab == {{ $instructor->id }} ? 'bg-green-600 text-white border-green-700' : 'bg-green-50 border border-green-300 text-green-800 hover:bg-green-100'">
+                                <input type="radio" 
+                                       name="penanggung_jawab" 
+                                       value="{{ $instructor->id }}"
+                                       x-model="penanggungJawab"
+                                       class="h-4 w-4 text-green-600">
+                                <span class="text-xs font-medium">
+                                    <span x-show="penanggungJawab == {{ $instructor->id }}">✓ </span>Penanggung Jawab
+                                </span>
+                            </label>
+                        </div>
+                    </label>
+                    @endforeach
+                </div>
+
+                @error('instructors')
+                <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                @enderror
+                @error('penanggung_jawab')
+                <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                @enderror
+            </div>
+
+            </div>
+
+            <!-- Periode & Info Lainnya -->
+            <div class="grid grid-cols-2 gap-6 pt-8 mt-8 border-t-2 border-gray-200">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        Tanggal Mulai <span class="text-red-500">*</span>
+                    </label>
+                    <input type="date" name="start_date" required 
+                           class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        Tanggal Selesai <span class="text-red-500">*</span>
+                    </label>
+                    <input type="date" name="end_date" required 
+                           class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        Status <span class="text-red-500">*</span>
+                    </label>
+                    <select name="status" required 
+                            class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                        <option value="planned">Rencana</option>
+                        <option value="ongoing">Berjalan</option>
+                        <option value="completed">Selesai</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Maks. Peserta</label>
+                    <input type="number" name="max_participants" min="1" 
+                           class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">JP Harian (opsional)</label>
+                <input type="number" name="jp_harian" min="0" 
+                       class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+            </div>
+
+            <!-- Submit -->
+            <div class="flex justify-end gap-3 pt-4 border-t">
+                <a href="{{ route('admin.programs.index') }}" 
+                   class="px-6 py-2.5 border rounded-lg hover:bg-gray-50">
                     Batal
                 </a>
-                <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                <button type="submit" 
+                        class="px-8 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">
                     Buat Program
                 </button>
             </div>

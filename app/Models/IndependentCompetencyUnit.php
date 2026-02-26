@@ -81,6 +81,6 @@ class IndependentCompetencyUnit extends Model
 
     public function programPelatihanUnits()
     {
-        return $this->hasMany(ProgramPelatihanUnits::class, 'independent_competency_units_id');
+        return $this->hasMany(ProgramPelatihanUnit::class, 'independent_competency_units_id');
     }
 }

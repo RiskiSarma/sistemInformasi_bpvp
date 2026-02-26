@@ -87,22 +87,22 @@ class MasterProgram extends Model
 
     // ========== ACCESSOR ==========
     
-    // Ambil semua unit independen dari semua programs di bawah master ini
-    public function getIndependentCompetencyUnitsAttribute()
-    {
-        return $this->programs->flatMap(function ($program) {
-            return $program->independentCompetencyUnits;
-        })->unique('id'); // unique biar tidak duplikat
-    }
+    // // Ambil semua unit independen dari semua programs di bawah master ini
+    // public function getIndependentCompetencyUnitsAttribute()
+    // {
+    //     return $this->programs->flatMap(function ($program) {
+    //         return $program->independentCompetencyUnits;
+    //     })->unique('id'); // unique biar tidak duplikat
+    // }
 
-    // Count untuk performa lebih baik
-    public function getIndependentCompetencyUnitsCountAttribute()
-    {
-        return $this->independent_competency_units->count();
-    }
+    // // Count untuk performa lebih baik
+    // public function getIndependentCompetencyUnitsCountAttribute()
+    // {
+    //     return $this->independent_competency_units->count();
+    // }
     public function programPelatihanUnits()
     {
-        return $this->hasMany(ProgramPelatihanUnits::class, 'master_program_id');
+        return $this->hasMany(ProgramPelatihanUnit::class, 'master_program_id');
     }
     public function independentCompetencyUnits()
 {
@@ -111,7 +111,8 @@ class MasterProgram extends Model
         'program_pelatihan_units',                // nama tabel pivot
         'master_programs_id',                     // FK ke MasterProgram
         'independent_competency_units_id'         // FK ke IndependentCompetencyUnit
-    )->withPivot('type_unit', 'jp')
-     ->withTimestamps();
+    )->withPivot('type_unit', 'jp', 'durasi_jp', 'urutan', 'is_editable')
+     ->withTimestamps()
+    ->withTrashed();
 }
 }
