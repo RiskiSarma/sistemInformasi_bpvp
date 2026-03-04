@@ -16,7 +16,7 @@ class JenisPelatihanController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'jenis_pelatihan' => 'required|string|max:100|in:Non Boarding,Boarding,Project Based Learning (PBL),Tailor Made Training,PFLK',
+            'jenis_pelatihan' => 'required|string|max:100|in:Non Boarding,Boarding,Project Based Learning (PBL),Project Based Kompetensi (PBK),Tailor Made Training,PFLK',
         ]);
 
         JenisPelatihan::create([
@@ -31,7 +31,7 @@ class JenisPelatihanController extends Controller
     public function update(Request $request, JenisPelatihan $jenis)
 {
     $validated = $request->validate([
-        'jenis_pelatihan' => 'required|string|max:100|in:Non Boarding,Boarding,Project Based Learning (PBL),Tailor Made Training,PFLK',
+        'jenis_pelatihan' => 'required|string|max:100|in:Non Boarding,Boarding,Project Based Learning (PBL),Project Based Kompetensi (PBK),Tailor Made Training,PFLK',
     ]);
 
     // Paksa update tanpa dirty checking

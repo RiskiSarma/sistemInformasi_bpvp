@@ -62,7 +62,7 @@ class PendidikanController extends Controller
     public function update(Request $request, Pendidikan $pendidikan)
     {
         $validated = $request->validate([
-            'pendidikan' => 'required|string|max:50|unique:pendidikan,pendidikan,' . $pendidikan->id,
+            'pendidikan' => 'required|string|max:50|unique:pendidikans,pendidikan,' . $pendidikan->id,
         ], [
             'pendidikan.required' => 'Jenjang pendidikan harus diisi.',
             'pendidikan.unique' => 'Jenjang pendidikan sudah ada.',

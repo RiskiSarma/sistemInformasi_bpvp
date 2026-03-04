@@ -192,6 +192,26 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
         // Route::resource('paket-pengajar-sub-units', PaketPengajarSubUnitController::class); // untuk paket_pelatihan_pengajar_sub_units
     
     // Peserta
+    // Import Excel
+    Route::get('participants/import', [ParticipantController::class, 'importForm'])
+        ->name('participants.import.form');
+    Route::post('participants/import', [ParticipantController::class, 'import'])
+        ->name('participants.import');
+
+    // Download Template Excel
+    Route::get('participants/template', [ParticipantController::class, 'downloadTemplate'])
+        ->name('participants.template');
+
+    // Resource routes (index, create, store, show, edit, update, destroy)
+    Route::resource('participants', ParticipantController::class)->names([
+        'index'   => 'participants.index',
+        'create'  => 'participants.create',
+        'store'   => 'participants.store',
+        'show'    => 'participants.show',
+        'edit'    => 'participants.edit',
+        'update'  => 'participants.update',
+        'destroy' => 'participants.destroy',
+    ]);
     Route::resource('participants', ParticipantController::class);
     
     // Instruktur

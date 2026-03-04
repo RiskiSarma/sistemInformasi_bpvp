@@ -130,53 +130,53 @@
                 </div>
 
                 <!-- NIK -->
-<div class="mb-4">
-    <label for="nik" class="block text-sm font-semibold text-gray-700 mb-2">
-        <i class="fas fa-id-card mr-2"></i>NIK <span class="text-red-500">*</span>
-    </label>
-    <input 
-        id="nik" 
-        type="text" 
-        name="nik" 
-        value="{{ old('nik') }}"
-        required 
-        minlength="16"
-        maxlength="16"
-        pattern="\d{16}"
-        title="NIK harus 16 digit angka"
-        class="w-full px-4 py-3 rounded-lg border @error('nik') border-red-500 @else border-gray-300 @enderror focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition duration-200 outline-none"
-        placeholder="Masukkan 16 digit NIK"
-    />
-    <p class="mt-1 text-xs text-gray-500">NIK harus unik per batch/program. Anda hanya boleh mendaftar sekali per batch.</p>
-    @error('nik')
-        <p class="mt-2 text-sm text-red-600"><i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}</p>
-    @enderror
-</div>
+                <div class="mb-4">
+                    <label for="nik" class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-id-card mr-2"></i>NIK <span class="text-red-500">*</span>
+                    </label>
+                    <input 
+                        id="nik" 
+                        type="text" 
+                        name="nik" 
+                        value="{{ old('nik') }}"
+                        required 
+                        minlength="16"
+                        maxlength="16"
+                        pattern="\d{16}"
+                        title="NIK harus 16 digit angka"
+                        class="w-full px-4 py-3 rounded-lg border @error('nik') border-red-500 @else border-gray-300 @enderror focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition duration-200 outline-none"
+                        placeholder="Masukkan 16 digit NIK"
+                    />
+                    <p class="mt-1 text-xs text-gray-500">NIK harus unik per batch/program. Anda hanya boleh mendaftar sekali per batch.</p>
+                    @error('nik')
+                        <p class="mt-2 text-sm text-red-600"><i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}</p>
+                    @enderror
+                </div>
 
-<!-- Program Pelatihan -->
-<div class="mb-4">
-    <label for="program_id" class="block text-sm font-semibold text-gray-700 mb-2">
-        <i class="fas fa-graduation-cap mr-2"></i>Program Pelatihan yang Dibuka <span class="text-red-500">*</span>
-    </label>
-    <select id="program_id" name="program_id" required class="w-full px-4 py-3 rounded-lg border @error('program_id') border-red-500 @else border-gray-300 @enderror focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition duration-200 outline-none">
-        <option value="">-- Pilih Program yang Sedang Dibuka --</option>
-        @if($programs->count() > 0)
-            @foreach($programs as $program)
-                <option value="{{ $program->id }}" {{ old('program_id') == $program->id ? 'selected' : '' }}>
-                    {{ $program->masterProgram->name }} 
-                    @if($program->batch) - {{ $program->batch }} @endif
-                    @if($program->angkatan) - Angkatan {{ $program->angkatan }} @endif
-                    (Mulai: {{ $program->start_date ? $program->start_date->format('d/m/Y') : 'TBD' }})
-                </option>
-            @endforeach
-        @else
-            <option value="" disabled>Tidak ada program yang sedang dibuka pendaftaran</option>
-        @endif
-    </select>
-    @error('program_id')
-        <p class="mt-2 text-sm text-red-600"><i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}</p>
-    @enderror
-</div>
+                <!-- Program Pelatihan -->
+                <div class="mb-4">
+                    <label for="program_id" class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-graduation-cap mr-2"></i>Program Pelatihan yang Dibuka <span class="text-red-500">*</span>
+                    </label>
+                    <select id="program_id" name="program_id" required class="w-full px-4 py-3 rounded-lg border @error('program_id') border-red-500 @else border-gray-300 @enderror focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition duration-200 outline-none">
+                        <option value="">-- Pilih Program yang Sedang Dibuka --</option>
+                        @if($programs->count() > 0)
+                            @foreach($programs as $program)
+                                <option value="{{ $program->id }}" {{ old('program_id') == $program->id ? 'selected' : '' }}>
+                                    {{ $program->masterProgram->name }} 
+                                    @if($program->batch) - {{ $program->batch }} @endif
+                                    @if($program->angkatan) - Angkatan {{ $program->angkatan }} @endif
+                                    (Mulai: {{ $program->start_date ? $program->start_date->format('d/m/Y') : 'TBD' }})
+                                </option>
+                            @endforeach
+                        @else
+                            <option value="" disabled>Tidak ada program yang sedang dibuka pendaftaran</option>
+                        @endif
+                    </select>
+                    @error('program_id')
+                        <p class="mt-2 text-sm text-red-600"><i class="fas fa-exclamation-circle mr-1"></i>{{ $message }}</p>
+                    @enderror
+                </div>
                 <!-- Password -->
                 <div class="mb-4">
                     <label for="password" class="block text-sm font-semibold text-gray-700 mb-2">

@@ -63,6 +63,8 @@ class UserController extends Controller
             'email'    => $validated['email'],
             'password' => Hash::make($validated['password']),
             'role'     => $validated['role'],
+            'created_by' => auth()->id(),
+            'updated_by' => auth()->id(),
         ]);
 
         // Buat profil kosong kalau perlu
@@ -71,10 +73,10 @@ class UserController extends Controller
                 'user_id' => $user->id,
                 'name'    => $user->name,
                 'email'   => $user->email,]);
-        } elseif ($user->isParticipant()) {
-            Participant::create([
-                'user_id' => $user->id,
-                'name'    => $user->name,]);
+        // } elseif ($user->isParticipant()) {
+        //     Participant::create([
+        //         'user_id' => $user->id,
+        //         'name'    => $user->name,]);
         }
 
         // === TAMBAHKAN NOTIFIKASI DI SINI ===

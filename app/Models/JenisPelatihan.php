@@ -10,6 +10,10 @@ class JenisPelatihan extends Model
 {
     use SoftDeletes;
 
+    public $incrementing = false;
+
+    protected $keyType = 'string';
+
     // KEMBALIKAN KE DEFAULT karena primary key adalah BIGINT auto-increment
     // Hapus atau komen baris ini kalau mau pakai auto-increment
     // public $incrementing = false;
@@ -27,7 +31,9 @@ class JenisPelatihan extends Model
     protected static function booted()
     {
         static::creating(function ($model) {
-            $model->uuid = (string) Str::uuid();
+            if (empty($model->id)) {
+                $model->id = (string) Str::uuid();
+            }
         });
     }
 

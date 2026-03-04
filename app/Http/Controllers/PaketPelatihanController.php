@@ -19,6 +19,8 @@ class PaketPelatihanController extends Controller
             'jenisPelatihan',
             'user',
             'programs.masterProgram',
+            'programs.paketPelatihanUnits.programPelatihanUnit.independentCompetencyUnit',  // ← tambah ini
+            'programs.paketPelatihanUnits.masterProgramSubUnit',
         ])->latest()->paginate(10);
 
         $jenisPelatihans = JenisPelatihan::all();

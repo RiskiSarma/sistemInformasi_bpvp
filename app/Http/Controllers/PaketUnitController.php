@@ -20,28 +20,20 @@ class PaketUnitController extends Controller
     public function store(Request $request, $paketId)
     {
         try {
-            // Validasi input
             $validated = $request->validate([
-                'program_pelatihan_unit_id' => 'required|exists:program_pelatihan_units,id',
+                'program_id'                 => 'required|exists:programs,id',  // ← tambah validasi program_id
+                'program_pelatihan_unit_id'  => 'required|exists:program_pelatihan_units,id',
                 'master_program_sub_unit_id' => 'required|exists:master_programs,id',
-                'jp' => 'nullable|integer|min:0',
-                'sub_unit_kompetensi' => 'required|in:Y,N',
+                'jp'                         => 'nullable|integer|min:0',
+                'sub_unit_kompetensi'        => 'required|in:Y,N',
             ]);
 
             DB::beginTransaction();
 
-            // ✅ PERBAIKAN: Ambil paket pelatihan
             $paket = PaketPelatihan::findOrFail($paketId);
-            
-            // ✅ PERBAIKAN: Ambil atau buat Program untuk paket ini
-            $program = $paket->programs()->first();
-            
-            if (!$program) {
-                // Jika belum ada program, buat program baru untuk paket ini
-                // Atau return error jika harus ada program terlebih dahulu
-                DB::rollBack();
-                return redirect()->back()->with('error', 'Paket pelatihan ini belum memiliki program. Silakan tambahkan program terlebih dahulu.');
-            }
+
+            // ← Gunakan program_id dari form, bukan first()
+            $program = $paket->programs()->where('id', $validated['program_id'])->firstOrFail();
 
             // Cek duplikasi
             $exists = PaketPelatihanUnit::where('programs_id', $program->id)
@@ -54,22 +46,17 @@ class PaketUnitController extends Controller
                 return redirect()->back()->with('error', 'Unit kompetensi ini sudah ditambahkan ke paket.');
             }
 
-            // ✅ PERBAIKAN: Tambahkan programs_id dari program yang ditemukan
-            $validated['programs_id'] = $program->id;
-
-            // Create paket pelatihan unit
-            PaketPelatihanUnit::create($validated);
+            PaketPelatihanUnit::create([
+                'programs_id'                => $program->id,
+                'program_pelatihan_unit_id'  => $validated['program_pelatihan_unit_id'],
+                'master_program_sub_unit_id' => $validated['master_program_sub_unit_id'],
+                'jp'                         => $validated['jp'],
+                'sub_unit_kompetensi'        => $validated['sub_unit_kompetensi'],
+            ]);
 
             DB::commit();
-
             return redirect()->back()->with('success', 'Unit berhasil ditambahkan ke paket.');
-            
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            DB::rollBack();
-            return redirect()->back()
-                ->withErrors($e->errors())
-                ->withInput()
-                ->with('error', 'Validasi gagal. Periksa kembali input Anda.');
+
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error storing paket pelatihan unit: ' . $e->getMessage());

@@ -46,25 +46,25 @@ class PaketSubUnitController extends Controller
      */
     public function store(Request $request, $paketId)
     {
-        // ✅ UBAH NAMA FIELD VALIDASI SESUAI DATABASE
+        // ✅ NAMA FIELD SESUAI NAMA KOLOM DI DATABASE (tanpa _id)
         $validated = $request->validate([
-            'paket_pelatihan_unit_id' => 'required|exists:paket_pelatihan_units,id',
-            'master_programs_id' => 'required|exists:master_programs,id',
-            'independent_competency_units' => 'required|exists:independent_competency_units,id',  // ✅ TANPA _ID
-            'jp' => 'nullable|integer|min:0',
+            'paket_pelatihan_unit_id'    => 'required|exists:paket_pelatihan_units,id',
+            'master_programs_id'         => 'required|exists:master_programs,id',
+            'independent_competency_units' => 'required|exists:independent_competency_units,id', // ✅ tanpa _id
+            'jp'                         => 'nullable|integer|min:0',
         ], [
-            'paket_pelatihan_unit_id.required' => 'Paket unit harus dipilih',
-            'master_programs_id.required' => 'Master program harus dipilih',
-            'independent_competency_units.required' => 'Unit kompetensi harus dipilih',
-            'jp.integer' => 'JP harus berupa angka',
+            'paket_pelatihan_unit_id.required'          => 'Paket unit harus dipilih',
+            'master_programs_id.required'               => 'Master program harus dipilih',
+            'independent_competency_units.required'     => 'Unit kompetensi harus dipilih',
+            'jp.integer'                                => 'JP harus berupa angka',
         ]);
 
         try {
             DB::beginTransaction();
 
-            // ✅ Cek duplikasi (SESUAIKAN NAMA KOLOM)
+            // Cek duplikasi
             $exists = PaketPelatihanSubUnit::where('paket_pelatihan_unit_id', $validated['paket_pelatihan_unit_id'])
-                ->where('independent_competency_units', $validated['independent_competency_units'])  // ✅ TANPA _ID
+                ->where('independent_competency_units', $validated['independent_competency_units']) // ✅ tanpa _id
                 ->exists();
 
             if ($exists) {
@@ -72,7 +72,6 @@ class PaketSubUnitController extends Controller
                 return back()->with('error', 'Sub unit ini sudah ditambahkan!');
             }
 
-            // ✅ Insert data
             PaketPelatihanSubUnit::create($validated);
 
             DB::commit();

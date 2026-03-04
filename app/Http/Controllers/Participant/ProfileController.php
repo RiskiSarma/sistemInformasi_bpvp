@@ -38,6 +38,8 @@ class ProfileController extends Controller
             'address' => 'nullable|string',
             'birth_place' => 'nullable|string|max:100',
             'birth_date'  => 'nullable|date|before_or_equal:today',
+            'pendidikan_id' => 'nullable|exists:pendidikans,id',
+            'gender'        => 'nullable|in:LAKI-LAKI,PEREMPUAN',
         ]);
 
         // Update user

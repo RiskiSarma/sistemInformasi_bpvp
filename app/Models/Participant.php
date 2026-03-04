@@ -7,12 +7,15 @@ use Illuminate\Database\Eloquent\Model;
 use App\Traits\HasAudit;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
 
 class Participant extends Model
 {
     use HasFactory, HasAudit;
     use SoftDeletes;
     
+    protected $keyType = 'string';
+    public $incrementing = false;
     protected $fillable = [
         'user_id',
         'program_id',
@@ -43,6 +46,10 @@ class Participant extends Model
     protected static function boot()
     {
         parent::boot();
+
+        static::creating(function ($model) {
+        $model->id = Str::uuid();
+        });
 
         static::creating(function ($model) {
             if (Auth::check()) {

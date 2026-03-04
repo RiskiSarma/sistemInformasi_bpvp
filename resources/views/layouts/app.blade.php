@@ -43,7 +43,7 @@
             <!-- Logo - Fixed at Top -->
             <div class="flex items-center justify-between h-16 px-6 border-b flex-shrink-0">
                 <div class="flex items-center space-x-3">
-                    <img src="https://blkaceh.kemnaker.go.id/wp-content/uploads/2023/07/cropped-logo-bpvp.png" alt="Logo BPVP" class="h-10 w-auto" onerror="this.src='https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjz9kmrBxqmtTcjR5DfGbcL0blmphH6V9chaKj5rJHWVW59vuEbp8OvusBJxR79eKcNEjUIstpT4gjQbVUSA5LgemfC5oy5hZgzsqxw8O3pg-064l2YToAxL9E2ljEPBHU05J_2Cl8roOI/s705/logo_blk_biru.png.png'">
+                    <img src="images/logo-bpvp.png" alt="Logo BPVP" class="h-10 w-auto" onerror="this.src='{{ asset('images/logo-bpvp.png') }}'">
                     <span class="text-sm font-bold text-gray-800">BPVP Banda Aceh</span>
                 </div>
                 <button @click="sidebarOpen = false" class="lg:hidden text-gray-500 hover:text-gray-700">
@@ -62,7 +62,7 @@
                         request()->routeIs('admin.programs.edit') || 
                         request()->routeIs('admin.programs.show') || 
                         request()->routeIs('admin.programs.master') ||
-                        request()->routeIs('admin.programs.master.*') ||          // semua route master (index, show, edit, dll)
+                        // request()->routeIs('admin.programs.master.*') ||          // semua route master (index, show, edit, dll)
                         request()->routeIs('admin.programs.batches.*') ||         // semua route batch
                         request()->routeIs('admin.independent-units.*') ||
                         request()->routeIs('admin.pendidikan.*') ||
@@ -134,10 +134,10 @@
                         class="block px-4 py-2 text-sm rounded-lg transition {{ request()->routeIs('admin.jenis-materi-pelatihan.*') ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100' }}">
                             Jenis Materi Pelatihan
                         </a>
-                        <a href="{{ route('admin.programs.batches.index') }}" 
+                        {{-- <a href="{{ route('admin.programs.batches.index') }}" 
                         class="block px-4 py-2 text-sm rounded-lg transition {{ request()->routeIs('admin.programs.batches.*') ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100' }}">
                             Batch
-                        </a>
+                        </a> --}}
                         <a href="{{ route('admin.pendidikan.index') }}"
                         class="block px-4 py-2 text-sm rounded-lg transition {{ request()->routeIs('admin.pendidikan.index') ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-100' }}">
                             Pendidikan

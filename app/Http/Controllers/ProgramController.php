@@ -63,7 +63,6 @@ class ProgramController extends Controller
 
     public function create()
     {
-        // Load master programs dengan units nya
         $masterPrograms = MasterProgram::where('is_active', true)
             ->with(['independentCompetencyUnits' => function($q) {
                 $q->orderBy('code');
@@ -73,10 +72,23 @@ class ProgramController extends Controller
         $paketPelatihans = PaketPelatihan::orderBy('tahun', 'desc')->get();
         $instructors = Instructor::where('status', 'active')->orderBy('name')->get();
 
+        // Map di sini, bukan di Blade
+        $masterProgramsData = $masterPrograms->map(fn($mp) => [
+            'id'    => (string) $mp->id,
+            'label' => $mp->code . ' - ' . $mp->name,
+            'name'  => $mp->name,
+            'units' => $mp->independentCompetencyUnits,
+        ]);
+
+        $paketPelatihansData = $paketPelatihans->map(fn($p) => [
+            'id'    => (string) $p->id,
+            'label' => ($p->jenisPelatihan->jenis_pelatihan ?? 'Unknown') . ' - ' . $p->tahun . ' - Batch ' . $p->batch,
+            'jenis' => $p->jenisPelatihan->jenis_pelatihan ?? 'Unknown',
+        ]);
+
         return view('programs.create', compact(
-            'masterPrograms',
-            'paketPelatihans',
-            'instructors'
+            'masterPrograms', 'paketPelatihans', 'instructors',
+            'masterProgramsData', 'paketPelatihansData'
         ));
     }
 
@@ -185,26 +197,36 @@ class ProgramController extends Controller
     }
 
     public function edit(Program $program)
-    {
-        $masterPrograms = MasterProgram::where('is_active', true)
-            ->with(['independentCompetencyUnits' => function($q) {
-                $q->orderBy('code');
-            }])
-            ->get();
-            
-        $paketPelatihans = PaketPelatihan::orderBy('tahun', 'desc')->get();
-        $instructors = Instructor::where('status', 'active')->orderBy('name')->get();
-
-        // Load relasi
-        $program->load(['programInstructors.instructor', 'masterProgram.independentCompetencyUnits']);
+{
+    $masterPrograms = MasterProgram::where('is_active', true)
+        ->with(['independentCompetencyUnits' => function($q) {
+            $q->orderBy('code');
+        }])
+        ->get();
         
-        return view('programs.edit', compact(
-            'program',
-            'masterPrograms',
-            'paketPelatihans',
-            'instructors'
-        ));
-    }
+    $paketPelatihans = PaketPelatihan::orderBy('tahun', 'desc')->get();
+    $instructors = Instructor::where('status', 'active')->orderBy('name')->get();
+    $program->load(['programInstructors.instructor', 'masterProgram.independentCompetencyUnits']);
+
+    // Map di sini, bukan di Blade
+    $masterProgramsData = $masterPrograms->map(fn($mp) => [
+        'id'    => (string) $mp->id,
+        'label' => $mp->code . ' - ' . $mp->name,
+        'name'  => $mp->name,
+        'units' => $mp->independentCompetencyUnits,
+    ]);
+
+    $paketPelatihansData = $paketPelatihans->map(fn($p) => [
+        'id'    => (string) $p->id,
+        'label' => ($p->jenisPelatihan->jenis_pelatihan ?? 'Unknown') . ' - ' . $p->tahun . ' - Batch ' . $p->batch,
+        'jenis' => $p->jenisPelatihan->jenis_pelatihan ?? 'Unknown',
+    ]);
+
+    return view('programs.edit', compact(
+        'program', 'masterPrograms', 'paketPelatihans', 'instructors',
+        'masterProgramsData', 'paketPelatihansData'
+    ));
+}
 
     public function update(Request $request, Program $program)
     {

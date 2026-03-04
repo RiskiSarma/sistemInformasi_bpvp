@@ -27,9 +27,14 @@ class AttendanceController extends Controller
         return view('attendance.index', compact('programs'));
     }
 
-    public function show(Program $program)
+    public function show(Program $program, Request $request)
     {
         $program->load(['masterProgram', 'participants']);
+
+        // Tanggal yang dipilih untuk form absensi (default: hari ini)
+        $selectedDate = $request->filled('date') 
+            ? Carbon::parse($request->date) 
+            : Carbon::today();
 
         // Get all attendance records for this program
         $attendanceRecords = Attendance::where('program_id', $program->id)
@@ -43,16 +48,28 @@ class AttendanceController extends Controller
             ->sort()
             ->reverse()
             ->take(10)
-            ->values(); // Reset keys untuk memastikan array sequential
+            ->values();
 
-        // Group by date - PERBAIKAN: Convert date ke string untuk key
+        // Group by date
         $attendances = $attendanceRecords->groupBy(function($item) {
             return $item->date instanceof Carbon 
                 ? $item->date->format('Y-m-d') 
                 : $item->date;
         });
 
-        return view('attendance.show', compact('program', 'dates', 'attendances'));
+        // Get existing attendance for selected date (untuk pre-fill form)
+        $existingAttendances = Attendance::where('program_id', $program->id)
+            ->whereDate('date', $selectedDate)
+            ->get()
+            ->keyBy('participant_id');
+
+        return view('attendance.show', compact(
+            'program', 
+            'dates', 
+            'attendances', 
+            'selectedDate', 
+            'existingAttendances'
+        ));
     }
 
     public function record(Request $request)
@@ -68,9 +85,7 @@ class AttendanceController extends Controller
 
         DB::beginTransaction();
         try {
-            // Loop through each attendance
             foreach ($validated['attendances'] as $attendanceData) {
-                // Pastikan participant_id tidak kosong
                 if (empty($attendanceData['participant_id'])) {
                     continue;
                 }
@@ -84,12 +99,18 @@ class AttendanceController extends Controller
                     [
                         'status' => $attendanceData['status'],
                         'notes' => $attendanceData['notes'] ?? null,
+                        'recorded_by' => auth()->id(),
                     ]
                 );
             }
             
             DB::commit();
-            return redirect()->back()->with('success', 'Kehadiran berhasil dicatat!');
+            return redirect()
+                ->route('admin.attendance.show', [
+                    'program' => $validated['program_id'],
+                    'date' => $validated['date'],
+                ])
+                ->with('success', 'Kehadiran berhasil dicatat untuk tanggal ' . Carbon::parse($validated['date'])->format('d M Y') . '!');
         } catch (\Exception $e) {
             DB::rollback();
             return redirect()->back()->with('error', 'Gagal mencatat kehadiran: ' . $e->getMessage());
@@ -101,7 +122,6 @@ class AttendanceController extends Controller
         $query = Program::with(['masterProgram', 'participants'])
             ->whereIn('status', ['ongoing', 'completed']);
 
-        // Filter by date range if provided
         if ($request->filled('date_from')) {
             $query->where('start_date', '>=', $request->date_from);
         }
@@ -112,7 +132,6 @@ class AttendanceController extends Controller
 
         $programs = $query->orderBy('start_date', 'desc')->get();
 
-        // Calculate attendance statistics for each program
         foreach ($programs as $program) {
             $program->attendance_stats = $program->participants->map(function($participant) use ($program) {
                 $attendances = Attendance::where('program_id', $program->id)

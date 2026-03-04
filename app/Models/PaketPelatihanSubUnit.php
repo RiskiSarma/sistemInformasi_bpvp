@@ -15,7 +15,7 @@ class PaketPelatihanSubUnit extends Model
     protected $fillable = [
         'paket_pelatihan_unit_id',
         'master_programs_id',
-        'independent_competency_units_id',  // ✅ NAMA KOLOM YANG BENAR
+        'independent_competency_units',  // ✅ NAMA KOLOM YANG BENAR
         'jp',
     ];
 

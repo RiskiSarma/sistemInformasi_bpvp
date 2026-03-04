@@ -30,10 +30,10 @@
             <!-- Logo -->
             <div class="flex items-center justify-between h-16 px-6 border-b flex-shrink-0">
                 <div class="flex items-center space-x-3">
-                    <img src="https://blkaceh.kemnaker.go.id/wp-content/uploads/2023/07/cropped-logo-bpvp.png" 
+                    <img src="imageslogo-bpvp.png" 
                          alt="Logo BPVP" 
                          class="h-10 w-auto" 
-                         onerror="this.src='https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjz9kmrBxqmtTcjR5DfGbcL0blmphH6V9chaKj5rJHWVW59vuEbp8OvusBJxR79eKcNEjUIstpT4gjQbVUSA5LgemfC5oy5hZgzsqxw8O3pg-064l2YToAxL9E2ljEPBHU05J_2Cl8roOI/s705/logo_blk_biru.png.png'">
+                         onerror="this.src='{{ asset('images/logo-bpvp.png') }}'">
                     <span class="text-sm font-bold text-gray-800">BPVP Banda Aceh</span>
                 </div>
                 <button @click="sidebarOpen = false" class="lg:hidden text-gray-500 hover:text-gray-700">

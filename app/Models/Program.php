@@ -115,6 +115,12 @@ class Program extends Model
         return $this->belongsTo(PaketPelatihan::class, 'paket_pelatihan_id');
     }
 
+    // Di model Program
+    public function paketPelatihanUnits()
+    {
+        return $this->hasMany(PaketPelatihanUnit::class, 'programs_id');
+    }
+
     public function instructor()
     {
         return $this->belongsTo(Instructor::class, 'instructor_id');

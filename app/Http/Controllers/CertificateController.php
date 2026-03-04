@@ -43,7 +43,7 @@ class CertificateController extends Controller
             ->whereDoesntHave('certificate')
             ->with([
                 'program.masterProgram',
-                'program.independentCompetencyUnit', 
+                'program.independentCompetencyUnits', 
                 'attendances'
             ])
             ->get();
@@ -481,7 +481,7 @@ class CertificateController extends Controller
     public function verify($certificate_number)
     {
         $certificate = Certificate::where('certificate_number', $certificate_number)
-            ->with(['participant', 'program.masterProgram', 'program.independentCompetencyUnit'])
+            ->with(['participant', 'program.masterProgram', 'program.independentCompetencyUnits'])
             ->first();
 
         if (!$certificate) {

@@ -9,6 +9,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use App\Notifications\GeneralActivityNotification;
+use App\Imports\ParticipantImport;
+use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Validation\Rule;
 
 class ParticipantController extends Controller
@@ -58,7 +60,8 @@ class ParticipantController extends Controller
             'program_id'  => 'required|exists:programs,id',
             'nik'         => 'nullable|string|max:16|unique:participants,nik',
             'phone'       => 'nullable|string|max:20',
-            'education'   => 'nullable|string|max:100',
+            // 'education'   => 'nullable|string|max:100',
+            'pendidikan_id' => 'required|exists:pendidikans,id',
             'address'     => 'nullable|string',
             'status'      => 'required|in:active,graduated,dropout',
             'birth_place'  => 'nullable|string|max:100',
@@ -98,7 +101,7 @@ class ParticipantController extends Controller
             'program_id' => 'required|exists:programs,id',
             'nik'        => ['nullable', 'string', 'max:16', Rule::unique('participants', 'nik')->ignore($participant->id)],
             'phone'      => 'nullable|string|max:20',
-            'education'  => 'nullable|string|max:100',
+            // 'education'  => 'nullable|string|max:100',
             'address'    => 'nullable|string',
             'status'     => 'required|in:active,graduated,dropout',
             'birth_place'  => 'nullable|string|max:100',
@@ -170,5 +173,102 @@ class ParticipantController extends Controller
 
         return redirect()->route('admin.participants.index')
             ->with('success', 'Peserta berhasil dihapus!');
+    }
+    // Tampilkan halaman import
+    public function importForm()
+    {
+        $programs = Program::with('masterProgram')
+            ->whereIn('status', ['planned', 'ongoing'])
+            ->get();
+
+        return view('participants.import', compact('programs'));
+    }
+
+    // Proses import
+    // Proses import
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file'       => 'required|file|mimes:xlsx,xls,csv|max:5120',
+            'program_id' => 'required|exists:programs,id',
+        ]);
+
+        $import = new ParticipantImport(
+            $request->program_id,
+            auth()->id()
+        );
+
+        Excel::import($import, $request->file('file'));
+
+        $parts = [];
+        if ($import->importedCount > 0) $parts[] = "{$import->importedCount} peserta baru ditambahkan";
+        if ($import->updatedCount > 0)  $parts[] = "{$import->updatedCount} peserta diperbarui";
+        if ($import->filteredCount > 0) $parts[] = "{$import->filteredCount} dilewati (beda program)";
+        if ($import->skippedCount > 0)  $parts[] = "{$import->skippedCount} dilewati (data kosong)";
+
+        $message = "Import selesai: " . implode(', ', $parts) . ".";
+
+        // Kirim notifikasi hanya jika ada yang berhasil diimport atau diupdate
+        if ($import->importedCount > 0 || $import->updatedCount > 0) {
+            $program     = Program::with('masterProgram')->find($request->program_id);
+            $programName = $program?->masterProgram?->name ?? 'Program';
+
+            $notifParts = [];
+            if ($import->importedCount > 0) $notifParts[] = "{$import->importedCount} peserta baru";
+            if ($import->updatedCount > 0)  $notifParts[] = "{$import->updatedCount} diperbarui";
+            $notifDetail = implode(', ', $notifParts);
+
+            // Ambil participant pertama yang baru diimport sebagai model referensi
+            // agar GeneralActivityNotification tidak error saat akses properti model
+            $participantRef = Participant::where('program_id', $request->program_id)
+                ->latest('created_at')
+                ->first();
+
+            if ($participantRef) {
+                $admins = User::where('role', 'admin')->get();
+                Notification::send($admins, new GeneralActivityNotification(
+                    $participantRef,
+                    auth()->user(),
+                    "Import Peserta ({$programName})",
+                    "selesai: {$notifDetail}"
+                ));
+            }
+        }
+
+        if (!empty($import->importErrors)) {
+            return redirect()->route('admin.participants.index')
+                ->with('warning', $message)
+                ->with('import_errors', $import->importErrors);
+        }
+
+        return redirect()->route('admin.participants.index')
+            ->with('success', $message);
+    }
+
+    // Download template Excel
+    public function downloadTemplate()
+    {
+        $headers = [
+            'nama', 'email', 'nik', 'telepon', 'jenis_kelamin',
+            'tempat_lahir', 'tanggal_lahir', 'pendidikan', 'alamat', 'status'
+        ];
+
+        $contoh = [
+            'Budi Santoso', 'budi@email.com', '3201010101010001',
+            '081234567890', 'Laki-laki', 'Jakarta', '1995-08-17',
+            'S1', 'Jl. Contoh No. 1', 'active'
+        ];
+
+        $filename = 'template_import_peserta.csv';
+        $handle = fopen('php://output', 'w');
+
+        return response()->stream(function () use ($handle, $headers, $contoh) {
+            fputcsv($handle, $headers);
+            fputcsv($handle, $contoh);
+            fclose($handle);
+        }, 200, [
+            'Content-Type'        => 'text/csv',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+        ]);
     }
 }
