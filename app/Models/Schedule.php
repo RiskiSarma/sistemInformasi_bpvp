@@ -10,9 +10,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Schedule extends Model
 {
-    use HasFactory;
-    use SoftDeletes;
-    
+    use HasFactory, SoftDeletes;
+
     protected $fillable = [
         'program_id',
         'instructor_id',
@@ -28,8 +27,8 @@ class Schedule extends Model
 
     protected $casts = [
         'is_active' => 'boolean',
-        'start_time' => 'datetime:H:i',
-        'end_time' => 'datetime:H:i',
+        // start_time & end_time TIDAK di-cast ke datetime
+        // dibiarkan string "H:i:s" agar Carbon::parse() di controller/view tidak error
     ];
 
     protected static function boot()
@@ -49,17 +48,14 @@ class Schedule extends Model
             }
         });
     }
-    /**
-     * Get the program that owns this schedule
-     */
+
+    // ── Relasi ──────────────────────────────────────────────
+
     public function program(): BelongsTo
     {
         return $this->belongsTo(Program::class);
     }
 
-    /**
-     * Get the instructor that owns this schedule
-     */
     public function instructor(): BelongsTo
     {
         return $this->belongsTo(Instructor::class);
@@ -76,45 +72,54 @@ class Schedule extends Model
     }
 
     /**
-     * Get day name in Indonesian
+     * Relasi ke InstructorAttendance untuk hari ini.
+     * JANGAN pakai Auth::user() di sini — relasi dipanggil saat eager load,
+     * instructor_id difilter lewat eager load constraint di controller.
      */
-    public function getDayNameAttribute(): string
+    public function attendance()
     {
-        $days = [
-            'monday' => 'Senin',
-            'tuesday' => 'Selasa',
-            'wednesday' => 'Rabu',
-            'thursday' => 'Kamis',
-            'friday' => 'Jumat',
-            'saturday' => 'Sabtu',
-            'sunday' => 'Minggu',
-        ];
-
-        return $days[$this->day_of_week] ?? $this->day_of_week;
+        return $this->hasOne(InstructorAttendance::class, 'schedule_id');
     }
 
-    /**
-     * Scope to get only active schedules
-     */
+    // ── Accessors ───────────────────────────────────────────
+
+    public function getDayNameAttribute(): string
+    {
+        return [
+            'monday'    => 'Senin',
+            'tuesday'   => 'Selasa',
+            'wednesday' => 'Rabu',
+            'thursday'  => 'Kamis',
+            'friday'    => 'Jumat',
+            'saturday'  => 'Sabtu',
+            'sunday'    => 'Minggu',
+        ][$this->day_of_week] ?? $this->day_of_week;
+    }
+
+    // ── Scopes ──────────────────────────────────────────────
+
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
     }
 
-    /**
-     * Scope to filter by day
-     */
     public function scopeByDay($query, $day)
     {
         return $query->where('day_of_week', $day);
     }
 
     /**
-     * Scope to get schedules ordered by day and time
+     * Filter jadwal berdasarkan hari ini (day_of_week).
+     * Nama hari pakai format lowercase English: monday, tuesday, dst.
      */
+    public function scopeToday($query)
+    {
+        return $query->where('day_of_week', strtolower(now()->englishDayOfWeek));
+    }
+
     public function scopeOrdered($query)
     {
-        return $query->orderByRaw("FIELD(day_of_week, 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday')")
+        return $query->orderByRaw("FIELD(day_of_week, 'monday','tuesday','wednesday','thursday','friday','saturday','sunday')")
                      ->orderBy('start_time');
     }
 }

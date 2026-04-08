@@ -23,6 +23,7 @@ use App\Http\Controllers\PengajarEksternalController;
 use App\Http\Controllers\JenisMateriPelatihanController;
 use App\Http\Controllers\PengajarAssignmentController;
 use App\Http\Controllers\PendidikanController;
+use App\Http\Controllers\InstructorAttendanceController;
 use App\Http\Controllers\PaketPengajarProgramController;
 use App\Http\Controllers\PaketPengajarSubUnitController;
 
@@ -78,7 +79,16 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
                 'destroy' => 'units.destroy',
             ]);
             
-            
+    
+            // ✅ PAKET UNITS (TAMBAHKAN DI SINI - TANPA prefix {program} lagi!)
+            Route::post('paket-units', [PaketUnitController::class, 'store'])->name('paket-units.store');
+            Route::put('paket-units/{paketUnit}', [PaketUnitController::class, 'update'])->name('paket-units.update');
+            Route::delete('paket-units/{paketUnit}', [PaketUnitController::class, 'destroy'])->name('paket-units.destroy');
+
+            // ✅ PAKET SUB-UNITS
+            Route::post('paket-sub-units', [PaketSubUnitController::class, 'store'])->name('paket-sub-units.store');
+            Route::put('paket-sub-units/{paketSubUnit}', [PaketSubUnitController::class, 'update'])->name('paket-sub-units.update');
+            Route::delete('paket-sub-units/{paketSubUnit}', [PaketSubUnitController::class, 'destroy'])->name('paket-sub-units.destroy');
         });
 
         // Master Program
@@ -93,6 +103,8 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
         
         // Sync Kemnaker - PINDAHKAN KE SINI
         Route::get('/sync-kemnaker', [ProgramController::class, 'syncKemnaker'])->name('sync-kemnaker');
+        // routes/web.php — di dalam group admin
+        Route::get('/sync-status', [ProgramController::class, 'syncStatus'])->name('sync-status');
         
         // CRUD Unit Kompetensi Independen di Master Program (INI YANG BENAR & BERSIH)
         Route::prefix('master/{masterProgram}/units')->name('master.units.')->group(function () {
@@ -181,6 +193,8 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
             Route::get('/daftar-hadir',    [ProgramController::class, 'dokumenDaftarHadir'])->name('daftar-hadir');
             Route::get('/biodata-peserta', [ProgramController::class, 'dokumenBiodataPeserta'])->name('biodata-peserta');
             Route::get('/sk-penyelenggara',     [ProgramController::class, 'dokumenSkPenyelenggara'])->name('sk-penyelenggara');
+            Route::get('/edit/{template}', [ProgramController::class, 'editTemplate'])->name('edit-template');
+    Route::put('/update/{template}', [ProgramController::class, 'updateTemplate'])->name('update-template');
         });
     });
 
@@ -217,7 +231,15 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     // Instruktur
     Route::resource('instructors', InstructorController::class);
     Route::get('/instructors/{instructor}/schedule', [InstructorController::class, 'schedule'])->name('instructors.schedule');
-    // ✅ ROUTES LENGKAP - TAMBAHKAN DI web.php
+    // Absensi Instruktur (Admin)
+    Route::get('/instructors/{instructor}/attendance', [InstructorAttendanceController::class, 'show'])
+    ->name('instructors.attendance');
+    Route::post('/instructors/{instructor}/attendance', [InstructorAttendanceController::class, 'store'])
+        ->name('instructors.attendance.store');
+    Route::put('/instructors/attendance/{attendance}', [InstructorAttendanceController::class, 'update'])
+        ->name('instructors.attendance.update');
+    Route::delete('/instructors/attendance/{attendance}', [InstructorAttendanceController::class, 'destroy'])
+        ->name('instructors.attendance.destroy');
 
 // ========================================
     // PENGAJAR EKSTERNAL ROUTES
@@ -230,7 +252,11 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
         Route::get('/{pengajarEksternal}/edit', [PengajarEksternalController::class, 'edit'])->name('edit');
         Route::put('/{pengajarEksternal}', [PengajarEksternalController::class, 'update'])->name('update');
         Route::delete('/{pengajarEksternal}', [PengajarEksternalController::class, 'destroy'])->name('destroy');
-        
+        Route::get('/{pengajarEksternal}/schedule', [PengajarEksternalController::class, 'schedule'])
+         ->name('schedule');
+
+    Route::get('/{pengajarEksternal}/attendance', [PengajarEksternalController::class, 'attendance'])
+         ->name('attendance');
         // API untuk modal detail
         Route::get('/{pengajarEksternal}/detail', [PengajarEksternalController::class, 'getDetail'])
             ->name('get-detail');
@@ -421,6 +447,20 @@ Route::middleware(['auth', 'role:instructor'])->prefix('instructor')->name('inst
         Route::post('/record', [\App\Http\Controllers\Instructor\AttendanceController::class, 'record'])->name('record');
     });
     
+    // My Attendance (BARU)
+    Route::prefix('my-attendance')->name('my-attendance.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Instructor\MyAttendanceController::class, 'index'])
+            ->name('index');
+        Route::post('/clock-in', [\App\Http\Controllers\Instructor\MyAttendanceController::class, 'clockIn'])
+            ->name('clock-in');
+        Route::post('/clock-out', [\App\Http\Controllers\Instructor\MyAttendanceController::class, 'clockOut'])
+            ->name('clock-out');
+        Route::post('/leave', [\App\Http\Controllers\Instructor\MyAttendanceController::class, 'requestLeave'])
+            ->name('leave');
+        Route::get('/history', [\App\Http\Controllers\Instructor\MyAttendanceController::class, 'history'])
+            ->name('history');
+    });
+
     // Profile
     Route::prefix('profile')->name('profile.')->group(function () {
         Route::get('/', [\App\Http\Controllers\Instructor\ProfileController::class, 'edit'])->name('edit');

@@ -2,11 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Program;
-use App\Models\PaketPelatihan;
 use App\Models\PaketPelatihanUnit;
-use App\Models\ProgramPelatihanUnits;
-use App\Models\MasterProgram;
+use App\Models\Program;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -14,110 +11,138 @@ use Illuminate\Support\Facades\Log;
 class PaketUnitController extends Controller
 {
     /**
-     * Store paket pelatihan unit
-     * URL: POST /admin/programs/paket-pelatihan/{paket}/paket-units
+     * Store a newly created paket unit
+     * Route: POST /admin/programs/{program}/paket-units
      */
-    public function store(Request $request, $paketId)
+    public function store(Request $request, $programId)
     {
+        $validated = $request->validate([
+            'program_pelatihan_unit_id' => 'required|exists:program_pelatihan_units,id',
+            'master_program_sub_unit_id' => 'required|exists:master_programs,id',
+            'jp' => 'nullable|integer|min:0',
+            'sub_unit_kompetensi' => 'required|in:Y,N',
+        ]);
+
+        DB::beginTransaction();
         try {
-            $validated = $request->validate([
-                'program_id'                 => 'required|exists:programs,id',  // ← tambah validasi program_id
-                'program_pelatihan_unit_id'  => 'required|exists:program_pelatihan_units,id',
-                'master_program_sub_unit_id' => 'required|exists:master_programs,id',
-                'jp'                         => 'nullable|integer|min:0',
-                'sub_unit_kompetensi'        => 'required|in:Y,N',
-            ]);
-
-            DB::beginTransaction();
-
-            $paket = PaketPelatihan::findOrFail($paketId);
-
-            // ← Gunakan program_id dari form, bukan first()
-            $program = $paket->programs()->where('id', $validated['program_id'])->firstOrFail();
-
-            // Cek duplikasi
+            // Get the program (ini bisa Program atau PaketPelatihanProgram, sesuaikan dengan model Anda)
+            $program = Program::findOrFail($programId);
+            
+            // Check duplicate
             $exists = PaketPelatihanUnit::where('programs_id', $program->id)
                 ->where('program_pelatihan_unit_id', $validated['program_pelatihan_unit_id'])
                 ->where('master_program_sub_unit_id', $validated['master_program_sub_unit_id'])
                 ->exists();
-
+                
             if ($exists) {
                 DB::rollBack();
-                return redirect()->back()->with('error', 'Unit kompetensi ini sudah ditambahkan ke paket.');
+                return redirect()->back()->with('error', 'Unit dengan kombinasi ini sudah ada di program.');
             }
-
-            PaketPelatihanUnit::create([
-                'programs_id'                => $program->id,
-                'program_pelatihan_unit_id'  => $validated['program_pelatihan_unit_id'],
-                'master_program_sub_unit_id' => $validated['master_program_sub_unit_id'],
-                'jp'                         => $validated['jp'],
-                'sub_unit_kompetensi'        => $validated['sub_unit_kompetensi'],
-            ]);
-
+            
+            // Set the program ID
+            $validated['programs_id'] = $program->id;
+            
+            // Create the unit
+            PaketPelatihanUnit::create($validated);
+            
             DB::commit();
-            return redirect()->back()->with('success', 'Unit berhasil ditambahkan ke paket.');
-
+            return redirect()->route('admin.programs.show', $program->id)
+                ->with('success', 'Paket unit berhasil ditambahkan.');
+                
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error storing paket pelatihan unit: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+            Log::error('Error storing paket unit: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal menambahkan unit: ' . $e->getMessage());
         }
     }
 
     /**
-     * Delete paket pelatihan unit
-     * URL: DELETE /admin/programs/paket-pelatihan/{paket}/paket-units/{paketUnit}
+     * Update the specified paket unit
+     * Route: PUT /admin/programs/{program}/paket-units/{paketUnit}
      */
-    public function destroy($paketId, $paketUnitId)
+    public function update(Request $request, $programId, $paketUnitId)
     {
+        $validated = $request->validate([
+            'program_pelatihan_unit_id' => 'required|exists:program_pelatihan_units,id',
+            'master_program_sub_unit_id' => 'required|exists:master_programs,id',
+            'jp' => 'nullable|integer|min:0',
+            'sub_unit_kompetensi' => 'required|in:Y,N',
+        ]);
+
+        DB::beginTransaction();
         try {
-            DB::beginTransaction();
-
-            $paket = PaketPelatihan::findOrFail($paketId);
-            $program = $paket->programs()->first();
+            $program = Program::findOrFail($programId);
             
-            if (!$program) {
-                DB::rollBack();
-                return redirect()->back()->with('error', 'Program tidak ditemukan.');
-            }
-
-            $paketUnit = PaketPelatihanUnit::where('programs_id', $program->id)
-                ->where('id', $paketUnitId)
+            // Find the unit that belongs to this program
+            $paketUnit = PaketPelatihanUnit::where('id', $paketUnitId)
+                ->where('programs_id', $program->id)
                 ->firstOrFail();
-
-            // Delete related sub units first
-            $paketUnit->paketPelatihanSubUnits()->delete();
-
-            $paketUnit->delete();
-
-            DB::commit();
-
-            return redirect()->back()->with('success', 'Unit berhasil dihapus dari paket.');
             
+            // Check duplicate (exclude current record)
+            $exists = PaketPelatihanUnit::where('programs_id', $program->id)
+                ->where('program_pelatihan_unit_id', $validated['program_pelatihan_unit_id'])
+                ->where('master_program_sub_unit_id', $validated['master_program_sub_unit_id'])
+                ->where('id', '!=', $paketUnitId)
+                ->exists();
+                
+            if ($exists) {
+                DB::rollBack();
+                return redirect()->back()->with('error', 'Unit dengan kombinasi ini sudah ada di program.');
+            }
+            
+            $paketUnit->update($validated);
+            
+            DB::commit();
+            return redirect()->route('admin.programs.show', $program->id)
+                ->with('success', 'Paket unit berhasil diperbarui.');
+                
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error deleting paket pelatihan unit: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+            Log::error('Error updating paket unit: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal memperbarui unit: ' . $e->getMessage());
         }
     }
 
     /**
-     * Get units for a paket (for AJAX/display purposes)
+     * Remove the specified paket unit
+     * Route: DELETE /admin/programs/{program}/paket-units/{paketUnit}
      */
-    public function getUnits($paketId)
+    public function destroy($programId, $paketUnitId)
+    {
+        DB::beginTransaction();
+        try {
+            $program = Program::findOrFail($programId);
+            
+            // Find the unit
+            $paketUnit = PaketPelatihanUnit::where('id', $paketUnitId)
+                ->where('programs_id', $program->id)
+                ->firstOrFail();
+            
+            // Delete related sub-units first
+            $paketUnit->paketPelatihanSubUnits()->delete();
+            
+            // Delete the unit
+            $paketUnit->delete();
+            
+            DB::commit();
+            return redirect()->route('admin.programs.show', $program->id)
+                ->with('success', 'Paket unit dan sub-units terkait berhasil dihapus.');
+                
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error deleting paket unit: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal menghapus unit: ' . $e->getMessage());
+        }
+    }
+    
+    /**
+     * Get units for a program (optional - for AJAX if needed)
+     */
+    public function getUnits($programId)
     {
         try {
-            $paket = PaketPelatihan::findOrFail($paketId);
-            $program = $paket->programs()->first();
+            $program = Program::findOrFail($programId);
             
-            if (!$program) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Program tidak ditemukan untuk paket ini',
-                    'data' => []
-                ]);
-            }
-
             $units = PaketPelatihanUnit::with([
                 'programPelatihanUnit.independentCompetencyUnit',
                 'masterProgramSubUnit',

@@ -13,7 +13,6 @@ use App\Models\Kejuruan;
 use App\Models\BidangPelatihan;
 use Carbon\Carbon;
 use Exception;
-use Illuminate\Support\Str;
 
 class SyncKemnakerPrograms extends Command
 {
@@ -25,102 +24,126 @@ class SyncKemnakerPrograms extends Command
                             {--skip-detail : Skip fetch detail (faster)}
                             {--update-null : Update data yang masih null}
                             {--debug : Mode debug}';
-    
+
     protected $description = 'Sync program pelatihan dari API Kemnaker dengan detail lengkap';
 
-    private $apiTimeout = 180;
+    private $apiTimeout      = 60;
     private $downloadTimeout = 90;
-    private $syncedPrograms = 0;
+    private $syncedPrograms  = 0;
     private $updatedPrograms = 0;
-    private $syncedUnits = 0;
-    private $failedPrograms = 0;
+    private $syncedUnits     = 0;
+    private $failedPrograms  = 0;
     private $filesDownloaded = 0;
-    private $filesFailed = 0;
-    private $filesSkipped = 0;
+    private $filesFailed     = 0;
+    private $filesSkipped    = 0;
+
+    private $kejuruanCache = [];
+    private $bidangCache   = [];
+
+    /**
+     * Mapping dari code API Kemnaker (sub-vocational) → code DB (vocational induk)
+     *
+     * API Kemnaker kadang pakai code yang lebih spesifik dari yang ada di /vocationals.
+     * Mapping ini mentranslate code API → code resmi di tabel kejuruans.
+     *
+     * Sumber: hasil debug sync + list dari /vocationals API
+     */
+    private $vocationalCodeMap = [
+        // Fashion & Tekstil
+        'TBN' => 'FAS',   // Tekstil Busana → Fashion Technology
+        'GPL' => 'FAS',   // Garmen Produk → Fashion Technology
+        'DBK' => 'IKR',   // Desain Batik → Industri Kreatif
+        'PKT' => 'IKR',   // Produk Kulit → Industri Kreatif
+
+        // Sosial & Rumah Tangga
+        'ECT' => 'PST',   // Elderly Caretaker → Pelayanan Sosial
+        'HSK' => 'PST',   // Housekeeping → Pelayanan Sosial
+        'BBS' => 'PST',   // Baby Sitter → Pelayanan Sosial
+        'FMC' => 'PST',   // Family Cook → Pelayanan Sosial
+        'FDR' => 'TRA',   // Family Driver → Transportasi
+
+        // Pertanian & Pengolahan
+        'PRC' => 'TPA',   // Processing → Teknologi Pengolahan Agroindustri
+        'MKP' => 'MKP',   // Mekanisasi (sama)
+
+        // Yang sudah sama (tidak perlu map tapi dicantumkan untuk dokumentasi)
+        'FAS' => 'FAS',
+        'PAR' => 'PAR',
+        'KEC' => 'KEC',
+        'LAS' => 'LAS',
+        'ELK' => 'ELK',
+        'TIK' => 'TIK',
+        'IKR' => 'IKR',
+        'MAR' => 'MAR',
+        'BSM' => 'BSM',
+        'MAN' => 'MAN',
+        'PRD' => 'PRD',
+        'TAN' => 'TAN',
+        'TER' => 'TER',
+        'TRA' => 'TRA',
+        'IKN' => 'IKN',
+        'PST' => 'PST',
+        'KON' => 'KON',
+        'OTO' => 'OTO',
+        'REF' => 'REF',
+        'LIS' => 'LIS',
+        'KES' => 'KES',
+        'HUT' => 'HUT',
+        'TAM' => 'TAM',
+        'TPA' => 'TPA',
+        'BHS' => 'BHS',
+        'JPM' => 'JPM',
+    ];
 
     public function handle()
     {
-        $page = (int) $this->option('page');
-        $limit = (int) $this->option('limit');
-        $maxPages = (int) $this->option('max-pages');
-        $skipFiles = $this->option('skip-files');
+        $page       = (int) $this->option('page');
+        $limit      = (int) $this->option('limit');
+        $maxPages   = (int) $this->option('max-pages');
+        $skipFiles  = $this->option('skip-files');
         $skipDetail = $this->option('skip-detail');
         $updateNull = $this->option('update-null');
-        $debug = $this->option('debug');
+        $debug      = $this->option('debug');
 
         $this->info('🔄 Memulai sinkronisasi program dari Kemnaker...');
-        
-        // Mode update data null
+        $this->buildCache($debug);
+
         if ($updateNull) {
             $this->info('🔧 Mode: Update data yang null');
             $this->updateNullData($skipFiles, $debug);
             return 0;
         }
-        
-        if ($skipDetail) $this->warn('⚠️ Mode: Basic sync (tanpa detail)');
-        else $this->info('📋 Mode: Full sync dengan detail');
 
-        if (!$skipFiles) {
-            $this->info('📥 Download file: Aktif');
-            $this->ensureStorageDirectoryExists();
-        } else {
-            $this->warn('⏭️ Download file: Dilewati');
-        }
+        if (!$skipFiles) $this->ensureStorageDirectoryExists();
 
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
-        $pageCount = 0;
-        $consecutiveErrors = 0;
+        $pageCount = $consecutiveErrors = 0;
 
         do {
-            if ($pageCount >= $maxPages || $consecutiveErrors >= 5) {
-                if ($consecutiveErrors >= 5) $this->error('Terlalu banyak error berturut-turut.');
-                break;
-            }
+            if ($pageCount >= $maxPages || $consecutiveErrors >= 5) break;
 
-            $url = "https://api.kemnaker.go.id/proglat/v1/public/programs?limit={$limit}&page={$page}&hasCode=false&sortBy=created_at&sortOrder=desc";
-            
+            $url = "https://api.kemnaker.go.id/proglat/v1/public/programs?limit={$limit}&page={$page}&sortBy=created_at&sortOrder=desc";
             $this->info("📄 Halaman {$page}...");
 
             try {
-                $response = Http::withOptions([
-                    'verify' => false,
-                    'timeout' => $this->apiTimeout,
-                    'connect_timeout' => 60,
-                ])->retry(5, 5000)->get($url);
+                $response = Http::withOptions(['verify' => false, 'timeout' => $this->apiTimeout])
+                    ->retry(3, 3000)->get($url);
 
                 if ($response->failed()) {
-                    $status = $response->status();
-                    $this->warn("⏰ HTTP {$status} halaman {$page}");
-                    Log::warning('Kemnaker HTTP fail', ['page' => $page, 'status' => $status]);
                     $consecutiveErrors++;
-                    $page++;
-                    $pageCount++;
-                    sleep(5);
+                    $page++; $pageCount++;
+                    sleep(3);
                     continue;
                 }
 
-                $json = $response->json();
-
-                if (!is_array($json) || !isset($json['data']) || !is_array($json['data'])) {
-                    $this->error("❌ Response tidak valid (no 'data' array)");
-                    Log::error('Invalid API format', ['page' => $page, 'json' => $json]);
-                    break;
-                }
-
-                $data = $json['data'];
+                $data  = $response->json()['data'] ?? [];
                 $count = count($data);
 
-                if ($count === 0) {
-                    $this->info("✅ No more data. Selesai.");
-                    break;
-                }
-
-                $this->info("   {$count} program ditemukan");
+                if ($count === 0) { $this->info("✅ No more data."); break; }
 
                 $consecutiveErrors = 0;
-
                 $bar = $this->output->createProgressBar($count);
                 $bar->start();
 
@@ -129,11 +152,6 @@ class SyncKemnakerPrograms extends Command
                         $this->syncProgram($item, $skipFiles, $skipDetail, $debug);
                     } catch (Exception $e) {
                         $this->failedPrograms++;
-                        $fallbackCode = $item['id'] ?? 'unknown-' . Str::random(6);
-                        $this->error("   Gagal: {$fallbackCode} - " . $e->getMessage());
-                        if ($debug) {
-                            $this->line("      File: {$e->getFile()} Line: {$e->getLine()}");
-                        }
                         Log::error('Sync failed', ['item_id' => $item['id'] ?? 'no-id', 'error' => $e->getMessage()]);
                     }
                     $bar->advance();
@@ -141,36 +159,42 @@ class SyncKemnakerPrograms extends Command
 
                 $bar->finish();
                 $this->newLine();
-
-                $page++;
-                $pageCount++;
+                $page++; $pageCount++;
                 sleep(2);
 
             } catch (Exception $e) {
-                $this->error("❌ Halaman {$page} error: " . $e->getMessage());
                 $consecutiveErrors++;
-                $page++;
-                $pageCount++;
+                $page++; $pageCount++;
                 sleep(5);
             }
         } while (true);
 
         $this->newLine(2);
-        $this->info("✅ Sinkronisasi selesai!");
-        $this->table(
-            ['Status', 'Jumlah'],
-            [
-                ['✨ Program baru', $this->syncedPrograms],
-                ['🔄 Program diupdate', $this->updatedPrograms],
-                ['📦 Unit tersimpan', $this->syncedUnits],
-                ['❌ Program gagal', $this->failedPrograms],
-                ['📥 File downloaded', $this->filesDownloaded],
-                ['⏭️ File skipped', $this->filesSkipped],
-                ['❌ File failed', $this->filesFailed],
-            ]
-        );
-
+        $this->printSummary();
         return 0;
+    }
+
+    // =============================================
+    // CACHE
+    // =============================================
+
+    private function buildCache($debug)
+    {
+        $this->info('🗂️  Membangun cache dari database...');
+
+        Kejuruan::whereNotNull('code')->where('code', '!=', '')->each(function ($k) {
+            $this->kejuruanCache[strtoupper(trim($k->code))] = $k->id;
+        });
+
+        BidangPelatihan::all()->each(function ($b) {
+            $this->bidangCache[strtoupper(trim($b->bidang_pelatihan))] = $b->id;
+        });
+
+        $this->info("   Kejuruan: " . count($this->kejuruanCache) . " | Bidang: " . count($this->bidangCache));
+
+        if ($debug) {
+            $this->line("   Kejuruan codes: " . implode(', ', array_keys($this->kejuruanCache)));
+        }
     }
 
     private function ensureStorageDirectoryExists()
@@ -180,348 +204,410 @@ class SyncKemnakerPrograms extends Command
         }
     }
 
+    // =============================================
+    // RESOLVE VOCATIONAL CODE
+    // Translate API code → DB code via mapping
+    // =============================================
+
+    private function resolveVocationalCode(string $apiCode): string
+    {
+        $upper = strtoupper(trim($apiCode));
+        return $this->vocationalCodeMap[$upper] ?? $upper;
+    }
+
+    // =============================================
+    // SYNC SATU PROGRAM (full sync mode)
+    // =============================================
+
     private function syncProgram($item, $skipFiles, $skipDetail, $debug)
     {
         $programId = $item['id'] ?? null;
-        $code = $item['code'] ?? null;
+        $code      = $item['code'] ?? null;
 
-        if (!$programId) {
-            throw new Exception('ID program hilang sama sekali');
-        }
-
-        // Jika code kosong → generate fallback unik berdasarkan ID + title hash
+        if (!$programId) throw new Exception('ID hilang');
         if (empty($code)) {
-            $titleHash = substr(md5($item['title'] ?? 'no-title' . $programId), 0, 12);
-            $code = 'AUTO-' . $titleHash;
-            if ($debug) $this->warn("   Code kosong → generate fallback: {$code}");
+            $code = 'AUTO-' . substr(md5(($item['title'] ?? '') . $programId), 0, 12);
         }
 
-        // Fetch detail jika tidak skip
         if (!$skipDetail) {
-            try {
-                $detailUrl = "https://api.kemnaker.go.id/proglat/v1/public/programs/{$programId}";
-                $detailResponse = Http::withOptions(['verify' => false, 'timeout' => 30])->get($detailUrl);
-
-                if ($detailResponse->successful() && isset($detailResponse->json()['data'])) {
-                    $item = array_merge($item, $detailResponse->json()['data']);
-                    if ($debug) $this->line("   🔍 Detail diambil untuk {$code}");
-                }
-            } catch (Exception $e) {
-                if ($debug) $this->warn("   Detail fetch gagal: " . $e->getMessage());
-            }
+            $detail = $this->fetchDetailById($programId, $debug);
+            if ($detail) $item = array_merge($item, $detail);
         }
 
-        // === AMBIL KEJURUAN DARI DATABASE BERDASARKAN CODE ===
-        $kejuruanId = null;
-        $vocCode = $item['vocational']['code'] ?? null;
-        
-        if (!empty($vocCode)) {
-            // Cari di database berdasarkan code
-            $kejuruan = Kejuruan::where('code', $vocCode)->first();
-            
-            if ($kejuruan) {
-                $kejuruanId = $kejuruan->id;
-                if ($debug) $this->line("   ✓ Kejuruan ditemukan: {$kejuruan->kejuruan} (Code: {$vocCode})");
-            } else {
-                if ($debug) $this->warn("   ⚠ Kejuruan dengan code {$vocCode} tidak ditemukan di database. Harap sync kejuruan terlebih dahulu.");
-                Log::warning('Kejuruan not found in database', ['code' => $vocCode, 'program' => $code]);
-            }
-        }
+        [$kejuruanId, $bidangId] = $this->resolveKejuruanBidang($item, $code, $debug);
 
-        // === AMBIL BIDANG DARI DATABASE BERDASARKAN CODE ===
-        $bidangId = null;
-        // $subCode = $item['sub_vocational']['code'] ?? null;
-        
-        // if (!empty($subCode)) {
-        //     // Cari di database berdasarkan code
-        //     // $bidang = BidangPelatihan::where('code', $subCode)->first();
-            
-        //     if ($bidang) {
-        //         $bidangId = $bidang->id;
-        //         if ($debug) $this->line("   ✓ Bidang ditemukan: {$bidang->bidang_pelatihan} (id: {$subCode})");
-        //     } else {
-        //         if ($debug) $this->warn("   ⚠ Bidang dengan code {$subCode} tidak ditemukan di database.");
-        //         Log::warning('Bidang not found in database', ['code' => $subCode, 'program' => $code]);
-        //     }
-        // }
-
-        $versi = $item['version'] ?? 1;
         $tanggal = null;
-        if (!empty($item['effective_date'])) {
-            try {
-                $tanggal = Carbon::parse($item['effective_date']);
-            } catch (\Exception $e) {
-                if (!empty($item['created_at'])) {
-                    try {
-                        $tanggal = Carbon::parse($item['created_at']);
-                    } catch (\Exception $e2) {}
-                }
+        foreach (['effective_date', 'created_at'] as $f) {
+            if (!empty($item[$f])) {
+                try { $tanggal = Carbon::parse($item[$f]); break; } catch (Exception $e) {}
             }
-        } elseif (!empty($item['created_at'])) {
-            try {
-                $tanggal = Carbon::parse($item['created_at']);
-            } catch (\Exception $e) {}
         }
-
-        $durationHours = $item['total_duration'] ?? $item['total_topic_duration'] ?? 0;
 
         $existing = MasterProgram::where('code', $code)->first();
-        $isNew = !$existing;
+        $isNew    = !$existing;
 
-        $programData = [
-            'name'                  => $item['title'] ?? 'Unknown Title',
-            'program_pelatihan'     => $item['title'] ?? 'Unknown',
-            'description'           => $item['description'] ?? null,
-            'duration_hours'        => (int) $durationHours,
-            'kejuruan_id'           => $kejuruanId,
-            'bidang_pelatihan_id'   => $bidangId,
-            'versi'                 => $versi,
-            'tanggal'               => $tanggal,
-            'is_active'             => ($item['status'] ?? 'pending') === 'approved',
-            'updated_by'            => 1, // System user
+        $data = [
+            'name'                => $item['title'] ?? 'Unknown',
+            'program_pelatihan'   => $item['title'] ?? 'Unknown',
+            'description'         => $item['description'] ?? null,
+            'duration_hours'      => (int)($item['total_duration'] ?? $item['total_topic_duration'] ?? 0),
+            'kejuruan_id'         => $kejuruanId,
+            'bidang_pelatihan_id' => $bidangId,
+            'versi'               => $item['version'] ?? 1,
+            'tanggal'             => $tanggal,
+            'is_active'           => ($item['status'] ?? '') === 'approved',
+            'updated_by'          => 1,
         ];
 
-        // Set created_by hanya untuk data baru
-        if ($isNew) {
-            $programData['created_by'] = 1;
+        if ($isNew) $data['created_by'] = 1;
+        if ($existing && $existing->file_program) {
+            $data['file_program'] = $existing->file_program;
         }
 
-        // Preserve existing file if any
-        if ($existing && $existing->file_program && str_starts_with($existing->file_program, 'program-files/')) {
-            $programData['file_program'] = $existing->file_program;
-        }
+        $master = MasterProgram::updateOrCreate(['code' => $code], $data);
 
-        $master = MasterProgram::updateOrCreate(
-            ['code' => $code],
-            $programData
-        );
+        if ($isNew) $this->syncedPrograms++;
+        elseif ($master->wasChanged()) $this->updatedPrograms++;
 
-        if ($isNew) {
-            $this->syncedPrograms++;
-        } else if ($master->wasChanged()) {
-            $this->updatedPrograms++;
-        }
-
-        // Download file
-        if (!$skipFiles && !empty($item['material_value'] ?? $item['download_material_uri'] ?? $item['document'] ?? null)) {
-            $fileUri = $item['download_material_uri'] ?? $item['material_value'] ?? $item['document'] ?? null;
+        if (!$skipFiles) {
+            $fileUri = $item['download_material_uri'] ?? $item['material_value'] ?? null;
             if ($fileUri) {
                 $result = $this->downloadFile($programId, $fileUri, $master, $debug);
-                if ($result === 'success') $this->filesDownloaded++;
+                if ($result === 'success')     $this->filesDownloaded++;
                 elseif ($result === 'skipped') $this->filesSkipped++;
-                else $this->filesFailed++;
+                else                           $this->filesFailed++;
             }
         }
 
-        // Sync units
-        if (!empty($item['program_topics']) && is_array($item['program_topics'])) {
+        if (!empty($item['program_topics'])) {
             foreach ($item['program_topics'] as $topic) {
-                $topicCode = $topic['code'] ?? null;
-                if (empty($topicCode) || $topicCode === '-' || strlen($topicCode) < 3) continue;
-
+                $tCode = $topic['code'] ?? null;
+                if (empty($tCode) || $tCode === '-' || strlen($tCode) < 3) continue;
                 try {
                     $unit = IndependentCompetencyUnit::updateOrCreate(
-                        ['code' => $topicCode],
-                        [
-                            'name' => $topic['title'] ?? 'Unknown Unit',
-                            'description' => $topic['description'] ?? null,
-                            'skkni_id' => $topic['skkni_id'] ?? null,
-                        ]
+                        ['code' => $tCode],
+                        ['name' => $topic['title'] ?? 'Unknown', 'description' => $topic['description'] ?? null]
                     );
-
                     ProgramPelatihanUnits::updateOrCreate(
-                    [
-                        'master_programs_id' => $master->id,
-                        'independent_competency_units_id' => $unit->id,
-                    ],
-                    [
-                        'program_pelatihan_id' => $master->id,  // ← Tambahkan ini! (hubungkan ke master sebagai program pelatihan juga)
-                        'type_unit' => $topic['type'] ?? 'skkni',  // ← Ganti default ke 'skkni' (lebih masuk akal untuk Kemnaker)
-                        'jp' => $topic['duration'] ?? 0,
-                        'sub_unit_kompetensi' => 'N',
-                        'name' => $topic['title'] ?? $unit->name ?? 'Unit Tanpa Nama',  // ← Opsional: tambah kalau sudah ada kolom name
-                    ]
-                );
-
+                        ['master_programs_id' => $master->id, 'independent_competency_units_id' => $unit->id],
+                        ['program_pelatihan_id' => $master->id, 'type_unit' => $topic['type'] ?? 'skkni',
+                         'jp' => $topic['duration'] ?? 0, 'sub_unit_kompetensi' => 'N',
+                         'name' => $topic['title'] ?? $unit->name]
+                    );
                     $this->syncedUnits++;
-                } catch (Exception $e) {
-                    // silent
-                }
+                } catch (Exception $e) { /* silent */ }
             }
         }
-
-        if ($debug) {
-            $this->info("   ✓ {$code} | V{$versi} | {$durationHours}h | " . ($tanggal ? $tanggal->format('Y-m-d') : 'no-date'));
-        }
     }
+
+    // =============================================
+    // UPDATE NULL DATA
+    // =============================================
 
     private function updateNullData($skipFiles, $debug)
     {
         $this->info('🔍 Mencari program dengan data null...');
-        
-        // Cari program yang punya data null
-        $nullPrograms = MasterProgram::where(function($query) {
-            $query->whereNull('kejuruan_id')
-                  ->orWhereNull('bidang_pelatihan_id')
-                  ->orWhereNull('file_program')
-                  ->orWhereNull('created_by')
-                  ->orWhereNull('updated_by');
+
+        $nullPrograms = MasterProgram::where(function ($q) {
+            $q->whereNull('kejuruan_id')->orWhereNull('bidang_pelatihan_id');
         })->get();
-        
-        $this->info("   Ditemukan {$nullPrograms->count()} program dengan data null");
-        
-        if ($nullPrograms->isEmpty()) {
+
+        $total = $nullPrograms->count();
+        $this->info("   Ditemukan {$total} program dengan data null");
+
+        if ($total === 0) {
             $this->info('✅ Semua data sudah lengkap!');
             return;
         }
-        
-        $bar = $this->output->createProgressBar($nullPrograms->count());
+
+        $bar      = $this->output->createProgressBar($total);
+        $notFound = 0;
         $bar->start();
-        
+
         foreach ($nullPrograms as $program) {
             try {
-                // Ambil detail dari API berdasarkan code program
-                $response = Http::withOptions(['verify' => false, 'timeout' => 30])
-                    ->get('https://api.kemnaker.go.id/proglat/v1/public/programs', [
-                        'limit' => 1,
-                        'keyword' => $program->code,
-                    ]);
-                
-                if (!$response->successful() || empty($response->json()['data'])) {
-                    // Coba cari by name
-                    $response = Http::withOptions(['verify' => false, 'timeout' => 30])
-                        ->get('https://api.kemnaker.go.id/proglat/v1/public/programs', [
-                            'limit' => 1,
-                            'keyword' => $program->name,
-                        ]);
+                $kemnakerItem = $this->searchByKeyword($program->name, $program->code, $debug);
+
+                if (!$kemnakerItem) {
+                    $notFound++;
+                    if ($debug) $this->warn("\n   ⚠ Tidak ditemukan: [{$program->code}] {$program->name}");
+                    $bar->advance();
+                    continue;
                 }
-                
-                if ($response->successful() && !empty($response->json()['data'][0])) {
-                    $item = $response->json()['data'][0];
-                    
-                    $updateData = [];
-                    
-                    // Update kejuruan jika null - AMBIL DARI DATABASE BERDASARKAN CODE
-                    if (is_null($program->kejuruan_id)) {
-                        $vocCode = $item['vocational']['code'] ?? null;
-                        
-                        if (!empty($vocCode)) {
-                            $kejuruan = Kejuruan::where('code', $vocCode)->first();
-                            
-                            if ($kejuruan) {
-                                $updateData['kejuruan_id'] = $kejuruan->id;
-                                if ($debug) {
-                                    $this->line("   ✓ Kejuruan diupdate: {$kejuruan->kejuruan} untuk program {$program->code}");
-                                }
-                            } else {
-                                if ($debug) {
-                                    $this->warn("   ⚠ Kejuruan code {$vocCode} tidak ada di database untuk program {$program->code}");
-                                }
-                            }
-                        }
-                    }
-                    
-                    // Update bidang jika null - AMBIL DARI DATABASE BERDASARKAN CODE
-                    if (is_null($program->bidang_pelatihan_id)) {
-                        $subCode = $item['sub_vocational']['code'] ?? null;
-                        
-                        if (!empty($subCode)) {
-                            $bidang = BidangPelatihan::where('code', $subCode)->first();
-                            
-                            if ($bidang) {
-                                $updateData['bidang_pelatihan_id'] = $bidang->id;
-                                if ($debug) {
-                                    $this->line("   ✓ Bidang diupdate: {$bidang->bidang_pelatihan} untuk program {$program->code}");
-                                }
-                            } else {
-                                if ($debug) {
-                                    $this->warn("   ⚠ Bidang code {$subCode} tidak ada di database untuk program {$program->code}");
-                                }
-                            }
-                        }
-                    }
-                    
-                    // Update created_by/updated_by jika null
-                    if (is_null($program->created_by)) {
-                        $updateData['created_by'] = 1;
-                    }
-                    if (is_null($program->updated_by)) {
-                        $updateData['updated_by'] = 1;
-                    }
-                    
-                    // Download file jika null dan ada di API
-                    if (is_null($program->file_program) && !$skipFiles) {
-                        $fileUri = $item['download_material_uri'] ?? $item['material_value'] ?? $item['document'] ?? null;
-                        if ($fileUri) {
-                            $result = $this->downloadFile($item['id'], $fileUri, $program, $debug);
-                            if ($result === 'success') {
-                                $this->filesDownloaded++;
-                            }
-                        }
-                    }
-                    
-                    // Update jika ada perubahan
-                    if (!empty($updateData)) {
-                        $program->update($updateData);
-                        $this->updatedPrograms++;
-                    }
-                }
-                
-            } catch (Exception $e) {
+
+                $kemnakerProgramId = $kemnakerItem['id'] ?? null;
+                $detail = $kemnakerProgramId ? $this->fetchDetailById($kemnakerProgramId, $debug) : null;
+                $item   = $detail ? array_merge($kemnakerItem, $detail) : $kemnakerItem;
+
                 if ($debug) {
-                    $this->error("   Error update {$program->code}: " . $e->getMessage());
+                    $apiVocCode  = isset($item['vocational']['code'])     ? $item['vocational']['code']     : '-';
+                    $dbVocCode   = $this->resolveVocationalCode($apiVocCode);
+                    $subName     = isset($item['sub_vocational']['name']) ? $item['sub_vocational']['name'] : '-';
+                    $this->line("\n   📋 [{$program->code}] voc_api:[{$apiVocCode}] → voc_db:[{$dbVocCode}] sub:[{$subName}]");
                 }
+
+                [$kejuruanId, $bidangId] = $this->resolveKejuruanBidang($item, $program->code, $debug);
+
+                $updateData = [];
+                if (is_null($program->kejuruan_id) && $kejuruanId) {
+                    $updateData['kejuruan_id'] = $kejuruanId;
+                }
+                if (is_null($program->bidang_pelatihan_id) && $bidangId) {
+                    $updateData['bidang_pelatihan_id'] = $bidangId;
+                }
+                if (is_null($program->created_by)) $updateData['created_by'] = 1;
+                if (is_null($program->updated_by))  $updateData['updated_by']  = 1;
+
+                if (!empty($updateData)) {
+                    $program->update($updateData);
+                    $this->updatedPrograms++;
+                    if ($debug) {
+                        $keys = implode(', ', array_keys($updateData));
+                        $this->line("\n   💾 Updated [{$program->code}]: {$keys}");
+                    }
+                }
+
+                usleep(300000); // 0.3 detik jeda
+
+            } catch (Exception $e) {
+                if ($debug) $this->error("\n   Error [{$program->code}]: " . $e->getMessage());
+                Log::error('Update null failed', ['code' => $program->code, 'error' => $e->getMessage()]);
             }
-            
+
             $bar->advance();
         }
-        
+
         $bar->finish();
         $this->newLine();
-        
-        $this->info("✅ Update data null selesai!");
-        $this->info("   {$this->updatedPrograms} program diupdate");
-        $this->info("   {$this->filesDownloaded} file didownload");
+
+        if ($notFound > 0) {
+            $this->warn("   {$notFound} program tidak ditemukan di API Kemnaker");
+        }
+
+        $this->info('✅ Update data null selesai!');
+        $this->printSummary();
     }
+
+    // =============================================
+    // HELPER: Search by keyword
+    // =============================================
+
+    private function searchByKeyword(string $name, string $code, bool $debug): ?array
+    {
+        $keyword = trim($name);
+
+        try {
+            $response = Http::withOptions(['verify' => false, 'timeout' => 20])
+                ->retry(2, 2000)
+                ->get('https://api.kemnaker.go.id/proglat/v1/public/programs', [
+                    'limit'   => 5,
+                    'keyword' => $keyword,
+                ]);
+
+            if (!$response->successful()) return null;
+
+            $results = $response->json()['data'] ?? [];
+            if (empty($results)) return null;
+
+            $normalizedKeyword = strtolower(trim($keyword));
+
+            // 1. Exact title match
+            foreach ($results as $item) {
+                if (strtolower(trim($item['title'] ?? '')) === $normalizedKeyword) {
+                    return $item;
+                }
+            }
+
+            // 2. Exact code match
+            foreach ($results as $item) {
+                if (strtoupper(trim($item['code'] ?? '')) === strtoupper($code)) {
+                    return $item;
+                }
+            }
+
+            // 3. Similarity ≥ 85%
+            $bestScore = 0;
+            $bestItem  = null;
+            foreach ($results as $item) {
+                similar_text($normalizedKeyword, strtolower(trim($item['title'] ?? '')), $percent);
+                if ($percent > $bestScore) {
+                    $bestScore = $percent;
+                    $bestItem  = $item;
+                }
+            }
+
+            if ($bestScore >= 85 && $bestItem) return $bestItem;
+
+        } catch (Exception $e) {
+            Log::warning('searchByKeyword failed', ['code' => $code, 'error' => $e->getMessage()]);
+        }
+
+        return null;
+    }
+
+    // =============================================
+    // HELPER: Fetch detail by ID
+    // =============================================
+
+    private function fetchDetailById(string $id, bool $debug): ?array
+    {
+        try {
+            $response = Http::withOptions(['verify' => false, 'timeout' => 30])
+                ->retry(2, 2000)
+                ->get("https://api.kemnaker.go.id/proglat/v1/public/programs/{$id}");
+
+            if ($response->successful() && isset($response->json()['data'])) {
+                return $response->json()['data'];
+            }
+        } catch (Exception $e) {
+            if ($debug) $this->warn("\n   Detail gagal ({$id}): " . $e->getMessage());
+        }
+
+        return null;
+    }
+
+    // =============================================
+    // HELPER: Extract kejuruan code dari kode program
+    //
+    // Format kode program Kemnaker:
+    //   P.85.BHS03.2643.K1.24.L.0640.01.01
+    //         ^^^
+    //   Bagian ke-3 setelah split titik = kode kejuruan (3 huruf awal)
+    //   Contoh: BHS03 → BHS, FAS02 → FAS, TIK17 → TIK
+    // =============================================
+
+    private function extractVocCodeFromProgramCode(string $programCode): string
+    {
+        // Hanya berlaku untuk kode format standar Kemnaker (mengandung titik)
+        if (!str_contains($programCode, '.')) return '';
+
+        $parts = explode('.', $programCode);
+        // Index 2 = bagian ketiga, contoh: BHS03, FAS02, TIK17
+        $segment = strtoupper($parts[2] ?? '');
+
+        // Ambil 3 huruf pertama (huruf saja, bukan angka)
+        if (preg_match('/^([A-Z]{2,4})/', $segment, $m)) {
+            return $m[1];
+        }
+
+        return '';
+    }
+
+    // =============================================
+    // HELPER: Resolve kejuruan & bidang
+    // ✅ Gunakan vocationalCodeMap untuk translate API code → DB code
+    // ✅ Fallback: extract dari kode program jika vocational kosong
+    // =============================================
+
+    private function resolveKejuruanBidang(array $item, string $code, bool $debug): array
+    {
+        $kejuruanId = null;
+        $bidangId   = null;
+
+        // Ambil code dari API
+        $apiVocCode = strtoupper(trim(
+            isset($item['vocational']['code']) ? $item['vocational']['code'] : ''
+        ));
+
+        // Fallback: jika API tidak punya vocational code, extract dari kode program
+        if (empty($apiVocCode) || $apiVocCode === '-') {
+            $extracted = $this->extractVocCodeFromProgramCode($code);
+            if (!empty($extracted)) {
+                $apiVocCode = $extracted;
+                if ($debug) {
+                    $this->line("\n   🔍 Fallback kode dari program: [{$code}] → [{$apiVocCode}]");
+                }
+            }
+        }
+
+        if (!empty($apiVocCode) && $apiVocCode !== '-') {
+            // Translate API code → DB code
+            $dbVocCode  = $this->resolveVocationalCode($apiVocCode);
+            $kejuruanId = $this->kejuruanCache[$dbVocCode] ?? null;
+
+            if (!$kejuruanId && $debug) {
+                $this->warn("\n   ⚠ Kejuruan [{$apiVocCode}→{$dbVocCode}] tidak ada di DB ({$code})");
+            }
+        }
+
+        // Bidang: sub_vocational.name — exact dulu, lalu partial
+        $subName = strtoupper(trim(
+            isset($item['sub_vocational']['name'])
+                ? $item['sub_vocational']['name']
+                : (isset($item['sub_vocational']['title']) ? $item['sub_vocational']['title'] : '')
+        ));
+
+        if (!empty($subName) && $subName !== '-') {
+            // Exact
+            if (isset($this->bidangCache[$subName])) {
+                $bidangId = $this->bidangCache[$subName];
+            }
+
+            // Partial
+            if (!$bidangId) {
+                foreach ($this->bidangCache as $bidangName => $bid) {
+                    if (str_contains($bidangName, $subName) || str_contains($subName, $bidangName)) {
+                        $bidangId = $bid;
+                        if ($debug) $this->line("\n   ~ Bidang partial: [{$subName}] → [{$bidangName}]");
+                        break;
+                    }
+                }
+            }
+
+            if (!$bidangId && $debug) {
+                $this->warn("\n   ⚠ Bidang [{$subName}] tidak ada di DB ({$code})");
+            }
+        }
+
+        return [$kejuruanId, $bidangId];
+    }
+
+    // =============================================
+    // DOWNLOAD FILE
+    // =============================================
 
     private function downloadFile($programId, $fileUri, $master, $debug)
     {
         try {
             $extension = pathinfo($fileUri, PATHINFO_EXTENSION) ?: 'pdf';
-            $safeCode = preg_replace('/[^A-Za-z0-9\-]/', '-', $master->code);
-            $filename = $safeCode . '.' . $extension;
-            $localPath = "program-files/{$filename}";
+            $safeCode  = preg_replace('/[^A-Za-z0-9\-]/', '-', $master->code);
+            $localPath = "program-files/{$safeCode}.{$extension}";
 
             if ($master->file_program && Storage::disk('public')->exists($master->file_program)) {
-                if ($debug) $this->line("   ⏭️ Skip download (sudah ada)");
                 return 'skipped';
             }
 
-            $fullUrl = str_starts_with($fileUri, 'http') ? $fileUri : "https://proglat-assets.kemnaker.go.id/{$fileUri}";
+            $fullUrl  = strpos($fileUri, 'http') === 0 ? $fileUri : "https://proglat-assets.kemnaker.go.id/{$fileUri}";
+            $response = Http::withOptions(['verify' => false, 'timeout' => $this->downloadTimeout])->get($fullUrl);
 
-            $response = Http::withOptions([
-                'verify' => false,
-                'timeout' => $this->downloadTimeout,
-            ])->get($fullUrl);
-
-            if (!$response->successful() || strlen($response->body()) < 500) {
-                if ($debug) $this->warn("   Download gagal dari {$fullUrl} (size kecil atau HTTP {$response->status()})");
-                return 'failed';
-            }
+            if (!$response->successful() || strlen($response->body()) < 500) return 'failed';
 
             Storage::disk('public')->put($localPath, $response->body());
-
             if (Storage::disk('public')->exists($localPath)) {
                 $master->update(['file_program' => $localPath]);
-                if ($debug) $this->info("   📥 File disimpan: {$localPath}");
                 return 'success';
             }
-
             return 'failed';
 
         } catch (Exception $e) {
-            if ($debug) $this->error("   Download error: " . $e->getMessage());
             return 'failed';
         }
+    }
+
+    // =============================================
+    // SUMMARY
+    // =============================================
+
+    private function printSummary()
+    {
+        $this->table(['Status', 'Jumlah'], [
+            ['✨ Program baru',     $this->syncedPrograms],
+            ['🔄 Program diupdate', $this->updatedPrograms],
+            ['📦 Unit tersimpan',   $this->syncedUnits],
+            ['❌ Program gagal',    $this->failedPrograms],
+            ['📥 File downloaded',  $this->filesDownloaded],
+            ['⏭️ File skipped',    $this->filesSkipped],
+            ['❌ File failed',      $this->filesFailed],
+        ]);
     }
 }

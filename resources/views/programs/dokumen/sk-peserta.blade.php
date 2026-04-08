@@ -7,7 +7,7 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Times New Roman', Times, serif;
-            font-size: 11.5pt;
+            font-size: 11pt;
             color: #000;
             background: #fff;
             line-height: 1.5;
@@ -19,194 +19,69 @@
             padding: 20mm 20mm 20mm 25mm;
         }
 
-        /* KOP SURAT */
+        /* KOP SURAT - RAPAT */
         .kop {
             display: flex;
             align-items: flex-start;
             border-bottom: 3px solid #000;
-            padding-bottom: 8px;
-            margin-bottom: 3px;
-        }
-        .kop-logo {
-            width: 90px;
-            height: auto;
-            margin-right: 12px;
-            margin-top: 0;
-            flex-shrink: 0;
-        }
-        .kop-logo img {
-            width: 80px;
-            height: auto;
-            display: block;
-        }
-        
-        .kop-text { 
-            flex: 1; 
-            text-align: center;
-            padding-top: 0;
-        }
-        .kop-text .instansi { 
-            font-size: 9.5pt; 
-            font-weight: 600;
-            text-transform: uppercase; 
-            letter-spacing: 0.3px;
-            margin-bottom: 1px;
-            line-height: 1.2;
-        }
-        .kop-text .dirjen { 
-            font-size: 10pt; 
-            font-weight: 700;
-            text-transform: uppercase; 
-            letter-spacing: 0.3px;
-            margin-bottom: 1px;
-            line-height: 1.2;
-        }
-        .kop-text .nama-pembinaan { 
-            font-size: 10pt; 
-            font-weight: 700;
-            text-transform: uppercase; 
-            letter-spacing: 0.3px;
-            margin-bottom: 1px;
-            line-height: 1.2;
-        }
-        .kop-text .nama-lembaga { 
-            font-size: 11pt; 
-            font-weight: 900;
-            text-transform: uppercase; 
-            letter-spacing: 0.5px;
-            margin-top: 2px;
-            line-height: 1.2;
-        }
-
-        .alamat-detail {
-            text-align: center;
-            font-size: 8pt;
-            margin-top: 3px;
-            margin-bottom: 12px;
-            line-height: 1.3;
-        }
-
-        /* JUDUL */
-        .judul-dok {
-            text-align: center;
-            margin: 16px 0 6px;
-        }
-        .judul-dok h2 {
-            font-size: 13pt;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        .nomor-st {
-            text-align: center;
-            font-size: 11pt;
-            margin-bottom: 14px;
-        }
-
-        /* Section Menimbang, Dasar, dll */
-        .section {
+            padding-bottom: 6px;
             margin-bottom: 10px;
         }
-        .section-row {
-            display: table;
-            width: 100%;
-            margin-bottom: 3px;
-        }
-        .section-label {
-            display: table-cell;
-            width: 140px;
-            vertical-align: top;
-            font-weight: bold;
-        }
-        .section-colon {
-            display: table-cell;
-            width: 20px;
-            vertical-align: top;
-        }
-        .section-content {
-            display: table-cell;
-            vertical-align: top;
-            text-align: justify;
-        }
+        .kop-logo { width: 95px; flex-shrink: 0; margin-right: 12px; }
+        .kop-logo img { width: 85px; height: auto; display: block; }
+        .kop-text { flex: 1; text-align: center; padding-top: 4px; line-height: 1.05; }
+        .kop-text .instansi { font-size: 9.5pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; }
+        .kop-text .dirjen { font-size: 10pt; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+        .kop-text .nama-pembinaan { font-size: 10pt; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+        .kop-text .nama-lembaga { font-size: 12.5pt; font-weight: 900; text-transform: uppercase; letter-spacing: 1.8px; margin-top: 2px; }
+        .alamat-detail { text-align: center; font-size: 8pt; margin-top: 5px; line-height: 1.3; }
 
-        /* List items */
-        .list-item {
-            margin: 3px 0;
-            padding-left: 24px;
-            text-indent: -24px;
-        }
+        /* JUDUL */
+        .judul-dok { text-align: center; margin: 18px 0 6px; }
+        .judul-dok h2 { font-size: 13.5pt; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; }
+        .nomor-st { text-align: center; font-size: 11.5pt; margin-bottom: 18px; font-weight: bold; }
 
-        /* Memerintahkan section */
-        .memerintahkan {
-            margin: 12px 0;
-            text-align: center;
-            font-weight: bold;
-        }
+        /* Section */
+        .section { margin-bottom: 10px; }
+        .section-row { display: table; width: 100%; margin-bottom: 3px; }
+        .section-label { display: table-cell; width: 130px; vertical-align: top; font-weight: bold; }
+        .section-colon { display: table-cell; width: 20px; vertical-align: top; }
+        .section-content { display: table-cell; vertical-align: top; text-align: justify; }
+        .list-item { margin: 3px 0; padding-left: 24px; text-indent: -24px; }
+
+        .memerintahkan { margin: 14px 0; text-align: center; font-weight: bold; }
 
         /* TTD */
-        .ttd-area {
-            margin-top: 30px;
-            display: flex;
-            justify-content: flex-end;
-        }
-        .ttd-box {
-            text-align: center;
-            min-width: 200px;
-        }
-        .ttd-box .ttd-tempat-tgl {
-            margin-bottom: 4px;
-            font-size: 11pt;
-        }
-        .ttd-box .ttd-jabatan {
-            margin-bottom: 4px;
-            font-size: 11pt;
-        }
-        .ttd-box .ttd-qr {
-            margin: 50px auto 10px;
-            width: 100px;
-            height: 100px;
+        .ttd-area { margin-top: 40px; display: flex; justify-content: flex-end; }
+        .ttd-box { text-align: center; min-width: 240px; }
+        .ttd-box .ttd-tempat-tgl { margin-bottom: 8px; font-size: 11.5pt; }
+        .ttd-box .ttd-jabatan { margin-bottom: 12px; font-size: 11.5pt; }
+        .ttd-placeholder {
+            margin: 50px 0 15px 0;
+            height: 40px;
             display: flex;
             align-items: center;
             justify-content: center;
+            font-size: 11.5pt;
         }
-        .ttd-box .ttd-nama {
-            font-weight: bold;
-            text-decoration: underline;
-            font-size: 11pt;
-        }
-        .ttd-box .ttd-nip {
-            font-size: 10pt;
-        }
+        .ttd-box .ttd-nama { font-weight: bold; text-decoration: underline; font-size: 11.5pt; }
+        .ttd-box .ttd-nip { font-size: 10.5pt; }
 
         /* Tabel Peserta */
         .tabel-peserta {
             width: 100%;
             border-collapse: collapse;
-            margin: 14px 0;
+            margin: 20px 0;
             font-size: 10pt;
         }
-        .tabel-peserta th {
-            background: #f5f5f5;
+        .tabel-peserta th, .tabel-peserta td {
             border: 1px solid #000;
             padding: 6px 8px;
-            text-align: center;
-            font-weight: bold;
             vertical-align: middle;
         }
-        .tabel-peserta td {
-            border: 1px solid #000;
-            padding: 5px 8px;
-            vertical-align: top;
-        }
-        .tabel-peserta td:first-child {
-            text-align: center;
-            width: 40px;
-        }
+        .tabel-peserta th { background: #f5f5f5; font-weight: bold; text-align: center; }
 
-        @media print {
-            .no-print { display: none !important; }
-            .page { margin: 0; padding: 20mm 20mm 20mm 25mm; }
-        }
+        @media print { .no-print { display: none !important; } }
     </style>
 </head>
 <body>
@@ -220,19 +95,41 @@
     </button>
 </div>
 
+@php
+    $tempat     = $settings->tempat_surat         ?? 'Banda Aceh';
+    $jabatan    = $settings->jabatan_penandatangan ?? 'Kepala Balai';
+    $logoPath   = $settings->logo_path             ?? null;
+
+    // === BULAN ROMAWI (VIII, IV, dll) seperti di template PDF ===
+    $romanMonths = [1 => 'I', 2 => 'II', 3 => 'III', 4 => 'IV', 5 => 'V', 
+                    6 => 'VI', 7 => 'VII', 8 => 'VIII', 9 => 'IX', 10 => 'X', 
+                    11 => 'XI', 12 => 'XII'];
+    $bulanRomawi = $romanMonths[now()->month];
+
+    // Nomor SK yang konsisten
+    $nomorSurat  = str_replace(
+        ['{nomor}', '{bulan}', '{tahun}'],
+        ['2.8/7942', $bulanRomawi, now()->year],
+        $settings->format_nomor ?? '{nomor}/LP.00.04/{bulan}/{tahun}'
+    );
+@endphp
+
 <div class="page">
 
     <!-- KOP SURAT -->
     <div class="kop">
         <div class="kop-logo">
-            <img src="{{ asset('images/logo blk banda.png') }}" alt="Logo">
+            @if($logoPath)
+                <img src="{{ Storage::url($logoPath) }}" alt="Logo">
+            @else
+                <img src="{{ asset('images/logo blk banda.png') }}" alt="Logo">
+            @endif
         </div>
         <div class="kop-text">
             <div class="instansi">KEMENTERIAN KETENAGAKERJAAN REPUBLIK INDONESIA</div>
             <div class="dirjen">DIREKTORAT JENDERAL</div>
             <div class="nama-pembinaan">PEMBINAAN PELATIHAN VOKASI DAN PRODUKTIVITAS</div>
-            <div class="nama-lembaga">BALAI PELATIHAN VOKASI DAN PRODUKTIVITAS BANDA ACEH</div>
-            <!-- Alamat Detail -->
+            <div class="nama-lembaga">BALAI PELATIHAN VOKASI DAN PRODUKTIVITAS</div>
             <div class="alamat-detail">
                 Jalan Kesatria, Geuceu Komp. Banda Raya, Kota Banda Aceh 23239, Telepon (0651) 45298<br>
                 Laman : http://www.kemnaker.go.id Email : blkbandaaceh@kemnaker.go.id
@@ -240,13 +137,12 @@
         </div>
     </div>
 
-
-    <!-- JUDUL -->
+    <!-- JUDUL & NOMOR -->
     <div class="judul-dok">
         <h2>SURAT TUGAS</h2>
     </div>
     <div class="nomor-st">
-        NOMOR {{ now()->format('j.n') }}/___/LP.00.04/{{ strtoupper(\Carbon\Carbon::parse(now())->locale('id')->translatedFormat('M')) }}/{{ now()->year }}
+        NOMOR {{ $nomorSurat }}
     </div>
 
     <!-- MENIMBANG -->
@@ -255,7 +151,7 @@
             <div class="section-label">Menimbang</div>
             <div class="section-colon">:</div>
             <div class="section-content">
-                bahwa dalam rangka pelaksanaan <strong>{{ $program->paketPelatihan->jenisPelatihan->jenis_pelatihan ?? 'Pelatihan Berbasis Kompetensi (PBK)' }}</strong> 
+                bahwa dalam rangka pelaksanaan <strong>{{ $program->paketPelatihan->jenisPelatihan->jenis_pelatihan ?? 'Pelatihan Berbasis Kompetensi (PBK)' }}</strong>
                 Batch <strong>{{ $program->angkatan ?? '-' }}</strong> pada Balai Pelatihan Vokasi dan Produktivitas Banda Aceh Tahun Anggaran {{ now()->year }}.
             </div>
         </div>
@@ -267,19 +163,34 @@
             <div class="section-label">Dasar</div>
             <div class="section-colon">:</div>
             <div class="section-content">
-                <div class="list-item">1. Peraturan Menteri Ketenagakerjaan Nomor 8 Tahun 2014 tentang Pedoman Penyelenggaraan Pelatihan Berbasis Kompetensi;</div>
-                <div class="list-item">2. Keputusan Ketenagakerjaan Republik Indonesia Nomor 248 Tahun 2023 tentang Pengangkatan Pejabat Perbendaharaan Negara pada Satuan Kerja Pusat dan Satuan Kerja Unit Pelaksana Teknis Pusat dan Kementerian Ketenagakerjaan;</div>
-                <div class="list-item">3. Peraturan Menteri Ketenagakerjaan Nomor 1 Tahun 2022 tentang Organisasi dan Tata Kerja Unit Pelaksana Teknis di Kementerian Ketenagakerjaan;</div>
-                <div class="list-item">4. Surat Keputusan Kepala Balai Pelatihan Vokasi dan Produktivitas Nomor <strong>___/___/{{ now()->year }}</strong> tanggal <strong>{{ now()->format('d F Y') }}</strong> tentang Penyelenggaraan {{ $program->paketPelatihan->jenisPelatihan->jenis_pelatihan ?? 'Pelatihan Berbasis Kompetensi (PBK)' }} Batch {{ $program->angkatan ?? '-' }} Kejuruan {{ $program->masterProgram->kejuruan->nama_kejuruan ?? '-' }} Program {{ $program->masterProgram->name ?? '-' }} Tahun Anggaran {{ now()->year }};</div>
-                <div class="list-item">5. Daftar Isian Pelaksanaan Anggaran (SP-DIPA) Balai Pelatihan Vokasi dan Produktivitas Banda Aceh Tahun {{ now()->year }} Nomor : 026.13.2.065106/{{ now()->year - 1 }} tanggal 28 November {{ now()->year - 1 }}.</div>
+                @php $dhCounter = 1; @endphp
+
+                <!-- Dasar 1-3 dari database -->
+                @for($i = 1; $i <= 3; $i++)
+                    @php $field = "dasar_hukum_{$i}"; @endphp
+                    @if(!empty($settings->{$field}))
+                        <div class="list-item">{{ $dhCounter++ }}. {{ $settings->{$field} }};</div>
+                    @endif
+                @endfor
+
+                <!-- Dasar 4 = SK Penyelenggara -->
+                <div class="list-item">{{ $dhCounter++ }}. Surat Keputusan Kepala Balai Pelatihan Vokasi dan Produktivitas 
+                    Nomor <strong>{{ $nomorSurat }}</strong> 
+                    tanggal <strong>{{ now()->format('d F Y') }}</strong> tentang Penyelenggaraan 
+                    {{ $program->paketPelatihan->jenisPelatihan->jenis_pelatihan ?? 'Pelatihan Berbasis Kompetensi (PBK)' }} 
+                    Batch {{ $program->angkatan ?? '-' }} Kejuruan 
+                    {{ $program->masterProgram->kejuruan->nama_kejuruan ?? '-' }} Program 
+                    {{ $program->masterProgram->name ?? '-' }} Tahun Anggaran {{ now()->year }};</div>
+
+                <!-- Dasar 5 = SP-DIPA -->
+                <div class="list-item">{{ $dhCounter++ }}. Daftar Isian Pelaksanaan Anggaran (SP-DIPA) Balai Pelatihan Vokasi dan Produktivitas Banda Aceh Tahun {{ now()->year }} Nomor : 026.13.2.065106/{{ now()->year - 1 }} tanggal 28 November {{ now()->year - 1 }}.</div>
             </div>
         </div>
     </div>
 
-    <!-- MEMERINTAHKAN -->
+    <!-- MEMERINTAHKAN, KEPADA, UNTUK -->
     <div class="memerintahkan">Memerintahkan :</div>
 
-    <!-- KEPADA -->
     <div class="section">
         <div class="section-row">
             <div class="section-label">Kepada</div>
@@ -288,19 +199,18 @@
         </div>
     </div>
 
-    <!-- UNTUK -->
     <div class="section">
         <div class="section-row">
             <div class="section-label">Untuk</div>
             <div class="section-colon">:</div>
             <div class="section-content">
-                Mengikuti kegiatan sebagai Peserta <strong>{{ $program->paketPelatihan->jenisPelatihan->jenis_pelatihan ?? 'Pelatihan Berbasis Kompetensi (PBK)' }}</strong> 
-                Batch <strong>{{ $program->angkatan ?? '-' }}</strong> 
-                Kejuruan <strong>{{ $program->masterProgram->kejuruan->nama_kejuruan ?? '-' }}</strong> 
-                Program <strong>{{ $program->masterProgram->name ?? '-' }}</strong> 
-                bertempat di Balai Pelatihan Vokasi dan Produktivitas Banda Aceh, Jalan Kesatria Geuceu Komplek, Kecamatan Banda Raya, Kota Banda Aceh 
-                selama <strong>{{ $program->jp ?? '-' }} Jam Pelatihan</strong> mulai tanggal 
-                <strong>{{ $program->start_date ? $program->start_date->format('d F Y') : '-' }}</strong> s.d. 
+                Mengikuti kegiatan sebagai Peserta <strong>{{ $program->paketPelatihan->jenisPelatihan->jenis_pelatihan ?? 'Pelatihan Berbasis Kompetensi (PBK)' }}</strong>
+                Batch <strong>{{ $program->angkatan ?? '-' }}</strong>
+                Kejuruan <strong>{{ $program->masterProgram->kejuruan->nama_kejuruan ?? '-' }}</strong>
+                Program <strong>{{ $program->masterProgram->name ?? '-' }}</strong>
+                bertempat di Balai Pelatihan Vokasi dan Produktivitas Banda Aceh, Jalan Kesatria Geuceu Komplek, Kecamatan Banda Raya, Kota Banda Aceh
+                selama <strong>{{ $program->jp ?? '-' }} Jam Pelatihan</strong> mulai tanggal
+                <strong>{{ $program->start_date ? $program->start_date->format('d F Y') : '-' }}</strong> s.d.
                 <strong>{{ $program->end_date ? $program->end_date->format('d F Y') : '-' }}</strong>.
             </div>
         </div>
@@ -309,57 +219,32 @@
     <!-- TTD -->
     <div class="ttd-area">
         <div class="ttd-box">
-            <div class="ttd-tempat-tgl">Banda Aceh, {{ now()->format('d F Y') }}</div>
-            <div class="ttd-jabatan">Kepala Balai,</div>
-            
-            <!-- QR Code -->
-            <div class="ttd-qr">
-                @if(function_exists('QrCode'))
-                    {!! QrCode::size(100)->generate(route('admin.programs.dokumen.spt-peserta', $program)) !!}
-                @else
-                    <svg width="100" height="100" viewBox="0 0 100 100">
-                        <rect width="100" height="100" fill="white"/>
-                        <rect x="10" y="10" width="10" height="10" fill="black"/>
-                        <rect x="30" y="10" width="10" height="10" fill="black"/>
-                        <rect x="50" y="10" width="10" height="10" fill="black"/>
-                        <rect x="70" y="10" width="10" height="10" fill="black"/>
-                        <rect x="10" y="30" width="10" height="10" fill="black"/>
-                        <rect x="50" y="30" width="10" height="10" fill="black"/>
-                        <rect x="70" y="30" width="10" height="10" fill="black"/>
-                        <rect x="10" y="50" width="10" height="10" fill="black"/>
-                        <rect x="30" y="50" width="10" height="10" fill="black"/>
-                        <rect x="70" y="50" width="10" height="10" fill="black"/>
-                        <rect x="10" y="70" width="10" height="10" fill="black"/>
-                        <rect x="30" y="70" width="10" height="10" fill="black"/>
-                        <rect x="50" y="70" width="10" height="10" fill="black"/>
-                        <rect x="70" y="70" width="10" height="10" fill="black"/>
-                    </svg>
-                @endif
-            </div>
-            
-            <div class="ttd-nama">Rahmad Faisal</div>
-            <div class="ttd-nip">NIP 198103302009011005</div>
+            <div class="ttd-tempat-tgl">{{ $tempat }}, {{ now()->format('d F Y') }}</div>
+            <div class="ttd-jabatan">{{ $jabatan }},</div>
+            <div class="ttd-placeholder">${ttd_pengirim}</div>
+            <div class="ttd-nama">${nama_pengirim}</div>
+            <div class="ttd-nip">NIP ${nip_pengirim}</div>
         </div>
     </div>
 
-    <!-- ===== HALAMAN LAMPIRAN ===== -->
-    <div style="page-break-before: always; padding-top: 10mm;">
-        <p style="text-align:right; margin-bottom:4px; font-size:10pt;">Lampiran Surat Perintah Peserta</p>
-        <p style="text-align:right; margin-bottom:4px; font-size:10pt;">Nomor : {{ now()->format('j.n') }}/___/LP.00.04/{{ strtoupper(\Carbon\Carbon::parse(now())->locale('id')->translatedFormat('M')) }}/{{ now()->year }}</p>
-        <p style="text-align:right; margin-bottom:16px; font-size:10pt;">Tanggal : {{ now()->format('d F Y') }}</p>
+    <!-- LAMPIRAN -->
+    <div style="page-break-before: always; padding-top: 15mm;">
+        <p style="text-align:right; margin-bottom:4px; font-size:10.5pt;">Lampiran Surat Perintah Peserta</p>
+        <p style="text-align:right; margin-bottom:4px; font-size:10.5pt;">Nomor : {{ $nomorSurat }}</p>
+        <p style="text-align:right; margin-bottom:20px; font-size:10.5pt;">Tanggal : {{ now()->format('d F Y') }}</p>
 
-        <p style="text-align:center; font-weight:bold; text-transform:uppercase; margin-bottom:14px; font-size:11pt;">
+        <p style="text-align:center; font-weight:bold; text-transform:uppercase; margin-bottom:18px; font-size:12pt;">
             DAFTAR NAMA PESERTA
         </p>
 
         <table class="tabel-peserta">
             <thead>
                 <tr>
-                    <th style="width:40px;">NO</th>
+                    <th>NO</th>
                     <th>NAMA</th>
-                    <th style="width:140px;">TEMPAT & TANGGAL LAHIR</th>
-                    <th style="width:90px;">JENIS<br>KELAMIN</th>
-                    <th style="width:80px;">KETERANGAN</th>
+                    <th>TEMPAT &amp; TANGGAL LAHIR</th>
+                    <th>JENIS<br>KELAMIN</th>
+                    <th>KETERANGAN</th>
                 </tr>
             </thead>
             <tbody>
@@ -367,54 +252,37 @@
                 <tr>
                     <td>{{ $i + 1 }}</td>
                     <td>{{ $p->name ?? '-' }}</td>
-                    <td style="font-size:9.5pt;">
-                        @if(isset($p->tempat_lahir) || isset($p->tanggal_lahir))
-                            {{ $p->tempat_lahir ?? '-' }} {{ isset($p->tanggal_lahir) ? \Carbon\Carbon::parse($p->tanggal_lahir)->format('d F Y') : '' }}
-                        @else
-                            -
+                    <td style="font-size:10pt;">
+                        @php
+                            $tempatlahir = $p->place_of_birth ?? $p->tempat_lahir ?? $p->birth_place ?? '-';
+                            $tanggallahir = $p->date_of_birth ?? $p->tanggal_lahir ?? $p->birth_date ?? null;
+                        @endphp
+                        {{ $tempatlahir }}
+                        @if($tanggallahir)
+                            , {{ is_string($tanggallahir) ? \Carbon\Carbon::parse($tanggallahir)->format('d F Y') : $tanggallahir->format('d F Y') }}
                         @endif
                     </td>
-                    <td style="text-align:center;">{{ $p->gender ?? $p->jenis_kelamin ?? '-' }}</td>
+                    <td style="text-align:center;">
+                        @php
+                            $gender = $p->gender ?? $p->jenis_kelamin ?? '-';
+                            echo strtoupper(substr($gender, 0, 4)) === 'LAKI' ? 'Laki-Laki' : 
+                                 (strtoupper(substr($gender, 0, 4)) === 'PERE' ? 'Perempuan' : $gender);
+                        @endphp
+                    </td>
                     <td></td>
                 </tr>
                 @empty
-                <tr>
-                    <td colspan="5" style="text-align:center; color:#888; padding:16px;">Belum ada peserta terdaftar</td>
-                </tr>
+                <tr><td colspan="5" style="text-align:center; padding:20px; color:#888;">Belum ada peserta terdaftar</td></tr>
                 @endforelse
             </tbody>
         </table>
 
-        <div class="ttd-area" style="margin-top:24px;">
+        <div class="ttd-area" style="margin-top:60px;">
             <div class="ttd-box">
-                <div class="ttd-jabatan">Kepala Balai,</div>
-                
-                <div class="ttd-qr">
-                    @if(function_exists('QrCode'))
-                        {!! QrCode::size(100)->generate(route('admin.programs.dokumen.spt-peserta', $program)) !!}
-                    @else
-                        <svg width="100" height="100" viewBox="0 0 100 100">
-                            <rect width="100" height="100" fill="white"/>
-                            <rect x="10" y="10" width="10" height="10" fill="black"/>
-                            <rect x="30" y="10" width="10" height="10" fill="black"/>
-                            <rect x="50" y="10" width="10" height="10" fill="black"/>
-                            <rect x="70" y="10" width="10" height="10" fill="black"/>
-                            <rect x="10" y="30" width="10" height="10" fill="black"/>
-                            <rect x="50" y="30" width="10" height="10" fill="black"/>
-                            <rect x="70" y="30" width="10" height="10" fill="black"/>
-                            <rect x="10" y="50" width="10" height="10" fill="black"/>
-                            <rect x="30" y="50" width="10" height="10" fill="black"/>
-                            <rect x="70" y="50" width="10" height="10" fill="black"/>
-                            <rect x="10" y="70" width="10" height="10" fill="black"/>
-                            <rect x="30" y="70" width="10" height="10" fill="black"/>
-                            <rect x="50" y="70" width="10" height="10" fill="black"/>
-                            <rect x="70" y="70" width="10" height="10" fill="black"/>
-                        </svg>
-                    @endif
-                </div>
-                
-                <div class="ttd-nama">Rahmad Faisal</div>
-                <div class="ttd-nip">NIP 198103302009011005</div>
+                <div class="ttd-jabatan">{{ $jabatan }},</div>
+                <div class="ttd-placeholder">${ttd_pengirim}</div>
+                <div class="ttd-nama">${nama_pengirim}</div>
+                <div class="ttd-nip">NIP ${nip_pengirim}</div>
             </div>
         </div>
     </div>

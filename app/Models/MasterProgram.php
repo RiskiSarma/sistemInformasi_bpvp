@@ -105,14 +105,35 @@ class MasterProgram extends Model
         return $this->hasMany(ProgramPelatihanUnit::class, 'master_program_id');
     }
     public function independentCompetencyUnits()
-{
-    return $this->belongsToMany(
-        IndependentCompetencyUnit::class,
-        'program_pelatihan_units',                // nama tabel pivot
-        'master_programs_id',                     // FK ke MasterProgram
-        'independent_competency_units_id'         // FK ke IndependentCompetencyUnit
-    )->withPivot('type_unit', 'jp', 'durasi_jp', 'urutan', 'is_editable')
-     ->withTimestamps()
-    ->withTrashed();
-}
+    {
+        return $this->belongsToMany(
+            IndependentCompetencyUnit::class,
+            'program_pelatihan_units',                // nama tabel pivot
+            'master_programs_id',                     // FK ke MasterProgram
+            'independent_competency_units_id'         // FK ke IndependentCompetencyUnit
+        )->withPivot('type_unit', 'jp', 'durasi_jp', 'urutan', 'is_editable')
+        ->withTimestamps()
+        ->withTrashed();
+    }
+    /**
+     * Accessor: strip HTML tag saat ditampilkan sebagai plain text
+     * Gunakan $masterProgram->description_plain di textarea/form
+     */
+    public function getDescriptionPlainAttribute(): string
+    {
+        return strip_tags($this->description ?? '');
+    }
+
+    /**
+     * Mutator: bersihkan HTML berbahaya saat disimpan
+     * Biarkan tag dasar seperti <p>, <br>, <span> tapi strip script dll
+     */
+    public function setDescriptionAttribute($value): void
+    {
+        // Jika ingin simpan plain text saja (tanpa HTML sama sekali):
+        $this->attributes['description'] = strip_tags($value);
+        
+        // Jika ingin tetap izinkan HTML tapi bersih, gunakan baris ini sebagai gantinya:
+        // $this->attributes['description'] = strip_tags($value, '<p><br><span><strong><em><ul><li>');
+    }
 }

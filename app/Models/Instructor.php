@@ -64,12 +64,23 @@ class Instructor extends Model
     {
         return $this->belongsTo(\App\Models\User::class, 'updated_by');
     }
+
+     public function programInstructors()
+    {
+        return $this->hasMany(ProgramInstructor::class, 'instructor_id');
+    }
+
     /**
      * Get all programs for this instructor (Many to Many)
      */
     public function programs(): BelongsToMany
     {
         return $this->belongsToMany(Program::class, 'instructor_program');
+    }
+
+    public function attendances()
+    {
+        return $this->hasMany(InstructorAttendance::class, 'instructor_id');
     }
 
     /**

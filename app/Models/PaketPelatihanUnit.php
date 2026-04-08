@@ -44,4 +44,9 @@ class PaketPelatihanUnit extends Model
     {
         return $this->belongsTo(MasterProgram::class, 'master_program_sub_unit_id');
     }
+    // ✅ TAMBAHKAN METHOD INI (YANG HILANG!)
+    public function paketPelatihanSubUnits()
+    {
+        return $this->hasMany(PaketPelatihanSubUnit::class, 'paket_pelatihan_unit_id');
+    }
 }

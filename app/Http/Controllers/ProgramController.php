@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use App\Models\Instructor;
 use App\Models\ProgramInstructor;
+use App\Models\DocumentSetting;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Validation\Rule;
 use App\Models\User;
@@ -72,7 +73,6 @@ class ProgramController extends Controller
         $paketPelatihans = PaketPelatihan::orderBy('tahun', 'desc')->get();
         $instructors = Instructor::where('status', 'active')->orderBy('name')->get();
 
-        // Map di sini, bukan di Blade
         $masterProgramsData = $masterPrograms->map(fn($mp) => [
             'id'    => (string) $mp->id,
             'label' => $mp->code . ' - ' . $mp->name,
@@ -105,19 +105,15 @@ class ProgramController extends Controller
             'jp_harian' => 'nullable|integer|min:0',
             'angkatan'  => 'required|in:I,II,III,IV,V,VI,VII,VIII,IX,X',
             
-            // Units yang dipilih dari master
             'selected_units' => 'required|array|min:1',
             'selected_units.*' => 'exists:independent_competency_units,id',
             
-            // Custom duration per unit
             'unit_durations' => 'required|array',
             'unit_durations.*' => 'integer|min:0',
             
-            // Unit types
             'unit_types' => 'required|array',
             'unit_types.*' => 'in:reguler,softskill,industri,skkni',
             
-            // Instruktur
             'instructors' => 'required|array|min:1',
             'instructors.*' => 'exists:instructors,id',
             'penanggung_jawab' => 'required|exists:instructors,id',
@@ -131,7 +127,6 @@ class ProgramController extends Controller
 
         DB::beginTransaction();
         try {
-            // Build selected units config
             $unitsConfig = [];
             foreach ($request->selected_units as $index => $unitId) {
                 $unitsConfig[] = [
@@ -141,31 +136,27 @@ class ProgramController extends Controller
                 ];
             }
 
-            // Hitung total JP
             $totalJp = collect($unitsConfig)->sum('custom_duration');
             
             $programData = [
-            'master_program_id'     => $validated['master_program_id'],
-            'paket_pelatihan_id'    => $validated['paket_pelatihan_id'],
-            'angkatan'              => $validated['angkatan'],               // ← PASTIKAN ADA
-            'start_date'            => $validated['start_date'],
-            'end_date'              => $validated['end_date'],
-            'status'                => $validated['status'],
-            'max_participants'      => $validated['max_participants'] ?? null,
-            'ada_industri'          => $validated['ada_industri'],
-            'jp_harian'             => $validated['jp_harian'] ?? null,
-            'jp'                    => $totalJp,
-            'selected_units_config' => $unitsConfig,
-            'instructor_id'         => $request->penanggung_jawab,
-            'created_by'            => Auth::id(),
-            'updated_by'            => Auth::id(),
-        ];
+                'master_program_id'     => $validated['master_program_id'],
+                'paket_pelatihan_id'    => $validated['paket_pelatihan_id'],
+                'angkatan'              => $validated['angkatan'],
+                'start_date'            => $validated['start_date'],
+                'end_date'              => $validated['end_date'],
+                'status'                => $validated['status'],
+                'max_participants'      => $validated['max_participants'] ?? null,
+                'ada_industri'          => $validated['ada_industri'],
+                'jp_harian'             => $validated['jp_harian'] ?? null,
+                'jp'                    => $totalJp,
+                'selected_units_config' => $unitsConfig,
+                'instructor_id'         => $request->penanggung_jawab,
+                'created_by'            => Auth::id(),
+                'updated_by'            => Auth::id(),
+            ];
             
-            
-            // Create program
             $program = Program::create($validated);
 
-            // Simpan instruktur
             foreach ($request->instructors as $instructorId) {
                 ProgramInstructor::create([
                     'program_id' => $program->id,
@@ -174,7 +165,6 @@ class ProgramController extends Controller
                 ]);
             }
 
-            // Kirim notifikasi
             $admins = User::where('role', 'admin')->get(); 
             Notification::send($admins, new GeneralActivityNotification(
                 $program,
@@ -197,36 +187,35 @@ class ProgramController extends Controller
     }
 
     public function edit(Program $program)
-{
-    $masterPrograms = MasterProgram::where('is_active', true)
-        ->with(['independentCompetencyUnits' => function($q) {
-            $q->orderBy('code');
-        }])
-        ->get();
-        
-    $paketPelatihans = PaketPelatihan::orderBy('tahun', 'desc')->get();
-    $instructors = Instructor::where('status', 'active')->orderBy('name')->get();
-    $program->load(['programInstructors.instructor', 'masterProgram.independentCompetencyUnits']);
+    {
+        $masterPrograms = MasterProgram::where('is_active', true)
+            ->with(['independentCompetencyUnits' => function($q) {
+                $q->orderBy('code');
+            }])
+            ->get();
+            
+        $paketPelatihans = PaketPelatihan::orderBy('tahun', 'desc')->get();
+        $instructors = Instructor::where('status', 'active')->orderBy('name')->get();
+        $program->load(['programInstructors.instructor', 'masterProgram.independentCompetencyUnits']);
 
-    // Map di sini, bukan di Blade
-    $masterProgramsData = $masterPrograms->map(fn($mp) => [
-        'id'    => (string) $mp->id,
-        'label' => $mp->code . ' - ' . $mp->name,
-        'name'  => $mp->name,
-        'units' => $mp->independentCompetencyUnits,
-    ]);
+        $masterProgramsData = $masterPrograms->map(fn($mp) => [
+            'id'    => (string) $mp->id,
+            'label' => $mp->code . ' - ' . $mp->name,
+            'name'  => $mp->name,
+            'units' => $mp->independentCompetencyUnits,
+        ]);
 
-    $paketPelatihansData = $paketPelatihans->map(fn($p) => [
-        'id'    => (string) $p->id,
-        'label' => ($p->jenisPelatihan->jenis_pelatihan ?? 'Unknown') . ' - ' . $p->tahun . ' - Batch ' . $p->batch,
-        'jenis' => $p->jenisPelatihan->jenis_pelatihan ?? 'Unknown',
-    ]);
+        $paketPelatihansData = $paketPelatihans->map(fn($p) => [
+            'id'    => (string) $p->id,
+            'label' => ($p->jenisPelatihan->jenis_pelatihan ?? 'Unknown') . ' - ' . $p->tahun . ' - Batch ' . $p->batch,
+            'jenis' => $p->jenisPelatihan->jenis_pelatihan ?? 'Unknown',
+        ]);
 
-    return view('programs.edit', compact(
-        'program', 'masterPrograms', 'paketPelatihans', 'instructors',
-        'masterProgramsData', 'paketPelatihansData'
-    ));
-}
+        return view('programs.edit', compact(
+            'program', 'masterPrograms', 'paketPelatihans', 'instructors',
+            'masterProgramsData', 'paketPelatihansData'
+        ));
+    }
 
     public function update(Request $request, Program $program)
     {
@@ -255,7 +244,6 @@ class ProgramController extends Controller
 
         DB::beginTransaction();
         try {
-            // Build config
             $unitsConfig = [];
             foreach ($request->selected_units as $index => $unitId) {
                 $unitsConfig[] = [
@@ -270,7 +258,7 @@ class ProgramController extends Controller
             $programData = [
                 'master_program_id'     => $validated['master_program_id'],
                 'paket_pelatihan_id'    => $validated['paket_pelatihan_id'],
-                'angkatan'              => $validated['angkatan'],               // ← PASTIKAN ADA
+                'angkatan'              => $validated['angkatan'],
                 'start_date'            => $validated['start_date'],
                 'end_date'              => $validated['end_date'],
                 'status'                => $validated['status'],
@@ -283,10 +271,8 @@ class ProgramController extends Controller
                 'updated_by'            => Auth::id(),
             ];
             
-            
             $program->update($validated);
 
-            // Update instruktur
             $program->programInstructors()->delete();
             foreach ($request->instructors as $instructorId) {
                 ProgramInstructor::create([
@@ -317,18 +303,28 @@ class ProgramController extends Controller
         }
     }
 
-    public function show(Program $program)
+    public function show($id)
     {
-        $program->load([
+        $program = Program::with([
             'masterProgram',
-            'paketPelatihan',
+            'paketPelatihan.jenisPelatihan',
             'participants',
             'creator',
             'updater',
-            'programInstructors.instructor'
-        ]);
+            'programInstructors.instructor',
+            'paketPelatihanUnits.programPelatihanUnit.independentCompetencyUnit',
+            'paketPelatihanUnits.masterProgramSubUnit',
+            'paketPelatihanUnits.program.masterProgram',
+            'paketPelatihanUnits.paketPelatihanSubUnits.masterProgram',
+            'paketPelatihanUnits.paketPelatihanSubUnits.unitKompetensi',
+            'paketPelatihanUnits.paketPelatihanSubUnits.paketPelatihanUnit.programPelatihanUnit.independentCompetencyUnit'
+        ])->findOrFail($id);
 
-        return view('programs.show', compact('program'));
+        $programPelatihanUnits = \App\Models\ProgramPelatihanUnit::with('independentCompetencyUnit')->get();
+        $masterPrograms = \App\Models\MasterProgram::orderBy('name')->get();
+        $allCompetencyUnits = \App\Models\IndependentCompetencyUnit::orderBy('name')->get();
+
+        return view('programs.show', compact('program', 'programPelatihanUnits', 'masterPrograms', 'allCompetencyUnits'));
     }
 
     public function destroy(Program $program)
@@ -350,19 +346,11 @@ class ProgramController extends Controller
         }
     }
 
-    // ========================================
-    // ✅ AUTO-GENERATE ANGKATAN
-    // ========================================
-
-    /**
-     * Hitung angkatan berikutnya secara otomatis
-     * GET /admin/programs/next-angkatan
-     */
     public function nextAngkatan(Request $request)
     {
         $masterProgramId  = $request->query('master_program_id');
         $paketPelatihanId = $request->query('paket_pelatihan_id');
-        $excludeProgramId = $request->query('exclude_program_id'); // untuk edit
+        $excludeProgramId = $request->query('exclude_program_id');
 
         if (!$masterProgramId || !$paketPelatihanId) {
             return response()->json(['angkatan' => 'I', 'info' => 'Angkatan pertama']);
@@ -408,47 +396,36 @@ class ProgramController extends Controller
     {
         $program->load(['masterProgram', 'paketPelatihan.jenisPelatihan', 'participants', 'programInstructors.instructor']);
         $pj = $program->programInstructors->where('is_penanggung_jawab', true)->first();
-
-        return view('programs.dokumen.sk-peserta', compact('program', 'pj'));
+        $settings = DocumentSetting::where('key', 'sk-peserta')->first();
+        return view('programs.dokumen.sk-peserta', compact('program', 'pj', 'settings'));
     }
 
     public function dokumenStInstruktur(Program $program)
     {
         $program->load(['masterProgram', 'paketPelatihan.jenisPelatihan', 'programInstructors.instructor']);
         $pj = $program->programInstructors->where('is_penanggung_jawab', true)->first();
-
-        return view('programs.dokumen.st-instruktur', compact('program', 'pj'));
+        $settings = DocumentSetting::where('key', 'st-instruktur')->first();
+        return view('programs.dokumen.st-instruktur', compact('program', 'pj', 'settings'));
     }
 
     public function dokumenJadwal(Program $program)
     {
         $program->load(['masterProgram', 'paketPelatihan.jenisPelatihan', 'programInstructors.instructor']);
         $unitsData = $program->selected_units_with_details;
-
         return view('programs.dokumen.jadwal', compact('program', 'unitsData'));
     }
 
     public function dokumenDaftarHadir(Program $program)
     {
         $program->load(['masterProgram', 'paketPelatihan.jenisPelatihan', 'participants']);
-
         return view('programs.dokumen.daftar-hadir', compact('program'));
     }
 
     public function dokumenBiodataPeserta(Program $program)
     {
         $program->load(['masterProgram', 'paketPelatihan.jenisPelatihan', 'participants']);
-
         return view('programs.dokumen.biodata-peserta', compact('program'));
     }
-
-    // public function dokumenRekapNilai(Program $program)
-    // {
-    //     $program->load(['masterProgram', 'paketPelatihan.jenisPelatihan', 'participants']);
-    //     $unitsData = $program->selected_units_with_details;
-
-    //     return view('programs.dokumen.rekap-nilai', compact('program', 'unitsData'));
-    // }
 
     public function dokumenSkPenyelenggara(Program $program)
     {
@@ -458,19 +435,15 @@ class ProgramController extends Controller
             'participants',
             'programInstructors.instructor',
         ]);
-
-        return view('programs.dokumen.sk-penyelenggara', compact('program'));
+        $settings = DocumentSetting::where('key', 'sk-penyelenggara')->first();
+        return view('programs.dokumen.sk-penyelenggara', compact('program', 'settings'));
     }
 
     // ========== MASTER PROGRAM ==========
     
     public function master(Request $request)
     {
-        // $query = MasterProgram::with('competencyUnits');
         $query = MasterProgram::query();
-
-        // Load relasi baru (independentCompetencyUnits)
-        // $query->with('independentCompetencyUnits');
 
         if ($request->has('search') && $request->search != '') {
             $search = $request->search;
@@ -494,7 +467,7 @@ class ProgramController extends Controller
                         $q->with('skkni');
                     },
                     'participants' => function ($q) {
-                        $q->select('id', 'program_id'); // cukup untuk count
+                        $q->select('id', 'program_id');
                     }
                 ])->withCount('participants');
             },
@@ -521,7 +494,7 @@ class ProgramController extends Controller
             'bidang_pelatihan_id' => 'required|exists:bidang_pelatihans,id',
             'versi' => 'required|integer|min:1',
             'tanggal' => 'nullable|date',
-            'file_program' => 'nullable|file|mimes:pdf,doc,docx|max:5120', // max 5MB
+            'file_program' => 'nullable|file|mimes:pdf,doc,docx|max:5120',
             'is_active' => 'boolean',
         ]);
 
@@ -530,7 +503,6 @@ class ProgramController extends Controller
         $validated['created_by'] = auth()->id();
         $validated['updated_by'] = auth()->id();
 
-        // Handle upload file
         if ($request->hasFile('file_program')) {
             $originalName = $request->file('file_program')->getClientOriginalName();
             $path = $request->file('file_program')->storeAs('program-files', $originalName, 'public');
@@ -570,9 +542,7 @@ class ProgramController extends Controller
         $validated['is_active'] = $request->has('is_active') ? true : false;
         $validated['updated_by'] = auth()->id();
 
-        // Handle upload file (ganti jika ada file baru)
         if ($request->hasFile('file_program')) {
-            // Hapus file lama jika ada
             if ($masterProgram->file_program) {
                 Storage::disk('public')->delete($masterProgram->file_program);
             }
@@ -580,6 +550,7 @@ class ProgramController extends Controller
             $path = $request->file('file_program')->storeAs('program-files', $originalName, 'public');
             $validated['file_program'] = $path;
         }
+
         $masterProgram->update($validated);
 
         $admins = User::where('role', 'admin')->get();
@@ -616,16 +587,125 @@ class ProgramController extends Controller
 
         $fileExtension = pathinfo($path, PATHINFO_EXTENSION);
         
-        // Hanya support PDF untuk preview
         if ($fileExtension !== 'pdf') {
-            // Untuk doc/docx, redirect ke download langsung
             return response()->download($path);
         }
 
-        // Untuk PDF, tampilkan inline di browser
         return response()->file($path, [
             'Content-Type' => 'application/pdf',
         ]);
+    }
+
+    // ========================================
+    // ✅ SYNC KEMNAKER — diperbaiki
+    // ========================================
+
+    /**
+     * Sync dari Kemnaker:
+     *  - mode=full        → tarik semua program baru dari API
+     *  - mode=update-null → update kolom null (kejuruan_id, bidang_pelatihan_id, dsb)
+     *                       menggunakan endpoint detail per program (URL konsisten)
+     */
+    public function syncKemnaker(Request $request)
+    {
+        $mode    = $request->query('mode', 'update-null');
+        $phpBin  = PHP_BINARY;
+        $artisan = base_path('artisan');
+        $logFile = storage_path('logs/sync-kemnaker-' . date('Ymd-His') . '.log');
+        $pidFile = storage_path('logs/sync-kemnaker.pid');
+
+        $args = $mode === 'full'
+            ? '--limit=100 --max-pages=999 --skip-files'
+            : '--update-null --skip-files';
+
+        // Cek apakah sudah ada sync berjalan
+        if (file_exists($pidFile)) {
+            $pid = trim(file_get_contents($pidFile));
+            if ($this->isProcessRunning($pid)) {
+                if ($request->header('X-Requested-With') === 'XMLHttpRequest') {
+                    return response()->json(['status' => 'already_running']);
+                }
+                return redirect()->route('admin.programs.master');
+            }
+            @unlink($pidFile);
+        }
+
+        // Simpan path log terbaru agar syncStatus bisa menemukannya
+        file_put_contents(storage_path('logs/sync-kemnaker-latest.log-path'), $logFile);
+
+        // Jalankan di background
+        if (PHP_OS_FAMILY === 'Windows') {
+            $cmd = "START /B \"\" \"{$phpBin}\" \"{$artisan}\" kemnaker:sync-programs {$args} >> \"{$logFile}\" 2>&1";
+            pclose(popen($cmd, 'r'));
+            file_put_contents($pidFile, 'windows-' . time());
+        } else {
+            $cmd = "\"{$phpBin}\" \"{$artisan}\" kemnaker:sync-programs {$args} >> \"{$logFile}\" 2>&1 & echo $!";
+            $pid = trim(shell_exec($cmd));
+            if ($pid) file_put_contents($pidFile, $pid);
+        }
+
+        if ($request->header('X-Requested-With') === 'XMLHttpRequest') {
+            return response()->json(['status' => 'started']);
+        }
+
+        return redirect()->route('admin.programs.master');
+    }
+
+    public function syncStatus(Request $request)
+    {
+        $logPathFile = storage_path('logs/sync-kemnaker-latest.log-path');
+        $pidFile     = storage_path('logs/sync-kemnaker.pid');
+
+        if (!file_exists($logPathFile)) {
+            return response()->json(['running' => false, 'log' => null]);
+        }
+
+        $logFile = trim(file_get_contents($logPathFile));
+
+        if (!file_exists($logFile)) {
+            return response()->json(['running' => true, 'log' => null]);
+        }
+
+        $log = file_get_contents($logFile);
+
+        // Deteksi selesai dari ISI LOG — reliable di semua OS termasuk Windows
+        $isDone = str_contains($log, 'selesai!')
+               || str_contains($log, 'Sync selesai')
+               || str_contains($log, 'Update data null selesai');
+
+        if ($isDone) {
+            @unlink($pidFile);
+            return response()->json(['running' => false, 'log' => $log]);
+        }
+
+        // Belum selesai — cek tambahan apakah PID masih hidup (non-Windows)
+        $running = true;
+        if (file_exists($pidFile)) {
+            $pid = trim(file_get_contents($pidFile));
+            if (!str_starts_with($pid, 'windows-') && !$this->isProcessRunning($pid)) {
+                // PID mati tapi tidak ada marker selesai
+                // Kalau log tidak berubah >30 detik → anggap crash/selesai
+                if ((time() - filemtime($logFile)) > 30) {
+                    @unlink($pidFile);
+                    $running = false;
+                }
+            }
+        }
+
+        return response()->json(['running' => $running, 'log' => $log]);
+    }
+
+    private function isProcessRunning(string $pid): bool
+    {
+        if (PHP_OS_FAMILY === 'Windows') {
+            $out = shell_exec("tasklist /FI \"PID eq {$pid}\" 2>NUL");
+            return $out && str_contains($out, (string) $pid);
+        }
+
+        // Linux/Mac
+        if (is_dir("/proc/{$pid}")) return true;
+        $result = shell_exec("kill -0 {$pid} 2>&1");
+        return empty($result);
     }
 
     // ========== UNIT KOMPETENSI ==========
@@ -710,21 +790,6 @@ class ProgramController extends Controller
             ->with('success', 'Unit kompetensi berhasil diperbarui!');
     }
 
-    public function syncKemnaker()
-    {
-        // $this->info('Memulai sync program dari Kemnaker...');
-
-        Artisan::call('kemnaker:sync-programs', [
-            '--limit' => 100,
-            '--page' => 98,
-        ]);
-
-        $output = Artisan::output();
-
-        return redirect()->route('admin.programs.master')
-            ->with('success', 'Sync program dari Kemnaker berhasil! ' . trim($output));
-    }
-
     public function destroyUnit(CompetencyUnit $unit)
     {
         $unit->delete();
@@ -732,80 +797,76 @@ class ProgramController extends Controller
         return redirect()->route('admin.programs.units')
             ->with('success', 'Unit kompetensi berhasil dihapus!');
     }
+
     public function storeIndependentUnitToMaster(Request $request, MasterProgram $masterProgram)
-{
-    $validated = $request->validate([
-        'code' => 'required|string|max:50|unique:independent_competency_units,code',
-        'name' => 'required|string|max:255',
-        'description' => 'nullable|string',
-    ]);
+    {
+        $validated = $request->validate([
+            'code' => 'required|string|max:50|unique:independent_competency_units,code',
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+        ]);
 
-    $unit = IndependentCompetencyUnit::create($validated);
+        $unit = IndependentCompetencyUnit::create($validated);
 
-    // Attach ke semua programs di bawah master ini
-    foreach ($masterProgram->programs as $program) {
-        $program->independentCompetencyUnits()->syncWithoutDetaching($unit->id);
+        foreach ($masterProgram->programs as $program) {
+            $program->independentCompetencyUnits()->syncWithoutDetaching($unit->id);
+        }
+
+        return redirect()->route('admin.programs.master.show', $masterProgram)
+            ->with('success', 'Unit kompetensi independen berhasil ditambahkan ke master!');
     }
 
-    return redirect()->route('admin.programs.master.show', $masterProgram)
-        ->with('success', 'Unit kompetensi independen berhasil ditambahkan ke master!');
-}
+    public function updateIndependentUnitInMaster(Request $request, MasterProgram $masterProgram, IndependentCompetencyUnit $independentCompetencyUnit)
+    {
+        $validated = $request->validate([
+            'code' => 'required|string|max:50|unique:independent_competency_units,code,' . $independentCompetencyUnit->id,
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+        ]);
 
-public function updateIndependentUnitInMaster(Request $request, MasterProgram $masterProgram, IndependentCompetencyUnit $independentCompetencyUnit)
-{
-    $validated = $request->validate([
-        'code' => 'required|string|max:50|unique:independent_competency_units,code,' . $independentCompetencyUnit->id,
-        'name' => 'required|string|max:255',
-        'description' => 'nullable|string',
-    ]);
+        $independentCompetencyUnit->update($validated);
 
-    $independentCompetencyUnit->update($validated);
-
-    return redirect()->route('admin.programs.master.show', $masterProgram)
-        ->with('success', 'Unit kompetensi independen berhasil diperbarui!');
-}
-
-public function destroyIndependentUnitInMaster(MasterProgram $masterProgram, IndependentCompetencyUnit $independentCompetencyUnit)
-{
-    // Detach dari semua programs di bawah master
-    foreach ($masterProgram->programs as $program) {
-        $program->independentCompetencyUnits()->detach($independentCompetencyUnit->id);
+        return redirect()->route('admin.programs.master.show', $masterProgram)
+            ->with('success', 'Unit kompetensi independen berhasil diperbarui!');
     }
 
-    $independentCompetencyUnit->delete();
+    public function destroyIndependentUnitInMaster(MasterProgram $masterProgram, IndependentCompetencyUnit $independentCompetencyUnit)
+    {
+        foreach ($masterProgram->programs as $program) {
+            $program->independentCompetencyUnits()->detach($independentCompetencyUnit->id);
+        }
 
-    return redirect()->route('admin.programs.master.show', $masterProgram)
-        ->with('success', 'Unit kompetensi independen berhasil dihapus!');
-}
-    // ========== PROGRAM PELATIHAN UNITS (PIVOT dengan Independent Units) ==========
+        $independentCompetencyUnit->delete();
+
+        return redirect()->route('admin.programs.master.show', $masterProgram)
+            ->with('success', 'Unit kompetensi independen berhasil dihapus!');
+    }
 
     public function storeUnitToMaster(Request $request, MasterProgram $masterProgram)
-{
-    $validated = $request->validate([
-        'independent_competency_unit_id' => 'required|exists:independent_competency_units,id',
-        'type_unit' => 'required|in:skkni,non-skkni',
-        'jp' => 'nullable|integer|min:0',
-    ]);
+    {
+        $validated = $request->validate([
+            'independent_competency_unit_id' => 'required|exists:independent_competency_units,id',
+            'type_unit' => 'required|in:skkni,non-skkni',
+            'jp' => 'nullable|integer|min:0',
+        ]);
 
-    // Generate UUID manual
-    $pivotId = (string) \Illuminate\Support\Str::uuid();
+        $pivotId = (string) \Illuminate\Support\Str::uuid();
 
-    $masterProgram->independentCompetencyUnits()->attach(
-        $validated['independent_competency_unit_id'],
-        [
-            'id'          => $pivotId,                     // ← tambahkan ini
-            'type_unit'   => $validated['type_unit'],
-            'jp'          => $validated['jp'] ?? 0,
-        ]
-    );
+        $masterProgram->independentCompetencyUnits()->attach(
+            $validated['independent_competency_unit_id'],
+            [
+                'id'        => $pivotId,
+                'type_unit' => $validated['type_unit'],
+                'jp'        => $validated['jp'] ?? 0,
+            ]
+        );
 
-    return redirect()->route('admin.programs.master.show', $masterProgram)
-        ->with('success', 'Unit kompetensi berhasil ditambahkan ke master program!');
-}
+        return redirect()->route('admin.programs.master.show', $masterProgram)
+            ->with('success', 'Unit kompetensi berhasil ditambahkan ke master program!');
+    }
 
     public function destroyUnitInMaster(MasterProgram $masterProgram, IndependentCompetencyUnit $independentCompetencyUnit)
     {
-        // Hapus relasi pivot berdasarkan kedua foreign key
         \DB::table('program_pelatihan_units')
             ->where('master_programs_id', $masterProgram->id)
             ->where('independent_competency_units_id', $independentCompetencyUnit->id)
@@ -814,7 +875,7 @@ public function destroyIndependentUnitInMaster(MasterProgram $masterProgram, Ind
         return redirect()->route('admin.programs.master.show', $masterProgram)
             ->with('success', 'Unit kompetensi berhasil dihapus!');
     }
-    // Tambahan method untuk store Program di PaketPelatihan
+
     public function storeForPaket(Request $request, PaketPelatihan $paket)
     {
         $validated = $request->validate([
@@ -829,17 +890,14 @@ public function destroyIndependentUnitInMaster(MasterProgram $masterProgram, Ind
             'ada_industri' => ['nullable', Rule::in(['Y', 'N'])],
             'jp_harian' => 'nullable|integer|min:0',
             'jp' => 'nullable|integer|min:0',
-            // Field lain sesuai model Program
         ]);
 
         $validated['paket_pelatihan_id'] = $paket->id;
-
         $program = Program::create($validated);
 
         return redirect()->back()->with('success', 'Program berhasil ditambahkan ke paket pelatihan.');
     }
 
-    // Method destroy untuk Program di Paket
     public function destroyForPaket(PaketPelatihan $paket, Program $program)
     {
         if ($program->paket_pelatihan_id !== $paket->id) {
@@ -850,4 +908,72 @@ public function destroyIndependentUnitInMaster(MasterProgram $masterProgram, Ind
 
         return redirect()->back()->with('success', 'Program berhasil dihapus dari paket.');
     }
+    public function editTemplate(Program $program, $template)
+{
+    $templateNames = [
+        'sk-peserta' => 'SPT Peserta',
+        'sk-penyelenggara' => 'SK Penyelenggara',
+        'st-instruktur' => 'ST Instruktur',
+        'jadwal' => 'Jadwal Pelatihan',
+        'daftar-hadir' => 'Daftar Hadir',
+        'biodata-peserta' => 'Biodata Peserta',
+    ];
+    
+    if (!isset($templateNames[$template])) {
+        abort(404, 'Template tidak ditemukan');
+    }
+    
+    // Get or create settings
+    $settings = DocumentSetting::firstOrCreate(
+        ['key' => $template],
+        array_merge(
+            ['name' => $templateNames[$template]],
+            DocumentSetting::getDefaults($template)
+        )
+    );
+    
+    return view('programs.dokumen.edit-template', compact('program', 'template', 'settings'));
+}
+ 
+/**
+ * Update template settings (user-friendly)
+ */
+public function updateTemplate(Program $program, $template, Request $request)
+{
+    $validated = $request->validate([
+        'dasar_hukum_1' => 'nullable|string',
+        'dasar_hukum_2' => 'nullable|string',
+        'dasar_hukum_3' => 'nullable|string',
+        'kop_surat' => 'nullable|string',
+        'format_nomor' => 'nullable|string',
+        'tempat_surat' => 'nullable|string',
+        'ttd_pengirim' => 'nullable|string',
+        'nama_pengirim' => 'nullable|string',
+        'nip_pengirim' => 'nullable|string',
+        'logo' => 'nullable|image|mimes:png,jpg,jpeg|max:2048',
+    ]);
+    
+    $settings = DocumentSetting::where('key', $template)->first();
+    
+    if (!$settings) {
+        return back()->with('error', 'Setting tidak ditemukan');
+    }
+    
+    // Handle logo upload
+    if ($request->hasFile('logo')) {
+        // Delete old logo
+        if ($settings->logo_path) {
+            Storage::disk('public')->delete($settings->logo_path);
+        }
+        
+        $path = $request->file('logo')->store('document-logos', 'public');
+        $validated['logo_path'] = $path;
+    }
+    
+    $settings->update($validated);
+    
+    return redirect()->route('admin.programs.show', $program)
+        ->with('success', 'Pengaturan dokumen berhasil diperbarui!');
+}
+
 }

@@ -168,39 +168,28 @@
         }
 
         /* TTD Area */
-        .ttd-area {
-            margin-top: 20px;
-            display: flex;
-            justify-content: flex-end;
+        .ttd-area { 
+            margin-top: 35px;     /* space rapat seperti template PDF */
+            display: flex; 
+            justify-content: flex-end; 
         }
-        .ttd-box {
-            text-align: center;
-            min-width: 200px;
-        }
-        .ttd-box .ttd-tempat-tgl {
-            margin-bottom: 4px;
-            font-size: 11pt;
-        }
-        .ttd-box .ttd-jabatan {
-            margin-bottom: 4px;
-            font-size: 11pt;
-        }
-        .ttd-box .ttd-qr {
-            margin: 50px auto 10px;
-            width: 100px;
-            height: 100px;
+        .ttd-box { text-align: center; min-width: 240px; }
+        .ttd-box .ttd-tempat-tgl { margin-bottom: 8px; font-size: 11.5pt; }
+        .ttd-box .ttd-jabatan { margin-bottom: 12px; font-size: 11.5pt; }
+        .ttd-placeholder {
+            margin: 55px 0 18px 0;
+            height: 45px;
             display: flex;
             align-items: center;
             justify-content: center;
+            font-size: 11.5pt;
         }
-        .ttd-box .ttd-nama {
-            font-weight: bold;
-            text-decoration: underline;
-            font-size: 11pt;
+        .ttd-box .ttd-nama { 
+            font-weight: bold; 
+            text-decoration: underline; 
+            font-size: 11.5pt; 
         }
-        .ttd-box .ttd-nip {
-            font-size: 10pt;
-        }
+        .ttd-box .ttd-nip { font-size: 10.5pt; }
 
         /* Footer elektronik */
         .footer-elektronik {
@@ -354,37 +343,16 @@
     <!-- TTD -->
     <div class="ttd-area">
         <div class="ttd-box">
-            <div class="ttd-tempat-tgl">Banda Aceh, {{ now()->format('d F Y') }}</div>
+            <div class="ttd-tempat-tgl">Banda Aceh, «tgl_sk_penyelenggara_long»</div>
             <div class="ttd-jabatan">Kepala Balai,</div>
-            
-            <!-- QR Code -->
-            <div class="ttd-qr">
-                @if(function_exists('QrCode'))
-                    {!! QrCode::size(100)->generate(route('admin.programs.dokumen.st-instruktur', $program)) !!}
-                @else
-                    <svg width="100" height="100" viewBox="0 0 100 100">
-                        <rect width="100" height="100" fill="white"/>
-                        <rect x="10" y="10" width="10" height="10" fill="black"/>
-                        <rect x="30" y="10" width="10" height="10" fill="black"/>
-                        <rect x="50" y="10" width="10" height="10" fill="black"/>
-                        <rect x="70" y="10" width="10" height="10" fill="black"/>
-                        <rect x="10" y="30" width="10" height="10" fill="black"/>
-                        <rect x="50" y="30" width="10" height="10" fill="black"/>
-                        <rect x="70" y="30" width="10" height="10" fill="black"/>
-                        <rect x="10" y="50" width="10" height="10" fill="black"/>
-                        <rect x="30" y="50" width="10" height="10" fill="black"/>
-                        <rect x="70" y="50" width="10" height="10" fill="black"/>
-                        <rect x="10" y="70" width="10" height="10" fill="black"/>
-                        <rect x="30" y="70" width="10" height="10" fill="black"/>
-                        <rect x="50" y="70" width="10" height="10" fill="black"/>
-                        <rect x="70" y="70" width="10" height="10" fill="black"/>
-                    </svg>
-                @endif
+
+            <!-- Placeholder Barcode / TTE Srikandi -->
+            <div class="ttd-placeholder">
+                ${ttd_pengirim}
             </div>
-            
-            {{-- NAMA KEPALA BALAI --}}
-            <div class="ttd-nama">Rahmad Faisal</div>
-            <div class="ttd-nip">NIP 198103302009011005</div>
+
+            <div class="ttd-nama">${nama_pengirim}</div>
+            <div class="ttd-nip">NIP ${nip_pengirim}</div>
         </div>
     </div>
 

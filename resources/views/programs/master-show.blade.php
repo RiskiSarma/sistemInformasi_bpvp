@@ -49,7 +49,7 @@
         @if($masterProgram->description)
         <div class="mt-4 pt-4 border-t">
             <h3 class="text-sm font-medium text-gray-500 mb-1">Deskripsi</h3>
-            <p class="text-gray-700">{{ $masterProgram->description }}</p>
+            {!! $masterProgram->description !!}
         </div>
         @endif
     </div>

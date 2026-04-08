@@ -82,11 +82,42 @@ class PengajarEksternalController extends Controller
     }
 
     public function show(PengajarEksternal $pengajarEksternal)
-    {
-        $pengajarEksternal->load(['pendidikan', 'user', 'programs.masterProgram']);
-        
-        return view('pengajar-eksternal.show', compact('pengajarEksternal'));
+{
+    $pengajarEksternal->load([
+        'pendidikan',
+        'user',
+        'programAssignments' => function ($query) {
+            $query->with(['program.masterProgram', 'jenisMateri']);
+        },
+        'subUnitAssignments' => function ($query) {
+            $query->with([
+                'program.masterProgram',
+                'paketPelatihanUnit.programPelatihanUnit.independentCompetencyUnit',
+            ]);
+        }
+    ]);
+
+    // === LOAD SEMUA ASSIGNMENT SUB UNIT (agar tampil semua pengajar) ===
+    $subUnitIds = $pengajarEksternal->subUnitAssignments->pluck('pp_unit_id');
+
+    $allSubUnitAssignments = collect();
+
+    if ($subUnitIds->isNotEmpty()) {
+        $allSubUnitAssignments = PaketPelatihanPengajarSubUnit::whereIn('pp_unit_id', $subUnitIds)
+            ->with([
+                'program.masterProgram',
+                'paketPelatihanUnit.programPelatihanUnit.independentCompetencyUnit',
+                'pengajarEksternalData',   // relasi ke PengajarEksternal
+                'pengajarInternal'         // relasi ke Instructor / User
+            ])
+            ->get();
     }
+
+    return view('pengajar-eksternal.show', compact(
+        'pengajarEksternal', 
+        'allSubUnitAssignments'
+    ));
+}
 
     public function edit(PengajarEksternal $pengajarEksternal)
     {
@@ -464,5 +495,49 @@ $subUnitAssignments = PaketPelatihanPengajarSubUnit::with([
             \Log::error('Error assigning pengajar to sub unit: ' . $e->getMessage());
             return back()->with('error', 'Gagal assign pengajar ke sub unit: ' . $e->getMessage());
         }
+    }
+        /**
+     * Tampilkan Jadwal Pengajar Eksternal (mirip Instructor)
+     */
+        /**
+     * Tampilkan Jadwal Pengajar Eksternal
+     */
+    public function schedule(PengajarEksternal $pengajarEksternal)
+    {
+        // Cek apakah model punya relasi schedules
+        $schedules = collect(); // default kosong
+
+        if (method_exists($pengajarEksternal, 'schedules')) {
+            $pengajarEksternal->load(['schedules' => function($q) {
+                $q->with('program.masterProgram')
+                  ->where('is_active', true)
+                  ->orderBy('day_of_week')
+                  ->orderBy('start_time');
+            }]);
+            $schedules = $pengajarEksternal->schedules ?? collect();
+        }
+
+        $days = [
+            'monday' => 'Senin', 'tuesday' => 'Selasa', 'wednesday' => 'Rabu',
+            'thursday' => 'Kamis', 'friday' => 'Jumat', 'saturday' => 'Sabtu', 
+            'sunday' => 'Minggu'
+        ];
+
+        return view('pengajar-eksternal.schedule', compact(
+            'pengajarEksternal',
+            'schedules',
+            'days'
+        ));
+    }
+
+    /**
+     * Tampilkan Absensi Pengajar Eksternal
+     */
+    public function attendance(PengajarEksternal $pengajarEksternal)
+    {
+        // Untuk sementara tampilkan halaman kosong / placeholder
+        // Nanti bisa kamu kembangkan mirip InstructorAttendanceController
+
+        return view('pengajar-eksternal.attendance', compact('pengajarEksternal'));
     }
 }
