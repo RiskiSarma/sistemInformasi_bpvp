@@ -138,7 +138,7 @@
     <div class="kop-wrapper">
         <div class="kop">
             <div class="kop-logo">
-                <img src="{{ $logoPath }}" alt="Logo">
+                <img src="{{ asset('images/logo blk banda.png') }}" alt="Logo">
             </div>
             <div class="kop-text">
                 <div class="instansi">KEMENTERIAN KETENAGAKERJAAN REPUBLIK INDONESIA</div>

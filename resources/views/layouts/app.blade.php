@@ -162,6 +162,31 @@
                     <span class="font-medium">Peserta</span>
                 </a>
 
+                <a href="{{ route('admin.daftar-ulang.index') }}" class="flex items-center space-x-3 px-4 py-3 rounded-lg transition
+                        {{ request()->routeIs('admin.daftar-ulang.*')
+                            ? 'bg-blue-600 text-white shadow-md'
+                            : 'text-gray-700 hover:bg-gray-100' }}">
+                
+                    {{-- Icon: document check --}}
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2
+                                M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2
+                                m-6 9l2 2 4-4"/>
+                    </svg>
+                    <span class="font-medium">Daftar Ulang</span>
+                
+                    {{-- Badge: jumlah dokumen pending --}}
+                    @php
+                        $pendingCount = \App\Models\ParticipantDocument::where('status', 'pending')->count();
+                    @endphp
+                    @if($pendingCount > 0)
+                        <span class="ml-auto inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold rounded-full
+                                    {{ request()->routeIs('admin.daftar-ulang.*') ? 'bg-white text-blue-600' : 'bg-red-500 text-white' }}">
+                            {{ $pendingCount }}
+                        </span>
+                    @endif
+                </a>
                 <div>
                     <button @click="pengajarOpen = !pengajarOpen" 
                             class="w-full flex items-center justify-between px-4 py-3 rounded-lg transition text-gray-700 hover:bg-gray-100">

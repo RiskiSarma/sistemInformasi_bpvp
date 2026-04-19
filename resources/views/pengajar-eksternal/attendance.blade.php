@@ -7,7 +7,7 @@
     <!-- Header -->
     <div class="flex items-center justify-between">
         <div class="flex items-center gap-4">
-            <a href="{{ route('admin.pengajar-eksternal.show', $pengajar) }}" 
+            <a href="{{ route('admin.pengajar-eksternal.show', $pengajarEksternal) }}" 
                class="text-blue-600 hover:text-blue-800">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
@@ -15,7 +15,7 @@
             </a>
             <div>
                 <h2 class="text-2xl font-bold text-gray-800">Rekap Kehadiran</h2>
-                <p class="text-gray-600 mt-1">{{ $pengajar->name }}</p>
+                <p class="text-gray-600 mt-1">{{ $pengajarEksternal->name }}</p>
             </div>
         </div>
     </div>

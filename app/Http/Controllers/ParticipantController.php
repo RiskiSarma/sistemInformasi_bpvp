@@ -46,7 +46,7 @@ class ParticipantController extends Controller
     {
         $programs = Program::with('masterProgram')->get();
         $users = User::where('role', 'participant')
-                     ->whereDoesntHave('participant') // user participant yang belum punya profil peserta
+                    //  ->whereDoesntHave('participant') // user participant yang belum punya profil peserta
                      ->orderBy('name')
                      ->get();
 
@@ -56,9 +56,25 @@ class ParticipantController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'user_id'     => 'required|exists:users,id|unique:participants,user_id',
+                'user_id' => [
+                'required',
+                'exists:users,id',
+                Rule::unique('participants', 'user_id')
+                    ->where('program_id', $request->program_id)
+                    ->whereNull('deleted_at'),
+            ],
+
             'program_id'  => 'required|exists:programs,id',
-            'nik'         => 'nullable|string|max:16|unique:participants,nik',
+            'nik'           => [
+                'nullable',
+                'string',
+                'max:16',
+                // Exclude soft-deleted records dari pengecekan NIK
+                Rule::unique('participants', 'nik')->whereNull('deleted_at')
+                ->where(function ($query) use ($request) {
+                    $query->where('user_id', '!=', $request->user_id);
+                }),
+            ],
             'phone'       => 'nullable|string|max:20',
             // 'education'   => 'nullable|string|max:100',
             'pendidikan_id' => 'required|exists:pendidikans,id',
@@ -69,10 +85,28 @@ class ParticipantController extends Controller
             'gender'      => 'required|in:Laki-laki,Perempuan',
         ]);
 
-        $participant = Participant::create($validated + [
-            'created_by' => auth()->id(),
-            'updated_by' => auth()->id(),
-        ]);
+        // Cek apakah ada record yang pernah dihapus (soft delete)
+        // dengan user_id + program_id yang sama
+        $existing = Participant::withTrashed()
+            ->where('user_id', $validated['user_id'])
+            ->where('program_id', $validated['program_id'])
+            ->first();
+
+        if ($existing?->trashed()) {
+            // Restore lalu update datanya
+            $existing->restore();
+            $existing->update($validated + ['updated_by' => auth()->id()]);
+            $participant = $existing;
+        } else {
+            $participant = Participant::create($validated + [
+                'created_by' => auth()->id(),
+                'updated_by' => auth()->id(),
+            ]);
+        }
+        // $participant = Participant::create($validated + [
+        //     'created_by' => auth()->id(),
+        //     'updated_by' => auth()->id(),
+        // ]);
 
         // NOTIFIKASI TAMBAH PESERTA
         $admins = User::where('role', 'admin')->get();
@@ -163,13 +197,13 @@ class ParticipantController extends Controller
 
     public function destroy(Participant $participant)
     {
-        $userId = $participant->user_id;
+        // $userId = $participant->user_id;
         $participant->delete();
 
-        // Hapus user kalau tidak dipakai lagi (opsional)
-        if (User::find($userId)->participant()->doesntExist()) {
-            User::find($userId)->delete();
-        }
+        // // Hapus user kalau tidak dipakai lagi (opsional)
+        // if (User::find($userId)->participant()->doesntExist()) {
+        //     User::find($userId)->delete();
+        // }
 
         return redirect()->route('admin.participants.index')
             ->with('success', 'Peserta berhasil dihapus!');

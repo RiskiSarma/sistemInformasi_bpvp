@@ -17,24 +17,23 @@ class ScheduleController extends Controller
      * Show form to add schedule for instructor
      */
     public function create(Instructor $instructor)
-    {
-        // Get programs yang sedang berjalan atau akan datang
-        $programs = Program::whereIn('status', ['planned', 'ongoing'])
-            ->with('masterProgram')
-            ->get();
+{
+    $programs = Program::with(['masterProgram', 'paketPelatihan'])
+        ->orderBy('id', 'desc')        // atau sesuaikan urutan yang kamu inginkan
+        ->get();
 
-        $days = [
-            'monday' => 'Senin',
-            'tuesday' => 'Selasa',
-            'wednesday' => 'Rabu',
-            'thursday' => 'Kamis',
-            'friday' => 'Jumat',
-            'saturday' => 'Sabtu',
-            'sunday' => 'Minggu',
-        ];
+    $days = [
+        'monday'    => 'Senin',
+        'tuesday'   => 'Selasa',
+        'wednesday' => 'Rabu',
+        'thursday'  => 'Kamis',
+        'friday'    => 'Jumat',
+        'saturday'  => 'Sabtu',
+        'sunday'    => 'Minggu',
+    ];
 
-        return view('schedules.create', compact('instructor', 'programs', 'days'));
-    }
+    return view('schedules.create', compact('instructor', 'programs', 'days'));
+}
 
     /**
      * Store schedule

@@ -16,6 +16,7 @@ use App\Notifications\GeneralActivityNotification;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use App\Models\Instructor;
+use App\Models\Participant;
 use App\Models\ProgramInstructor;
 use App\Models\DocumentSetting;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -138,24 +139,30 @@ class ProgramController extends Controller
 
             $totalJp = collect($unitsConfig)->sum('custom_duration');
             
-            $programData = [
-                'master_program_id'     => $validated['master_program_id'],
-                'paket_pelatihan_id'    => $validated['paket_pelatihan_id'],
-                'angkatan'              => $validated['angkatan'],
-                'start_date'            => $validated['start_date'],
-                'end_date'              => $validated['end_date'],
-                'status'                => $validated['status'],
-                'max_participants'      => $validated['max_participants'] ?? null,
-                'ada_industri'          => $validated['ada_industri'],
-                'jp_harian'             => $validated['jp_harian'] ?? null,
-                'jp'                    => $totalJp,
+            // $programData = [
+            //     'master_program_id'     => $validated['master_program_id'],
+            //     'paket_pelatihan_id'    => $validated['paket_pelatihan_id'],
+            //     'angkatan'              => $validated['angkatan'],
+            //     'start_date'            => $validated['start_date'],
+            //     'end_date'              => $validated['end_date'],
+            //     'status'                => $validated['status'],
+            //     'max_participants'      => $validated['max_participants'] ?? null,
+            //     'ada_industri'          => $validated['ada_industri'],
+            //     'jp_harian'             => $validated['jp_harian'] ?? null,
+            //     'jp'                    => $totalJp,
+            //     'selected_units_config' => $unitsConfig,
+            //     'instructor_id'         => $request->penanggung_jawab,
+            //     'created_by'            => Auth::id(),
+            //     'updated_by'            => Auth::id(),
+            // ];
+            
+            $program = Program::create(array_merge($validated, [
                 'selected_units_config' => $unitsConfig,
+                'jp'                    => $totalJp,
                 'instructor_id'         => $request->penanggung_jawab,
                 'created_by'            => Auth::id(),
                 'updated_by'            => Auth::id(),
-            ];
-            
-            $program = Program::create($validated);
+            ]));
 
             foreach ($request->instructors as $instructorId) {
                 ProgramInstructor::create([
@@ -217,6 +224,18 @@ class ProgramController extends Controller
         ));
     }
 
+    public function removeParticipant(Program $program, Participant $participant)
+    {
+        // Hanya set program_id = null, data peserta tetap ada
+        $participant->update([
+            'program_id' => null,
+            'updated_by' => auth()->id(),
+        ]);
+
+        return redirect()->route('admin.programs.show', $program)
+            ->with('success', 'Peserta berhasil dilepas dari program ini. Data peserta tetap tersimpan di menu Peserta.');
+    }
+
     public function update(Request $request, Program $program)
     {
         $validated = $request->validate([
@@ -255,23 +274,28 @@ class ProgramController extends Controller
 
             $totalJp = collect($unitsConfig)->sum('custom_duration');
             
-            $programData = [
-                'master_program_id'     => $validated['master_program_id'],
-                'paket_pelatihan_id'    => $validated['paket_pelatihan_id'],
-                'angkatan'              => $validated['angkatan'],
-                'start_date'            => $validated['start_date'],
-                'end_date'              => $validated['end_date'],
-                'status'                => $validated['status'],
-                'max_participants'      => $validated['max_participants'] ?? null,
-                'ada_industri'          => $validated['ada_industri'],
-                'jp_harian'             => $validated['jp_harian'] ?? null,
-                'jp'                    => $totalJp,
+            // $programData = [
+            //     'master_program_id'     => $validated['master_program_id'],
+            //     'paket_pelatihan_id'    => $validated['paket_pelatihan_id'],
+            //     'angkatan'              => $validated['angkatan'],
+            //     'start_date'            => $validated['start_date'],
+            //     'end_date'              => $validated['end_date'],
+            //     'status'                => $validated['status'],
+            //     'max_participants'      => $validated['max_participants'] ?? null,
+            //     'ada_industri'          => $validated['ada_industri'],
+            //     'jp_harian'             => $validated['jp_harian'] ?? null,
+            //     'jp'                    => $totalJp,
+            //     'selected_units_config' => $unitsConfig,
+            //     'instructor_id'         => $request->penanggung_jawab,
+            //     'updated_by'            => Auth::id(),
+            // ];
+            
+            $program->update(array_merge($validated, [
                 'selected_units_config' => $unitsConfig,
+                'jp'                    => $totalJp,
                 'instructor_id'         => $request->penanggung_jawab,
                 'updated_by'            => Auth::id(),
-            ];
-            
-            $program->update($validated);
+            ]));
 
             $program->programInstructors()->delete();
             foreach ($request->instructors as $instructorId) {
@@ -790,6 +814,25 @@ class ProgramController extends Controller
             ->with('success', 'Unit kompetensi berhasil diperbarui!');
     }
 
+    public function updateUnitInMaster(Request $request, MasterProgram $masterProgram, IndependentCompetencyUnit $independentCompetencyUnit)
+{
+    $validated = $request->validate([
+        'type_unit' => 'required|in:skkni,special',
+        'jp'        => 'nullable|integer|min:0',
+    ]);
+
+    $masterProgram->independentCompetencyUnits()->updateExistingPivot(
+        $independentCompetencyUnit->id,
+        [
+            'type_unit' => $validated['type_unit'],
+            'jp'        => $validated['jp'] ?? 0,
+        ]
+    );
+
+    return redirect()
+        ->route('admin.programs.master.show', $masterProgram)
+        ->with('success', 'Data unit kompetensi berhasil diperbarui!');
+}
     public function destroyUnit(CompetencyUnit $unit)
     {
         $unit->delete();
@@ -846,7 +889,7 @@ class ProgramController extends Controller
     {
         $validated = $request->validate([
             'independent_competency_unit_id' => 'required|exists:independent_competency_units,id',
-            'type_unit' => 'required|in:skkni,non-skkni',
+            'type_unit' => 'required|in:skkni,special',
             'jp' => 'nullable|integer|min:0',
         ]);
 

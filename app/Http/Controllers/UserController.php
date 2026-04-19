@@ -68,15 +68,11 @@ class UserController extends Controller
         ]);
 
         // Buat profil kosong kalau perlu
-        if ($user->isInstructor()) {
-            Instructor::create([
+        if ($user->isParticipant()) {
+            Participant::create([
                 'user_id' => $user->id,
                 'name'    => $user->name,
-                'email'   => $user->email,]);
-        // } elseif ($user->isParticipant()) {
-        //     Participant::create([
-        //         'user_id' => $user->id,
-        //         'name'    => $user->name,]);
+            ]);
         }
 
         // === TAMBAHKAN NOTIFIKASI DI SINI ===
@@ -88,12 +84,12 @@ class UserController extends Controller
             'ditambahkan'
         ));
 
-        if ($user->isInstructor()) {
-            Instructor::create(['user_id' => $user->id]);
+        // if ($user->isInstructor()) {
+        //     Instructor::create(['user_id' => $user->id]);
             
-        } elseif ($user->isParticipant()) {
-            Participant::create(['user_id' => $user->id]);
-        }
+        // } elseif ($user->isParticipant()) {
+        //     Participant::create(['user_id' => $user->id]);
+        // }
 
         return redirect()->route('admin.users.index')->with('success', 'User berhasil dibuat!');
     }

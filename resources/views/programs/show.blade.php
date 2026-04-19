@@ -413,40 +413,117 @@
         </div>
     </div>
 
-    <!-- Peserta -->
-    @if($program->participants->count() > 0)
-    <div class="bg-white rounded-lg shadow-sm border">
-        <div class="p-6 border-b">
-            <h3 class="text-lg font-semibold text-gray-800">Daftar Peserta ({{ $program->participants->count() }})</h3>
-        </div>
-        <div class="overflow-x-auto">
-            <table class="w-full">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs uppercase text-gray-500">No</th>
-                        <th class="px-6 py-3 text-left text-xs uppercase text-gray-500">Nama</th>
-                        <th class="px-6 py-3 text-left text-xs uppercase text-gray-500">NIK</th>
-                        <th class="px-6 py-3 text-left text-xs uppercase text-gray-500">Status</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y">
-                    @foreach($program->participants as $key => $participant)
-                    <tr class="hover:bg-gray-50">
-                        <td class="px-6 py-4 text-sm">{{ $key + 1 }}</td>
-                        <td class="px-6 py-4">{{ $participant->name ?? '-' }}</td>
-                        <td class="px-6 py-4">{{ $participant->nik ?? '-' }}</td>
-                        <td class="px-6 py-4">
-                            <span class="px-2 py-1 text-xs rounded-full {{ $participant->status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' }}">
-                                {{ ucfirst($participant->status ?? 'pending') }}
-                            </span>
-                        </td>
-                    </tr>
-                    @endforeach
-                </tbody>
-            </table>
+        {{-- Peserta --}}
+@if($program->participants->count() > 0)
+<div class="bg-white rounded-lg shadow-sm border" x-data="{ 
+    deleteParticipantModalOpen: false, 
+    selectedParticipantId: null,
+    selectedParticipantName: ''
+}">
+    <div class="p-6 border-b">
+        <h3 class="text-lg font-semibold text-gray-800">Daftar Peserta ({{ $program->participants->count() }})</h3>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs uppercase text-gray-500">No</th>
+                    <th class="px-6 py-3 text-left text-xs uppercase text-gray-500">Nama</th>
+                    <th class="px-6 py-3 text-left text-xs uppercase text-gray-500">NIK</th>
+                    <th class="px-6 py-3 text-left text-xs uppercase text-gray-500">Status</th>
+                    <th class="px-6 py-3 text-center text-xs uppercase text-gray-500 w-32">Aksi</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y">
+                @foreach($program->participants as $key => $participant)
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 text-sm">{{ $key + 1 }}</td>
+                    <td class="px-6 py-4">{{ $participant->user->name ?? $participant->name ?? '-' }}</td>
+                    <td class="px-6 py-4">{{ $participant->nik ?? '-' }}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 text-xs rounded-full {{ $participant->status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' }}">
+                            {{ ucfirst($participant->status ?? 'pending') }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        <div class="flex items-center justify-center gap-2">
+                            {{-- Tombol Edit → ke halaman edit peserta --}}
+                            <a href="{{ route('admin.participants.edit', $participant) }}"
+                               class="inline-flex items-center px-2.5 py-1.5 bg-blue-50 text-blue-700 text-xs font-medium rounded hover:bg-blue-100 transition"
+                               title="Edit Peserta">
+                                <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                </svg>
+                                Edit
+                            </a>
+                            {{-- Tombol Remove dari Program --}}
+                            <button
+                                @click="deleteParticipantModalOpen = true; selectedParticipantId = '{{ $participant->id }}'; selectedParticipantName = '{{ addslashes($participant->user->name ?? $participant->name ?? 'peserta ini') }}'"
+                                class="inline-flex items-center px-2.5 py-1.5 bg-red-50 text-red-700 text-xs font-medium rounded hover:bg-red-100 transition"
+                                title="Lepas dari Program">
+                                <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6h12a6 6 0 00-6-6zM21 12H15"/>
+                                </svg>
+                                Lepas
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+    </div>
+
+    {{-- MODAL: Lepas Peserta dari Program --}}
+    <div x-show="deleteParticipantModalOpen" style="display:none" class="fixed inset-0 z-50 overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20">
+            <div @click="deleteParticipantModalOpen = false" class="fixed inset-0 bg-gray-500 bg-opacity-75"></div>
+            <div class="inline-block bg-white rounded-lg overflow-hidden shadow-xl transform transition-all sm:max-w-md sm:w-full relative">
+                <form :action="`{{ url('admin/programs/' . $program->id . '/participants') }}/${selectedParticipantId}/remove`" method="POST">
+                    @csrf
+                    @method('PATCH')
+                    <div class="bg-white px-6 pt-6 pb-4">
+                        <div class="flex items-start space-x-4">
+                            <div class="flex-shrink-0 w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                                <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6h12a6 6 0 00-6-6zM21 12H15"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-900">Lepas Peserta dari Program</h3>
+                                <p class="mt-1 text-sm text-gray-500">
+                                    Peserta <strong x-text="selectedParticipantName"></strong> akan dilepas dari program ini.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                            <div class="flex gap-2">
+                                <svg class="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                                </svg>
+                                <p class="text-xs text-blue-700">Data peserta <strong>tidak akan dihapus</strong> dari sistem. Peserta hanya dilepas dari program ini dan tetap terdaftar di menu Peserta.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 px-6 py-3 flex justify-end space-x-3">
+                        <button type="button" @click="deleteParticipantModalOpen = false"
+                            class="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition">
+                            Batal
+                        </button>
+                        <button type="submit"
+                            class="px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7a4 4 0 11-8 0 4 4 0 018 0zM9 14a6 6 0 00-6 6h12a6 6 0 00-6-6zM21 12H15"/>
+                            </svg>
+                            Ya, Lepas dari Program
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
-    @endif
+</div>
+@endif
 
     {{-- ============================================================ --}}
 {{-- TAMBAHKAN SECTION INI DI programs/show.blade.php             --}}

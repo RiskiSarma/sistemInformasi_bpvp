@@ -24,6 +24,7 @@ use App\Http\Controllers\JenisMateriPelatihanController;
 use App\Http\Controllers\PengajarAssignmentController;
 use App\Http\Controllers\PendidikanController;
 use App\Http\Controllers\InstructorAttendanceController;
+use App\Http\Controllers\PengajarEksternalScheduleController;
 use App\Http\Controllers\PaketPengajarProgramController;
 use App\Http\Controllers\PaketPengajarSubUnitController;
 
@@ -59,6 +60,20 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     
+    // ========================================
+    // DAFTAR ULANG - VERIFIKASI DOKUMEN PESERTA
+    // ========================================
+    Route::prefix('daftar-ulang')->name('daftar-ulang.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\DaftarUlangController::class, 'index'])
+            ->name('index');
+        Route::post('/{document}/approve', [\App\Http\Controllers\DaftarUlangController::class, 'approve'])
+            ->name('approve');
+        Route::post('/{document}/reject', [\App\Http\Controllers\DaftarUlangController::class, 'reject'])
+            ->name('reject');
+        Route::get('/{document}/preview', [\App\Http\Controllers\DaftarUlangController::class, 'preview'])
+            ->name('preview');
+    });
+
     // Program Pelatihan
     Route::prefix('programs')->name('programs.')->group(function () {
         Route::get('/', [ProgramController::class, 'index'])->name('index');
@@ -180,6 +195,8 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
         Route::delete('/units/{unit}', [ProgramController::class, 'destroyUnit'])->name('units.destroy');
         Route::get('/{program}', [ProgramController::class, 'show'])->name('show');
 
+        Route::patch('/{program}/participants/{participant}/remove', [ProgramController::class, 'removeParticipant'])
+            ->name('participants.remove');
         // ✅ [2] ROUTES EDIT, UPDATE, DELETE (sebelum /{program}/dokumen & /{program} show)
         Route::get('/{program}/edit', [ProgramController::class, 'edit'])->name('edit');
         Route::put('/{program}', [ProgramController::class, 'update'])->name('update');
@@ -254,7 +271,17 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
         Route::delete('/{pengajarEksternal}', [PengajarEksternalController::class, 'destroy'])->name('destroy');
         Route::get('/{pengajarEksternal}/schedule', [PengajarEksternalController::class, 'schedule'])
          ->name('schedule');
-
+        // Schedule Routes
+    Route::get('{pengajarEksternal}/schedules/create', [PengajarEksternalScheduleController::class, 'create'])
+        ->name('schedules.create');
+    Route::post('{pengajarEksternal}/schedules', [PengajarEksternalScheduleController::class, 'store'])
+        ->name('schedules.store');
+    Route::get('schedules/{schedule}/edit', [PengajarEksternalScheduleController::class, 'edit'])
+        ->name('schedules.edit');
+    Route::put('schedules/{schedule}', [PengajarEksternalScheduleController::class, 'update'])
+        ->name('schedules.update');
+    Route::delete('schedules/{schedule}', [PengajarEksternalScheduleController::class, 'destroy'])
+        ->name('schedules.destroy');
     Route::get('/{pengajarEksternal}/attendance', [PengajarEksternalController::class, 'attendance'])
          ->name('attendance');
         // API untuk modal detail
@@ -425,6 +452,17 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
         Route::put('/password', [ProfileController::class, 'updatePassword'])->name('password');
         Route::delete('/', [ProfileController::class, 'destroy'])->name('destroy');
     });
+    // Daftar Ulang - Verifikasi Dokumen Peserta
+    Route::prefix('daftar-ulang')->name('daftar-ulang.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Participant\DaftarUlangController::class, 'adminIndex'])
+            ->name('index');
+        Route::post('/{document}/approve', [\App\Http\Controllers\Participant\DaftarUlangController::class, 'approve'])
+            ->name('approve');
+        Route::post('/{document}/reject', [\App\Http\Controllers\Participant\DaftarUlangController::class, 'reject'])
+            ->name('reject');
+        Route::get('/{document}/preview', [\App\Http\Controllers\Participant\DaftarUlangController::class, 'adminPreview'])
+            ->name('preview');
+    });
 });
 
 // ============================================
@@ -482,6 +520,20 @@ Route::middleware(['auth', 'role:participant'])->prefix('participant')->name('pa
     // Attendance
     Route::get('/attendance', [\App\Http\Controllers\Participant\AttendanceController::class, 'index'])->name('attendance');
     
+    // ========================================
+    // DAFTAR ULANG - UPLOAD BERKAS PESERTA
+    // ========================================
+    Route::prefix('daftar-ulang')->name('daftar-ulang.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Participant\DaftarUlangController::class, 'index'])
+            ->name('index');
+        Route::post('/upload', [\App\Http\Controllers\Participant\DaftarUlangController::class, 'upload'])
+            ->name('upload');
+        Route::get('/{document}/preview', [\App\Http\Controllers\Participant\DaftarUlangController::class, 'preview'])
+            ->name('preview');
+        Route::delete('/{document}', [\App\Http\Controllers\Participant\DaftarUlangController::class, 'destroy'])
+            ->name('destroy');
+    });
+
     // Certificate
     Route::prefix('certificate')->name('certificate.')->group(function () {
         Route::get('/', [\App\Http\Controllers\Participant\CertificateController::class, 'index'])->name('index');

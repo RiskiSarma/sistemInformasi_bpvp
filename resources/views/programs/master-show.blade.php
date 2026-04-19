@@ -73,11 +73,11 @@
                     class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition">
                 Daftar Program ({{ $masterProgram->programs->count() }})
             </button>
-            <button @click="activeTab = 'pengajar'" 
+            {{-- <button @click="activeTab = 'pengajar'" 
                     :class="activeTab === 'pengajar' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
                     class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition">
                 Pengajar
-            </button>
+            </button> --}}
         </nav>
     </div>
 
@@ -166,21 +166,82 @@
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">Unit Kompetensi *</label>
-                                <select name="independent_competency_unit_id" required
-                                        class="w-full px-3 py-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-blue-500 text-sm">
-                                    <option value="">-- Pilih Unit --</option>
-                                    @foreach(\App\Models\IndependentCompetencyUnit::orderBy('code')->get() as $unit)
-                                        <option value="{{ $unit->id }}">{{ $unit->code }} - {{ Str::limit($unit->name, 50) }}</option>
-                                    @endforeach
-                                </select>
-                                <p class="text-xs text-gray-500 mt-1">Pilih dari Independent Competency Units</p>
+                                
+                                <div x-data="{ 
+                                    searchTerm: '', 
+                                    selectedId: '', 
+                                    selectedText: '',
+                                    unitList: @js(
+                                        \App\Models\IndependentCompetencyUnit::orderBy('code')
+                                            ->select('id', 'code', 'name')
+                                            ->get()
+                                            ->toArray()
+                                    )
+                                }" class="relative">
+
+                                    <!-- Input Search -->
+                                    <div class="relative">
+                                        <input 
+                                            type="text"
+                                            x-model="searchTerm"
+                                            :placeholder="selectedText ? selectedText : 'Cari kode atau nama unit...'"
+                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-blue-500 text-sm"
+                                            @focus="searchTerm = ''"
+                                        >
+                                        
+                                        <!-- Clear Button -->
+                                        <button 
+                                            x-show="selectedText"
+                                            @click="selectedId = ''; selectedText = ''; searchTerm = ''"
+                                            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                            type="button">
+                                            ✕
+                                        </button>
+                                    </div>
+
+                                    <!-- Dropdown -->
+                                    <div 
+                                        x-show="searchTerm.length > 0"
+                                        class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-64 overflow-auto"
+                                    >
+                                        <template x-for="item in unitList.filter(unit => 
+                                            unit.code.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                            unit.name.toLowerCase().includes(searchTerm.toLowerCase())
+                                        ).slice(0, 50)" 
+                                        :key="item.id">
+                                            <div 
+                                                @click.prevent="selectedId = item.id; selectedText = item.code + ' - ' + item.name; searchTerm = ''"
+                                                class="px-4 py-2.5 hover:bg-blue-50 cursor-pointer text-sm"
+                                            >
+                                                <span class="font-mono text-blue-600 font-medium" x-text="item.code"></span>
+                                                <span class="text-gray-400 mx-1">—</span>
+                                                <span x-text="item.name"></span>
+                                            </div>
+                                        </template>
+
+                                        <div x-show="unitList.filter(unit => 
+                                            unit.code.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                            unit.name.toLowerCase().includes(searchTerm.toLowerCase())
+                                        ).length === 0" 
+                                            class="px-4 py-6 text-center text-gray-500 text-sm">
+                                            Tidak ditemukan unit yang sesuai
+                                        </div>
+                                    </div>
+
+                                    <!-- Hidden Input (yang dikirim ke server) -->
+                                    <input type="hidden" 
+                                        name="independent_competency_unit_id" 
+                                        :value="selectedId" 
+                                        required>
+                                </div>
+
+                                <p class="text-xs text-gray-500 mt-1">Ketik untuk mencari unit kompetensi</p>
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Jenis Unit *</label>
-                                <select name="type_unit" required
-                                        class="w-full px-3 py-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-blue-500">
+                                <label class="block text-sm font-medium text-gray-700">Jenis Unit</label>
+                                <select name="type_unit" required class="w-full px-3 py-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-blue-500">
                                     <option value="skkni">SKKNI</option>
-                                    <option value="non-skkni">Non-SKKNI</option>
+                                    <option value="special">Special</option>
                                 </select>
                             </div>
                             <div>
@@ -303,7 +364,7 @@
         {{-- ========================================= --}}
         {{-- Tab 3: DAFTAR PROGRAM --}}
         {{-- ========================================= --}}
-        <div x-show="activeTab === 'programs'" x-transition>
+        {{-- <div x-show="activeTab === 'programs'" x-transition>
             @if($masterProgram->programs->count() > 0)
             <div class="space-y-3">
                 @foreach($masterProgram->programs as $program)
@@ -327,12 +388,12 @@
                 Belum ada program yang menggunakan master ini
             </div>
             @endif
-        </div>
+        </div> --}}
 
         {{-- ========================================= --}}
 {{-- Tab 4: PENGAJAR --}}
 {{-- ========================================= --}}
-<div x-show="activeTab === 'pengajar'" x-transition>
+{{-- <div x-show="activeTab === 'pengajar'" x-transition>
     <div x-data="{ 
         addPengajarModal: false,
         editPengajarModal: false,
@@ -373,10 +434,10 @@
                     class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm">
                 + Assign Pengajar
             </button>
-        </div>
+        </div> --}}
 
         {{-- TABEL PENGAJAR --}}
-        <div class="overflow-x-auto border rounded-lg">
+        {{-- <div class="overflow-x-auto border rounded-lg">
             <table class="w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
@@ -454,10 +515,10 @@
                     @endforelse
                 </tbody>
             </table>
-        </div>
+        </div> --}}
 
         {{-- MODAL ASSIGN PENGAJAR --}}
-        <div x-show="addPengajarModal" 
+        {{-- <div x-show="addPengajarModal" 
              style="display: none" 
              class="fixed inset-0 z-50 overflow-y-auto"
              x-transition>
@@ -555,9 +616,9 @@
                     </form>
                 </div>
             </div>
-        </div>
+        </div> --}}
         {{-- MODAL EDIT PENGAJAR --}}
-        <div x-show="editPengajarModal" style="display: none" class="fixed inset-0 z-50 overflow-y-auto" x-transition>
+        {{-- <div x-show="editPengajarModal" style="display: none" class="fixed inset-0 z-50 overflow-y-auto" x-transition>
             <div class="flex items-center justify-center min-h-screen px-4">
                 <div @click="editPengajarModal = false" class="fixed inset-0 bg-black bg-opacity-50"></div>
                 <div class="relative bg-white rounded-lg max-w-xl w-full p-6 shadow-xl">
@@ -661,10 +722,10 @@
                     </form>
                 </div>
             </div>
-        </div>
+        </div> --}}
 
         {{-- MODAL HAPUS --}}
-        <div x-show="deletePengajarModal" style="display: none" class="fixed inset-0 z-50 overflow-y-auto" x-transition>
+        {{-- <div x-show="deletePengajarModal" style="display: none" class="fixed inset-0 z-50 overflow-y-auto" x-transition>
             <div class="flex items-center justify-center min-h-screen px-4">
                 <div @click="deletePengajarModal = false" class="fixed inset-0 bg-black bg-opacity-50"></div>
                 <div class="relative bg-white rounded-lg max-w-md w-full p-6 shadow-xl">
@@ -685,44 +746,64 @@
                     </form>
                 </div>
             </div>
-    </div>
+    </div> --}}
 </div>
 </div>
 <!-- Modal Edit Unit -->
-<div x-data="{ openEdit: false, form: { type_unit: '', jp: 0, unit_id: '' } }"
-     x-show="openEdit"
+<!-- Modal Edit Unit -->
+<div x-data="{ 
+    openEdit: false, 
+    form: { type_unit: 'skkni', jp: 0, unit_id: '' } 
+}" 
+     x-show="openEdit" style="display: none"
      class="fixed inset-0 z-50 overflow-y-auto"
      x-transition
-     @open-edit-unit-modal.window="openEdit = true; form = { type_unit: $event.detail.typeUnit, jp: $event.detail.jp, unit_id: $event.detail.unitId }">
+     @open-edit-unit-modal.window="openEdit = true; form = { 
+         type_unit: $event.detail.typeUnit || 'skkni', 
+         jp: parseInt($event.detail.jp) || 0, 
+         unit_id: $event.detail.unitId 
+     }">
+
     <div class="flex items-center justify-center min-h-screen px-4">
-        <div class="fixed inset-0 bg-black opacity-40" @click="openEdit = false"></div>
+        <div class="fixed inset-0 bg-black bg-opacity-50" @click="openEdit = false"></div>
         
-        <div class="bg-white rounded-lg shadow-xl z-10 w-full max-w-md p-6 relative">
+        <div class="bg-white rounded-lg shadow-xl z-10 w-full max-w-md p-6">
             <h3 class="text-lg font-medium mb-4">Edit Unit Kompetensi</h3>
             
-            <form :action="`/admin/programs/master/{{ $masterProgram->id }}/units/${form.unit_id}`" method="POST">
+            <form :action="`/admin/programs/master/{{ $masterProgram->id }}/units/${form.unit_id}`" 
+                  method="POST"
+                  @submit="openEdit = false">
                 @csrf
                 @method('PUT')
 
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">Jenis Unit</label>
-                        <select x-model="form.type_unit" name="type_unit" class="mt-1 block w-full border-gray-300 rounded-md">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Jenis Unit</label>
+                        <select x-model="form.type_unit" 
+                                name="type_unit" 
+                                class="w-full border-gray-300 rounded-lg focus:border-blue-500">
                             <option value="skkni">SKKNI</option>
-                            <option value="non-skkni">Non-SKKNI</option>
+                            <option value="special">Special</option>
                         </select>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-gray-700">JP (Jam Pelajaran)</label>
-                        <input type="number" x-model="form.jp" name="jp" class="mt-1 block w-full border-gray-300 rounded-md" min="0">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">JP (Jam Pelajaran)</label>
+                        <input type="number" 
+                               x-model="form.jp" 
+                               name="jp" 
+                               min="0"
+                               class="w-full border-gray-300 rounded-lg focus:border-blue-500">
                     </div>
 
-                    <div class="flex justify-end gap-3 mt-6">
-                        <button type="button" @click="openEdit = false" class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">
+                    <div class="flex justify-end gap-3 mt-6 pt-4 border-t">
+                        <button type="button" 
+                                @click="openEdit = false"
+                                class="px-5 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg">
                             Batal
                         </button>
-                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                        <button type="submit" 
+                                class="px-5 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg">
                             Simpan Perubahan
                         </button>
                     </div>
@@ -734,7 +815,7 @@
 
 <!-- Modal Konfirmasi Hapus -->
 <div x-data="{ openDelete: false, unitId: '', unitName: '' }"
-     x-show="openDelete"
+     x-show="openDelete" style="display: none"
      class="fixed inset-0 z-50 overflow-y-auto"
      x-transition
      @open-delete-unit-modal.window="openDelete = true; unitId = $event.detail.unitId; unitName = $event.detail.unitName">

@@ -15,6 +15,7 @@ class Schedule extends Model
     protected $fillable = [
         'program_id',
         'instructor_id',
+        'pengajar_eksternal_id',  // ← TAMBAHAN BARU
         'day_of_week',
         'start_time',
         'end_time',
@@ -27,8 +28,6 @@ class Schedule extends Model
 
     protected $casts = [
         'is_active' => 'boolean',
-        // start_time & end_time TIDAK di-cast ke datetime
-        // dibiarkan string "H:i:s" agar Carbon::parse() di controller/view tidak error
     ];
 
     protected static function boot()
@@ -61,6 +60,14 @@ class Schedule extends Model
         return $this->belongsTo(Instructor::class);
     }
 
+    /**
+     * ✅ RELASI BARU: Pengajar Eksternal
+     */
+    public function pengajarEksternal(): BelongsTo
+    {
+        return $this->belongsTo(PengajarEksternal::class, 'pengajar_eksternal_id');
+    }
+
     public function creator()
     {
         return $this->belongsTo(User::class, 'created_by');
@@ -71,11 +78,6 @@ class Schedule extends Model
         return $this->belongsTo(User::class, 'updated_by');
     }
 
-    /**
-     * Relasi ke InstructorAttendance untuk hari ini.
-     * JANGAN pakai Auth::user() di sini — relasi dipanggil saat eager load,
-     * instructor_id difilter lewat eager load constraint di controller.
-     */
     public function attendance()
     {
         return $this->hasOne(InstructorAttendance::class, 'schedule_id');
@@ -96,6 +98,20 @@ class Schedule extends Model
         ][$this->day_of_week] ?? $this->day_of_week;
     }
 
+    /**
+     * ✅ ACCESSOR BARU: Get nama pengajar (instructor atau eksternal)
+     */
+    public function getPengajarNameAttribute(): string
+    {
+        if ($this->instructor_id) {
+            return $this->instructor->name ?? 'Instructor';
+        }
+        if ($this->pengajar_eksternal_id) {
+            return $this->pengajarEksternal->nama ?? 'Pengajar Eksternal';
+        }
+        return '-';
+    }
+
     // ── Scopes ──────────────────────────────────────────────
 
     public function scopeActive($query)
@@ -108,10 +124,6 @@ class Schedule extends Model
         return $query->where('day_of_week', $day);
     }
 
-    /**
-     * Filter jadwal berdasarkan hari ini (day_of_week).
-     * Nama hari pakai format lowercase English: monday, tuesday, dst.
-     */
     public function scopeToday($query)
     {
         return $query->where('day_of_week', strtolower(now()->englishDayOfWeek));

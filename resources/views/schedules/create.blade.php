@@ -19,19 +19,37 @@
             @csrf
 
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Program <span class="text-red-500">*</span></label>
-                <select name="program_id" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 @error('program_id') border-red-500 @enderror">
-                    <option value="">Pilih Program</option>
-                    @foreach($programs as $program)
-                    <option value="{{ $program->id }}" {{ old('program_id') == $program->id ? 'selected' : '' }}>
-                        {{ $program->masterProgram->name }} - {{ $program->batch }}
-                    </option>
-                    @endforeach
-                </select>
-                @error('program_id')
-                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                @enderror
-            </div>
+    <label class="block text-sm font-medium text-gray-700 mb-1">Program <span class="text-red-500">*</span></label>
+    <select name="program_id" required 
+            class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 @error('program_id') border-red-500 @enderror">
+        <option value="">Pilih Program - Batch</option>
+        
+        @forelse($programs as $program)
+            <option value="{{ $program->id }}" 
+                    {{ old('program_id') == $program->id ? 'selected' : '' }}>
+                
+                {{-- Nama Program dari Master Program --}}
+                {{ $program->masterProgram?->name ?? 'Nama Program Tidak Diketahui' }}
+                
+                {{-- Batch Information --}}
+                @if($program->batch)
+                    - Batch {{ $program->batch }}
+                @elseif($program->paketPelatihan?->batch)
+                    - Batch {{ $program->paketPelatihan?->batch }}
+                @elseif($program->paketPelatihan?->periode)
+                    - {{ $program->paketPelatihan?->periode }}
+                @else
+                    - Batch -
+                @endif
+            </option>
+        @empty
+            <option value="" disabled>Tidak ada program tersedia</option>
+        @endforelse
+    </select>
+    @error('program_id')
+        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+    @enderror
+</div>
 
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Hari <span class="text-red-500">*</span></label>

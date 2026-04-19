@@ -21,16 +21,32 @@
 
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Program <span class="text-red-500">*</span></label>
-                <select name="program_id" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 @error('program_id') border-red-500 @enderror">
-                    <option value="">Pilih Program</option>
-                    @foreach($programs as $program)
-                    <option value="{{ $program->id }}" {{ old('program_id', $schedule->program_id) == $program->id ? 'selected' : '' }}>
-                        {{ $program->masterProgram->name }} - {{ $program->batch }}
-                    </option>
-                    @endforeach
+                <select name="program_id" required 
+                        class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 @error('program_id') border-red-500 @enderror">
+                    <option value="">Pilih Program - Batch</option>
+                    
+                    @forelse($programs as $program)
+                        <option value="{{ $program->id }}" 
+                                {{ old('program_id', $schedule->program_id) == $program->id ? 'selected' : '' }}>
+                            
+                            {{ $program->masterProgram?->name ?? 'Nama Program Tidak Diketahui' }}
+                            
+                            @if(!empty($program->batch))
+                                - Batch {{ $program->batch }}
+                            @elseif($program->paketPelatihan?->batch)
+                                - Batch {{ $program->paketPelatihan?->batch }}
+                            @elseif($program->paketPelatihan?->periode)
+                                - {{ $program->paketPelatihan?->periode }}
+                            @else
+                                - Batch -
+                            @endif
+                        </option>
+                    @empty
+                        <option value="" disabled>Tidak ada program tersedia</option>
+                    @endforelse
                 </select>
                 @error('program_id')
-                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                 @enderror
             </div>
 
@@ -39,7 +55,10 @@
                 <select name="day_of_week" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 @error('day_of_week') border-red-500 @enderror">
                     <option value="">Pilih Hari</option>
                     @foreach($days as $key => $name)
-                    <option value="{{ $key }}" {{ old('day_of_week', $schedule->day_of_week) == $key ? 'selected' : '' }}>{{ $name }}</option>
+                    <option value="{{ $key }}" 
+                            {{ old('day_of_week', $schedule->day_of_week) == $key ? 'selected' : '' }}>
+                        {{ $name }}
+                    </option>
                     @endforeach
                 </select>
                 @error('day_of_week')
@@ -50,7 +69,11 @@
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Jam Mulai <span class="text-red-500">*</span></label>
-                    <input type="time" name="start_time" value="{{ old('start_time', \Carbon\Carbon::parse($schedule->start_time)->format('H:i')) }}" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 @error('start_time') border-red-500 @enderror">
+                    <input type="time" 
+                           name="start_time" 
+                           value="{{ old('start_time', $schedule->start_time ? \Carbon\Carbon::parse($schedule->start_time)->format('H:i') : '') }}" 
+                           required 
+                           class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 @error('start_time') border-red-500 @enderror">
                     @error('start_time')
                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                     @enderror
@@ -58,7 +81,11 @@
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Jam Selesai <span class="text-red-500">*</span></label>
-                    <input type="time" name="end_time" value="{{ old('end_time', \Carbon\Carbon::parse($schedule->end_time)->format('H:i')) }}" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 @error('end_time') border-red-500 @enderror">
+                    <input type="time" 
+                           name="end_time" 
+                           value="{{ old('end_time', $schedule->end_time ? \Carbon\Carbon::parse($schedule->end_time)->format('H:i') : '') }}" 
+                           required 
+                           class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 @error('end_time') border-red-500 @enderror">
                     @error('end_time')
                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                     @enderror
@@ -67,21 +94,27 @@
 
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Ruangan</label>
-                <input type="text" name="room" value="{{ old('room', $schedule->room) }}" placeholder="Contoh: Ruang 101" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                <input type="text" name="room" value="{{ old('room', $schedule->room) }}" 
+                       placeholder="Contoh: Ruang 101" 
+                       class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
             </div>
 
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Catatan</label>
-                <textarea name="notes" rows="3" placeholder="Catatan tambahan..." class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">{{ old('notes', $schedule->notes) }}</textarea>
+                <textarea name="notes" rows="3" placeholder="Catatan tambahan..." 
+                          class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">{{ old('notes', $schedule->notes) }}</textarea>
             </div>
 
             <div class="flex items-center">
-                <input type="checkbox" name="is_active" value="1" {{ old('is_active', $schedule->is_active) ? 'checked' : '' }} class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                <input type="checkbox" name="is_active" value="1" 
+                       {{ old('is_active', $schedule->is_active) ? 'checked' : '' }} 
+                       class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
                 <label class="ml-2 text-sm text-gray-700">Jadwal Aktif</label>
             </div>
 
             <div class="flex justify-end space-x-3 pt-4 border-t">
-                <a href="{{ route('admin.instructors.schedule', $instructor) }}" class="px-4 py-2 border rounded-lg hover:bg-gray-50 transition">
+                <a href="{{ route('admin.instructors.schedule', $instructor) }}" 
+                   class="px-4 py-2 border rounded-lg hover:bg-gray-50 transition">
                     Batal
                 </a>
                 <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">

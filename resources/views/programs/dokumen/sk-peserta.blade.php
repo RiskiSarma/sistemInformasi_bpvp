@@ -119,11 +119,7 @@
     <!-- KOP SURAT -->
     <div class="kop">
         <div class="kop-logo">
-            @if($logoPath)
-                <img src="{{ Storage::url($logoPath) }}" alt="Logo">
-            @else
-                <img src="{{ asset('images/logo blk banda.png') }}" alt="Logo">
-            @endif
+            <img src="{{ asset('images/logo blk banda.png') }}" alt="Logo">
         </div>
         <div class="kop-text">
             <div class="instansi">KEMENTERIAN KETENAGAKERJAAN REPUBLIK INDONESIA</div>

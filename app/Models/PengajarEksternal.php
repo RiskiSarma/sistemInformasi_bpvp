@@ -14,6 +14,7 @@ class PengajarEksternal extends Model
     protected $table = 'pengajar_eksternal';
     
     protected $fillable = [
+        'user_id',
         'nama',
         'nik',
         'nip',
@@ -91,5 +92,31 @@ class PengajarEksternal extends Model
     {
         return $this->hasMany(PaketPelatihanPengajarSubUnit::class, 'pengajar_eksternal_id')
                     ->where('pengajar_eksternal', 'Y');
+    }
+        /**
+     * Relasi ke jadwal mengajar (Schedule)
+     */
+    /**
+     * Relasi ke Schedule (Jadwal Mengajar)
+     */
+    public function schedules()
+    {
+        return $this->hasMany(Schedule::class, 'pengajar_eksternal_id');
+    }
+    
+    /**
+     * Relasi ke InstructorAttendance (Absensi Mengajar)
+     */
+    public function attendances()
+    {
+        return $this->hasMany(InstructorAttendance::class, 'pengajar_eksternal_id');
+    }
+    
+    /**
+     * Check if pengajar eksternal has user account
+     */
+    public function hasUser(): bool
+    {
+        return !is_null($this->user_id);
     }
 }

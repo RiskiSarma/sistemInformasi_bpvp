@@ -195,62 +195,47 @@ class InstructorController extends Controller
     /**
  * Show instructor schedule
  */
+/**
+ * Show instructor schedule
+ */
 public function schedule(Instructor $instructor) 
 {
-    // Load schedules dengan relasi program
+    // Load schedules dengan relasi yang aman
     $instructor->load([
         'schedules' => function($query) {
             $query->with(['program.masterProgram', 'creator', 'updater'])
                   ->where('is_active', true)
-                  ->orderBy('day_of_week')
+                  ->orderByRaw("FIELD(day_of_week, 'monday','tuesday','wednesday','thursday','friday','saturday','sunday')")
                   ->orderBy('start_time');
         }
     ]);
 
-    // PERBAIKAN: Ambil programs dari schedules yang ada
-    // Karena schedules sudah terhubung ke program, kita bisa ambil dari sana
+    // Group schedules per hari (ini yang dipakai di blade kamu)
+    $groupedSchedules = $instructor->schedules->groupBy('day_of_week');
+
+    // Ambil program IDs untuk statistik
     $programIds = $instructor->schedules->pluck('program_id')->unique();
-    
-    // Sync instructor dengan programs yang ada di schedules
-    // (Opsional - hanya jika Anda mau auto-sync)
-    // $instructor->programs()->syncWithoutDetaching($programIds);
-    
-    // Ambil programs dengan status untuk statistik
+
     $programs = \App\Models\Program::whereIn('id', $programIds)->get();
-    
-    $totalPrograms = $programs->count();
-    $ongoingPrograms = $programs->where('status', 'ongoing')->count();
-    $plannedPrograms = $programs->where('status', 'planned')->count();
+
+    $totalPrograms    = $programs->count();
+    $ongoingPrograms  = $programs->where('status', 'ongoing')->count();
+    $plannedPrograms  = $programs->where('status', 'planned')->count();
     $completedPrograms = $programs->where('status', 'completed')->count();
 
-    // Organisir jadwal per hari
-    $schedulesByDay = [
-        'monday' => [],
-        'tuesday' => [],
-        'wednesday' => [],
-        'thursday' => [],
-        'friday' => [],
-        'saturday' => [],
-        'sunday' => [],
-    ];
-
-    foreach ($instructor->schedules as $schedule) {
-        $schedulesByDay[$schedule->day_of_week][] = $schedule;
-    }
-
     $days = [
-        'monday' => 'Senin',
-        'tuesday' => 'Selasa',
+        'monday'    => 'Senin',
+        'tuesday'   => 'Selasa',
         'wednesday' => 'Rabu',
-        'thursday' => 'Kamis',
-        'friday' => 'Jumat',
-        'saturday' => 'Sabtu',
-        'sunday' => 'Minggu',
+        'thursday'  => 'Kamis',
+        'friday'    => 'Jumat',
+        'saturday'  => 'Sabtu',
+        'sunday'    => 'Minggu',
     ];
 
     return view('instructors.schedule', compact(
         'instructor',
-        'schedulesByDay',
+        'groupedSchedules',        // ← ini yang penting!
         'days',
         'totalPrograms',
         'ongoingPrograms',

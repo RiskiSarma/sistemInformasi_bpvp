@@ -120,4 +120,14 @@ class User extends Authenticatable
     {
         return $this->role === 'participant';
     }
+    public function pengajarEksternal()
+    {
+        return $this->hasOne(PengajarEksternal::class);
+    }
+
+    public function isPengajarEksternal(): bool
+    {
+        return $this->isInstructor() && $this->pengajarEksternal()->exists();
+    }
+    
 }

@@ -73,9 +73,23 @@
                             </td>
                             <td class="px-6 py-4">
                                 @if($user->isInstructor() && $user->instructor)
-                                    <a href="{{ route('admin.instructors.edit', $user->instructor) }}" class="text-blue-600 hover:underline">Edit Profil Instruktur</a>
+                                    <a href="{{ route('admin.instructors.edit', $user->instructor) }}" 
+                                    class="text-blue-600 hover:underline">
+                                        Edit Profil Instruktur
+                                    </a>
+                                @elseif($user->isInstructor() && $user->pengajarEksternal)
+                                    <a href="{{ route('admin.pengajar-eksternal.edit', $user->pengajarEksternal) }}" 
+                                    class="text-orange-600 hover:underline flex items-center space-x-1">
+                                        <span>Edit Profil Pengajar Eksternal</span>
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                                        </svg>
+                                    </a>
                                 @elseif($user->isParticipant() && $user->participant)
-                                    <a href="{{ route('admin.participants.edit', $user->participant) }}" class="text-blue-600 hover:underline">Edit Profil Peserta</a>
+                                    <a href="{{ route('admin.participants.edit', $user->participant) }}" 
+                                    class="text-blue-600 hover:underline">
+                                        Edit Profil Peserta
+                                    </a>
                                 @else
                                     <span class="text-gray-400">-</span>
                                 @endif

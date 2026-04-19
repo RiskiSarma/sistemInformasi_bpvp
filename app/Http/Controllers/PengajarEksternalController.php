@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Log;
 use App\Models\PaketPelatihanPengajarSubUnit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 
 class PengajarEksternalController extends Controller
 {
@@ -50,36 +51,71 @@ class PengajarEksternalController extends Controller
     }
 
     public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'nama' => 'required|string|max:100',
-            'nik' => 'required|string|max:100|unique:pengajar_eksternal,nik',
-            'nip' => 'required|string|max:100|unique:pengajar_eksternal,nip',
-            'instansi' => 'required|string|max:255',
-            'jabatan' => 'nullable|string|max:255',
-            'alamat' => 'nullable|string',
-            'telepon' => 'required|string|max:20',
-            'email' => 'required|email|max:100|unique:pengajar_eksternal,email',
-            'pendidikan_id' => 'nullable|exists:pendidikans,id',
-            'kejuruan_pendidikan' => 'nullable|string|max:100',
-        ], [
-            'nama.required' => 'Nama harus diisi',
-            'nik.required' => 'NIK harus diisi',
-            'nik.unique' => 'NIK sudah terdaftar',
-            'nip.required' => 'NIP harus diisi.',
-            'nip.unique'   => 'NIP sudah terdaftar di sistem.',
-            'instansi.required' => 'Instansi harus diisi',
-            'telepon.required' => 'Telepon harus diisi',
-            'email.required' => 'Email harus diisi',
-            'email.unique' => 'Email sudah terdaftar',
-            'email.email' => 'Format email tidak valid',
+{
+    $validated = $request->validate([
+        'nama' => 'required|string|max:100',
+        'nik' => 'required|string|max:100|unique:pengajar_eksternal,nik',
+        'nip' => 'required|string|max:100|unique:pengajar_eksternal,nip',
+        'instansi' => 'required|string|max:255',
+        'jabatan' => 'nullable|string|max:255',
+        'alamat' => 'nullable|string',
+        'telepon' => 'required|string|max:20',
+        'email' => 'required|email|max:100|unique:pengajar_eksternal,email',
+        'pendidikan_id' => 'nullable|exists:pendidikans,id',
+        'kejuruan_pendidikan' => 'nullable|string|max:100',
+        'create_user_account' => 'nullable|boolean',
+        'password' => 'required_if:create_user_account,1|nullable|min:8|confirmed',
+    ]);
+
+    try {
+        DB::beginTransaction();
+
+        $user = null;
+
+        // Create user account jika dicentang
+        if ($request->create_user_account) {
+            if (User::where('email', $validated['email'])->exists()) {
+                return back()->withInput()->with('error', 'Email sudah digunakan untuk akun lain!');
+            }
+
+            $user = User::create([
+                'name'     => $validated['nama'],
+                'email'    => $validated['email'],
+                'password' => Hash::make($validated['password']),
+                'role'     => 'instructor',
+            ]);
+        }
+
+        // Buat Pengajar Eksternal
+        $pengajarEksternal = PengajarEksternal::create([
+            'user_id'              => $user?->id,
+            'nama'                 => $validated['nama'],
+            'nik'                  => $validated['nik'],
+            'nip'                  => $validated['nip'],
+            'instansi'             => $validated['instansi'],
+            'jabatan'              => $validated['jabatan'],
+            'alamat'               => $validated['alamat'],
+            'telepon'              => $validated['telepon'],
+            'email'                => $validated['email'],
+            'pendidikan_id'        => $validated['pendidikan_id'],
+            'kejuruan_pendidikan'  => $validated['kejuruan_pendidikan'],
         ]);
 
-        PengajarEksternal::create($validated);
+        DB::commit();
+
+        $message = 'Pengajar eksternal berhasil ditambahkan!';
+        if ($user) {
+            $message .= ' Akun login telah dibuat dengan email: ' . $user->email;
+        }
 
         return redirect()->route('admin.pengajar-eksternal.index')
-            ->with('success', 'Pengajar eksternal berhasil ditambahkan!');
+                         ->with('success', $message);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return back()->withInput()->with('error', 'Gagal menambahkan pengajar: ' . $e->getMessage());
     }
+}
 
     public function show(PengajarEksternal $pengajarEksternal)
 {
@@ -138,6 +174,8 @@ class PengajarEksternalController extends Controller
             'email' => 'required|email|max:100|unique:pengajar_eksternal,email,' . $pengajarEksternal->id,
             'pendidikan_id' => 'nullable|exists:pendidikans,id',
             'kejuruan_pendidikan' => 'nullable|string|max:100',
+            'create_user_account' => 'nullable|boolean',
+            'password' => 'nullable|min:8|confirmed',
         ], [
             'nama.required' => 'Nama harus diisi',
             'nik.required' => 'NIK harus diisi',
@@ -147,12 +185,66 @@ class PengajarEksternalController extends Controller
             'telepon.required' => 'Telepon harus diisi',
             'email.required' => 'Email harus diisi',
             'email.email' => 'Format email tidak valid',
+            'password.min' => 'Password minimal 8 karakter',
+            'password.confirmed' => 'Konfirmasi password tidak cocok',
         ]);
-
-        $pengajarEksternal->update($validated);
-
-        return redirect()->route('admin.pengajar-eksternal.index')
-            ->with('success', 'Data pengajar eksternal berhasil diperbarui!');
+ 
+        try {
+            DB::beginTransaction();
+ 
+            // Handle user account
+            if ($request->create_user_account && !$pengajarEksternal->user_id) {
+                // Create new user account
+                if (User::where('email', $validated['email'])->exists()) {
+                    return back()->withInput()->with('error', 'Email sudah digunakan untuk akun lain!');
+                }
+ 
+                $user = User::create([
+                    'name' => $validated['nama'],
+                    'email' => $validated['email'],
+                    'password' => Hash::make($validated['password'] ?? 'password123'),
+                    'role' => 'instructor',
+                ]);
+ 
+                $pengajarEksternal->user_id = $user->id;
+            } elseif ($pengajarEksternal->user) {
+                // Update existing user account
+                $pengajarEksternal->user->update([
+                    'name' => $validated['nama'],
+                    'email' => $validated['email'],
+                ]);
+ 
+                // Update password if provided
+                if ($request->filled('password')) {
+                    $pengajarEksternal->user->update([
+                        'password' => Hash::make($validated['password']),
+                    ]);
+                }
+            }
+ 
+            // Update pengajar eksternal
+            $pengajarEksternal->update([
+                'nama' => $validated['nama'],
+                'nik' => $validated['nik'],
+                'nip' => $validated['nip'],
+                'instansi' => $validated['instansi'],
+                'jabatan' => $validated['jabatan'],
+                'alamat' => $validated['alamat'],
+                'telepon' => $validated['telepon'],
+                'email' => $validated['email'],
+                'pendidikan_id' => $validated['pendidikan_id'],
+                'kejuruan_pendidikan' => $validated['kejuruan_pendidikan'],
+            ]);
+ 
+            DB::commit();
+ 
+            return redirect()->route('admin.pengajar-eksternal.index')
+                ->with('success', 'Data pengajar eksternal berhasil diperbarui!');
+ 
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withInput()->with('error', 'Gagal memperbarui data: ' . $e->getMessage());
+        }
     }
 
     public function destroy(PengajarEksternal $pengajarEksternal)

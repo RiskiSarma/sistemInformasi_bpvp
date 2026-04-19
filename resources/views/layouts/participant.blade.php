@@ -69,6 +69,38 @@
                     <span class="font-medium">Kehadiran</span>
                 </a>
 
+                <a href="{{ route('participant.daftar-ulang.index') }}"
+                class="flex items-center space-x-3 px-4 py-3 rounded-lg transition
+                        {{ request()->routeIs('participant.daftar-ulang.*')
+                            ? 'bg-blue-600 text-white shadow-md'
+                            : 'text-gray-700 hover:bg-gray-100' }}">
+                
+                    {{-- Icon: dokumen upload --}}
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586
+                                a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    <span class="font-medium">Daftar Ulang</span>
+                
+                    {{-- Badge jumlah dokumen yang belum diupload (opsional) --}}
+                    @php
+                        $belumUpload = 0;
+                        if(auth()->check()) {
+                            $totalRequired = count(\App\Models\ParticipantDocument::requiredDocuments());
+                            $totalUploaded = \App\Models\ParticipantDocument::where('user_id', auth()->id())->count();
+                            $belumUpload = max(0, $totalRequired - $totalUploaded);
+                        }
+                    @endphp
+                    @if($belumUpload > 0)
+                        <span class="ml-auto inline-flex items-center justify-center w-5 h-5 text-xs font-bold
+                                    {{ request()->routeIs('participant.daftar-ulang.*') ? 'bg-white text-blue-600' : 'bg-red-500 text-white' }}
+                                    rounded-full">
+                            {{ $belumUpload }}
+                        </span>
+                    @endif
+                </a>
+
                 <a href="{{ route('participant.certificate.index') }}" 
                    class="flex items-center space-x-3 px-4 py-3 rounded-lg transition {{ request()->routeIs('participant.certificate.*') ? 'bg-blue-600 text-white shadow-md' : 'text-gray-700 hover:bg-gray-100' }}">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
