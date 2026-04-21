@@ -29,6 +29,10 @@ class ProgramController extends Controller
     
     public function index(Request $request)
     {
+
+    // Auto-complete: ubah status 'ongoing' → 'completed' jika end_date sudah lewat
+        $this->autoCompleteExpired();
+
         $query = Program::with([
             'masterProgram', 
             'participants', 
@@ -329,6 +333,9 @@ class ProgramController extends Controller
 
     public function show($id)
     {
+        // Auto-complete: ubah status 'ongoing' → 'completed' jika end_date sudah lewat
+        $this->autoCompleteExpired();
+
         $program = Program::with([
             'masterProgram',
             'paketPelatihan.jenisPelatihan',
@@ -1018,5 +1025,27 @@ public function updateTemplate(Program $program, $template, Request $request)
     return redirect()->route('admin.programs.show', $program)
         ->with('success', 'Pengaturan dokumen berhasil diperbarui!');
 }
+
+ // ========================================
+    // ✅ AUTO-COMPLETE EXPIRED PROGRAMS
+    // ========================================
+
+    /**
+     * Ubah status 'ongoing' → 'completed' jika end_date sudah lewat.
+     * Dipanggil dari index() untuk scan semua, atau show($id) untuk 1 program.
+     *
+     * @param int|null $programId — null = scan semua, int = hanya program tertentu
+     */
+    private function autoCompleteExpired(?int $programId = null): void
+    {
+        $query = Program::where('status', 'ongoing')
+            ->whereDate('end_date', '<', now()->toDateString());
+
+        if ($programId !== null) {
+            $query->where('id', $programId);
+        }
+
+        $query->update(['status' => 'completed']);
+    }
 
 }

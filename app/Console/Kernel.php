@@ -15,6 +15,10 @@ class Kernel extends ConsoleKernel
     {
         // Sync setiap minggu pada hari Senin jam 2 pagi
         $schedule->command('kemnaker:sync-programs')->weeklyOn(1, '2:00');
+        
+        $schedule->command('programs:auto-complete')
+        ->dailyAt('00:05')
+        ->appendOutputTo(storage_path('logs/auto-complete-programs.log'));
     }
 
     protected function commands(): void
