@@ -37,6 +37,10 @@ class ParticipantImport implements ToModel, WithHeadingRow, SkipsOnError, WithMu
 
         set_time_limit(300);
 
+        \PhpOffice\PhpSpreadsheet\Cell\Cell::setValueBinder(
+            new \PhpOffice\PhpSpreadsheet\Cell\StringValueBinder()
+        );
+
         $program = Program::with('masterProgram')->find($programId);
         if ($program && $program->masterProgram) {
             $this->programKeyword = strtoupper($program->masterProgram->name);
@@ -50,26 +54,47 @@ class ParticipantImport implements ToModel, WithHeadingRow, SkipsOnError, WithMu
         return [0 => $this];
     }
 
+    /**
+     * Cari nilai dari $row berdasarkan substring keyword di key.
+     * Mengatasi perbedaan formatter Maatwebsite (slug vs none vs custom).
+     * Contoh: findByKeyword($row, 'kabupaten') akan cocok dengan key
+     * 'asal_kabupaten_kota_sesuai_ktp', 'asal_kabupaten', 'kabupaten', dst.
+     */
+    private function findByKeyword(array $row, string $keyword): string
+    {
+        foreach ($row as $key => $value) {
+            if (str_contains(strtolower((string) $key), strtolower($keyword))) {
+                return trim((string) ($value ?? ''));
+            }
+        }
+        return '';
+    }
+
     public function model(array $row)
     {
-        // Debug: log header dan baris pertama sekali saja
+        // Debug: log semua key dan nilai di baris pertama
         if ($this->isFirstRow) {
-            Log::info('=== EXCEL HEADERS ===', array_keys($row));
-            Log::info('=== EXCEL ROW PERTAMA ===', $row);
+            Log::info('=== EXCEL HEADERS (raw keys dari Maatwebsite) ===', array_keys($row));
             $this->isFirstRow = false;
         }
 
-        // Ambil nama & email
+        // =====================================================================
+        // AMBIL NILAI DARI ROW
+        // =====================================================================
+
         $nama = trim(
             $row['nama_lengkap_sesuai_ijazah'] ??
             $row['nama_lengkap'] ??
             $row['nama'] ??
+            $this->findByKeyword($row, 'nama') ??
             ''
         );
+
         $email = strtolower(trim(
             $row['email_address'] ??
             $row['email'] ??
             $row['alamat_email'] ??
+            $this->findByKeyword($row, 'email') ??
             ''
         ));
 
@@ -83,6 +108,7 @@ class ParticipantImport implements ToModel, WithHeadingRow, SkipsOnError, WithMu
             $excelProgram = strtoupper(trim(
                 $row['program_pelatihan'] ??
                 $row['program'] ??
+                $this->findByKeyword($row, 'program_pelatihan') ??
                 ''
             ));
             if (!empty($excelProgram) && !$this->isProgramMatch($excelProgram, $this->programKeyword)) {
@@ -91,7 +117,7 @@ class ParticipantImport implements ToModel, WithHeadingRow, SkipsOnError, WithMu
             }
         }
 
-        // Ambil NIK mentah dulu sebelum dibersihkan
+        // NIK
         $nikRaw = trim((string)(
             $row['nik_no_ktp']  ??
             $row['nikno_ktp']   ??
@@ -100,37 +126,42 @@ class ParticipantImport implements ToModel, WithHeadingRow, SkipsOnError, WithMu
             $row['no_ktp']      ??
             $row['ktp']         ??
             $row['nik_ktp']     ??
+            $this->findByKeyword($row, 'nik') ??
             ''
         ));
-
-        // Log NIK mentah untuk setiap peserta — hapus setelah masalah NIK selesai
-        Log::info("NIK mentah untuk [{$nama}]: '{$nikRaw}'");
-
-        // Bersihkan NIK — hanya angka, max 16 digit
-        $nik = preg_replace('/[^0-9]/', '', $nikRaw);
-        if (strlen($nik) > 16) {
-            $nik = substr($nik, 0, 16);
+        if (preg_match('/^\d+\.?\d*[Ee][+\-]\d+$/', $nikRaw)) {
+            $nikRaw = number_format((float) $nikRaw, 0, '', '');
         }
+        $nik = preg_replace('/[^0-9]/', '', $nikRaw);
+        if (strlen($nik) > 16) $nik = substr($nik, 0, 16);
 
-        // Ambil field lainnya
-        $telepon = $this->normalizePhone(trim((string)(
+        // Phone
+        $phoneRaw = trim((string)(
             $row['nomor_hp_aktif'] ??
             $row['no_hp']          ??
             $row['telepon']        ??
             $row['hp']             ??
             $row['phone']          ??
+            $this->findByKeyword($row, 'nomor_hp') ??
+            $this->findByKeyword($row, 'telepon') ??
             ''
-        )));
+        ));
+        if (preg_match('/^\d+\.?\d*[Ee][+\-]\d+$/', $phoneRaw)) {
+            $phoneRaw = number_format((float) $phoneRaw, 0, '', '');
+        }
+        $telepon = $this->normalizePhone($phoneRaw);
 
         $jenisKelamin = $this->normalizeGender(trim(
             $row['jenis_kelamin'] ??
             $row['kelamin']       ??
+            $this->findByKeyword($row, 'jenis_kelamin') ??
             ''
         ));
 
         $tempatLahir = trim(
             $row['tempat_lahir_sesuai_ijazah'] ??
             $row['tempat_lahir']               ??
+            $this->findByKeyword($row, 'tempat_lahir') ??
             ''
         );
 
@@ -139,19 +170,41 @@ class ParticipantImport implements ToModel, WithHeadingRow, SkipsOnError, WithMu
             $row['tanggal_lahir']               ??
             $row['tgl_lahir']                   ??
             null;
+        if (empty($tglLahir)) {
+            $raw = $this->findByKeyword($row, 'tanggal_lahir');
+            $tglLahir = !empty($raw) ? $raw : null;
+        }
 
         $pendidikanRaw = trim(
             $row['pendidikan_terakhir_sesuai_ijazah'] ??
             $row['pendidikan_terakhir']               ??
             $row['pendidikan']                        ??
+            $this->findByKeyword($row, 'pendidikan') ??
             ''
         );
 
         $alamat = trim(
             $row['alamat_sesuai_ktp'] ??
             $row['alamat']            ??
+            $this->findByKeyword($row, 'alamat') ??
             ''
         );
+
+        // =====================================================================
+        // ASAL WILAYAH — pakai findByKeyword agar selalu ketemu
+        // tidak peduli apakah key-nya slug, raw, atau format lain
+        //
+        // Google Forms header asli:
+        //   "ASAL KABUPATEN/KOTA (SESUAI KTP)" => slug: "asal_kabupaten_kota_sesuai_ktp"
+        //   "ASAL KECAMATAN (SESUAI KTP)"      => slug: "asal_kecamatan_sesuai_ktp"
+        //   "ASAL KELURAHAN/DESA (SESUAI KTP)" => slug: "asal_kelurahan_desa_sesuai_ktp"
+        // =====================================================================
+        $asalKabupaten = $this->findByKeyword($row, 'kabupaten');
+        $asalKecamatan = $this->findByKeyword($row, 'kecamatan');
+        $asalKelurahan = $this->findByKeyword($row, 'kelurahan');
+
+        // Log untuk verifikasi hasil parsing
+        Log::info("Import [{$nama}] kabupaten=[{$asalKabupaten}] kecamatan=[{$asalKecamatan}] kelurahan=[{$asalKelurahan}]");
 
         // Parse tanggal lahir
         $birthDate = $this->parseBirthDate($tglLahir);
@@ -159,37 +212,60 @@ class ParticipantImport implements ToModel, WithHeadingRow, SkipsOnError, WithMu
         // Cari pendidikan dari cache
         $pendidikan = $this->findPendidikan($pendidikanRaw);
 
-        // Log jika NIK kosong
         if (empty($nik) && !empty($nama)) {
             Log::warning("NIK kosong setelah dibersihkan untuk: {$nama} ({$email})");
         }
 
-        // Data participant
+        // Data participant yang akan disimpan / diupdate
         $participantData = [
-            'program_id'    => $this->programId,
-            'nik'           => !empty($nik) ? $nik : null,
-            'phone'         => $telepon,
-            'gender'        => $jenisKelamin,
-            'birth_place'   => !empty($tempatLahir) ? $tempatLahir : null,
-            'birth_date'    => $birthDate,
-            'pendidikan_id' => $pendidikan?->id,
-            'address'       => !empty($alamat) ? $alamat : null,
-            'status'        => 'active',
-            'updated_by'    => $this->createdBy,
+            'program_id'     => $this->programId,
+            'nik'            => !empty($nik) ? $nik : null,
+            'phone'          => $telepon,
+            'gender'         => $jenisKelamin,
+            'birth_place'    => !empty($tempatLahir) ? $tempatLahir : null,
+            'birth_date'     => $birthDate,
+            'pendidikan_id'  => $pendidikan?->id,
+            'address'        => !empty($alamat) ? $alamat : null,
+            'asal_kabupaten' => !empty($asalKabupaten) ? $asalKabupaten : null,
+            'asal_kecamatan' => !empty($asalKecamatan) ? $asalKecamatan : null,
+            'asal_kelurahan' => !empty($asalKelurahan) ? $asalKelurahan : null,
+            'status'         => 'active',
+            'updated_by'     => $this->createdBy,
         ];
 
-        // Cek user sudah ada atau belum
+        // =====================================================================
+        // SIMPAN / UPDATE DATA
+        // =====================================================================
         $user = User::where('email', $email)->first();
 
         if ($user) {
             $user->update(['name' => $nama]);
 
-            $participant = $user->participant;
+            $participant = Participant::withTrashed()
+                ->where('user_id', $user->id)
+                ->where('program_id', $this->programId)
+                ->first();
 
             if ($participant) {
+                if ($participant->trashed()) {
+                    $participant->restore();
+                }
                 $participant->update($participantData);
                 $this->updatedCount++;
             } else {
+                if (!empty($nik)) {
+                    $nikConflict = Participant::whereNull('deleted_at')
+                        ->where('nik', $nik)
+                        ->where('user_id', '!=', $user->id)
+                        ->exists();
+
+                    if ($nikConflict) {
+                        $this->importErrors[] = "Baris '{$nama}': NIK {$nik} sudah digunakan peserta lain.";
+                        $this->skippedCount++;
+                        return null;
+                    }
+                }
+
                 Participant::create(array_merge($participantData, [
                     'user_id'    => $user->id,
                     'created_by' => $this->createdBy,
@@ -197,17 +273,28 @@ class ParticipantImport implements ToModel, WithHeadingRow, SkipsOnError, WithMu
                 $this->importedCount++;
             }
         } else {
-            // Password default = NIK → nomor HP → 'Password@123'
             $defaultPassword = !empty($nik)
                 ? $nik
                 : (!empty($telepon) ? $telepon : 'Password@123');
 
-            Log::info("Buat user baru: {$nama} | email: {$email} | password: {$defaultPassword}");
+            Log::info("Buat user baru: {$nama} | email: {$email}");
+
+            if (!empty($nik)) {
+                $nikConflict = Participant::whereNull('deleted_at')
+                    ->where('nik', $nik)
+                    ->exists();
+
+                if ($nikConflict) {
+                    $this->importErrors[] = "Baris '{$nama}': NIK {$nik} sudah digunakan peserta lain.";
+                    $this->skippedCount++;
+                    return null;
+                }
+            }
 
             $user = User::create([
                 'name'       => $nama,
                 'email'      => $email,
-                'password'   => Hash::make($defaultPassword), // tanpa ['rounds' => 4]
+                'password'   => Hash::make($defaultPassword),
                 'role'       => 'participant',
                 'created_by' => $this->createdBy,
                 'updated_by' => $this->createdBy,
@@ -229,11 +316,11 @@ class ParticipantImport implements ToModel, WithHeadingRow, SkipsOnError, WithMu
         $value = strtoupper(trim($value));
 
         if (in_array($value, ['LAKI-LAKI', 'LAKI LAKI', 'L', 'PRIA', 'MALE'])) {
-            return 'LAKI-LAKI';
+            return 'Laki-laki';
         }
 
         if (in_array($value, ['PEREMPUAN', 'P', 'WANITA', 'FEMALE'])) {
-            return 'PEREMPUAN';
+            return 'Perempuan';
         }
 
         return !empty($value) ? $value : null;
@@ -245,12 +332,10 @@ class ParticipantImport implements ToModel, WithHeadingRow, SkipsOnError, WithMu
 
         $key = strtolower(trim($raw));
 
-        // Exact match (case insensitive)
         if (isset($this->pendidikanCache[$key])) {
             return $this->pendidikanCache[$key];
         }
 
-        // Tidak ketemu
         Log::warning("Pendidikan tidak dikenali: '{$raw}'");
         $this->importErrors[] = "Pendidikan '{$raw}' tidak dikenali, diisi kosong.";
         return null;
@@ -275,7 +360,6 @@ class ParticipantImport implements ToModel, WithHeadingRow, SkipsOnError, WithMu
                 return $date->format('Y-m-d');
             }
 
-            // String — coba berbagai format
             $formats = ['d/m/Y', 'd-m-Y', 'Y-m-d', 'd/m/y', 'Y/m/d'];
             foreach ($formats as $format) {
                 try {
@@ -326,6 +410,10 @@ class ParticipantImport implements ToModel, WithHeadingRow, SkipsOnError, WithMu
 
         if (str_starts_with($value, '+62')) {
             $value = '0' . substr($value, 3);
+        }
+
+        if (!empty($value) && !str_starts_with($value, '0') && !str_starts_with($value, '+')) {
+            $value = '0' . $value;
         }
 
         return !empty($value) ? substr($value, 0, 20) : null;

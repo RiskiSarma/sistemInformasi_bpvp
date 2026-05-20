@@ -18,9 +18,15 @@
                     <dt class="text-gray-600">Kode</dt>
                     <dd class="font-medium">{{ $program->code ?? '-' }}</dd>
                 </div>
+                <!-- Batch -->
                 <div class="flex justify-between">
-                    <dt class="text-gray-600">Batch</dt>
-                    <dd class="font-medium">{{ $program->batch ?? '-' }}</dd>
+                    <dt class="text-gray-500">Batch</dt>
+                    <dd class="font-medium text-gray-800">
+                        @php
+                            $batch = $program->paketPelatihan?->batch ?? $program->paketPelatihan?->code ?? 0;
+                        @endphp
+                        {{ \App\Helpers\Roman::convert((int)$batch) ?: '-' }}
+                    </dd>
                 </div>
                 <div class="flex justify-between">
                     <dt class="text-gray-600">Periode</dt>

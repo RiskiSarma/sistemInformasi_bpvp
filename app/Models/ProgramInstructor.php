@@ -18,6 +18,8 @@ class ProgramInstructor extends Model
     protected $fillable = [
         'program_id',
         'instructor_id',
+        'pengajar_eksternal_id',
+        'instructor_type',
         'is_penanggung_jawab',
         'keterangan',
     ];
@@ -44,6 +46,11 @@ class ProgramInstructor extends Model
 
     public function instructor()
     {
-        return $this->belongsTo(Instructor::class);
+        return $this->belongsTo(Instructor::class, 'instructor_id');
+    }
+
+    public function pengajarEksternal()
+    {
+        return $this->belongsTo(\App\Models\PengajarEksternal::class, 'pengajar_eksternal_id');
     }
 }

@@ -3,33 +3,42 @@
 namespace App\Http\Controllers\Participant;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Models\Participant;
 
 class ProgramController extends Controller
 {
-    public function show()
+    public function index()
     {
-        $user = auth()->user();
-        
-        // Cari data participant dari tabel participants
-        $participant = Participant::where('user_id', $user->id)->first();
-        
-        if (!$participant) {
-            return redirect()->route('participant.dashboard')
-                ->with('error', 'Data peserta tidak ditemukan');
-        }
-        
-        // Ambil program dari tabel programs
+        $participants = Participant::with('program.masterProgram', 'program.instructor')
+            ->where('user_id', auth()->id())
+            ->get();
+
+        // Jika hanya 1 program, langsung ke detail
+        // if ($participants->count() === 1) {
+        //     return $this->renderShow($participants->first(), $participants);
+        // }
+
+        return view('participant-area.program.index', compact('participants'));
+    }
+
+    public function show(Participant $participant)
+    {
+        abort_if($participant->user_id !== auth()->id(), 403);
+
+        $participant->load('program.masterProgram', 'program.instructor');
+
+        $allParticipants = Participant::with('program.masterProgram')
+            ->where('user_id', auth()->id())
+            ->get();
+
+        return $this->renderShow($participant, $allParticipants);
+    }
+
+    private function renderShow(Participant $participant, $allParticipants)
+    {
         $program = $participant->program;
-        
-        if (!$program) {
-            return redirect()->route('participant.dashboard')
-                ->with('error', 'Anda belum terdaftar di program manapun');
-        }
-        
-        $program->load(['masterProgram', 'instructor']);
-        
-        return view('participant-area.program.show', compact('program', 'participant'));
+        $program?->load(['masterProgram', 'instructor']);
+
+        return view('participant-area.program.show', compact('program', 'participant', 'allParticipants'));
     }
 }

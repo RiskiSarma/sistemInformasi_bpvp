@@ -12,15 +12,10 @@
     </div>
 
     @php
-        $minAttendance  = 80; // syarat minimum kehadiran (%)
-        $totalAll       = $attendances->total();
-        $totalHadir     = $attendances->getCollection()->where('status', 'present')->count();
-        $totalAbsen     = $attendances->getCollection()->where('status', 'absent')->count();
-        $totalTerlambat = $attendances->getCollection()->where('status', 'late')->count();
-        $totalIzin      = $attendances->getCollection()->where('status', 'excused')->count();
-        $pctHadir       = $totalAll > 0 ? round(($totalHadir / $totalAll) * 100) : 0;
+        $minAttendance  = 80;
+        $pctHadir       = $attendancePercentage;
         $lulus          = $pctHadir >= $minAttendance;
-        $maxAbsen       = (int) floor($totalAll * (1 - $minAttendance / 100));
+        $maxAbsen       = $totalAll > 0 ? (int) floor($totalAll * (1 - $minAttendance / 100)) : 0;
         $sisaBolehAbsen = max(0, $maxAbsen - $totalAbsen);
     @endphp
 
@@ -129,6 +124,45 @@
         </div>
     </div>
 
+    {{-- Filter program - tambahkan sebelum tabel riwayat --}}
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+    @if($allParticipants->count() > 1)
+    <form method="GET" class="flex items-center gap-3">
+        <label class="text-sm font-medium text-gray-700 whitespace-nowrap">Filter Program:</label>
+        <select name="participant_id" onchange="this.form.submit()"
+            class="flex-1 px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
+            <option value="">Semua Program</option>
+            @foreach($allParticipants as $p)
+                @php
+                    $batch = (int)($p->program?->paketPelatihan?->batch
+                                ?? $p->program?->paketPelatihan?->code
+                                ?? 0);
+                @endphp
+                <option value="{{ $p->id }}" {{ $selectedParticipantId == $p->id ? 'selected' : '' }}>
+                    {{ $p->program?->masterProgram?->name ?? 'Program' }}
+                    (Batch {{ $batch > 0 ? \App\Helpers\Roman::convert($batch) : '-' }})
+                </option>
+            @endforeach
+        </select>
+    </form>
+    @else
+    @php
+        $singleProg = $allParticipants->first()?->program;
+        $batch      = (int)($singleProg?->paketPelatihan?->batch
+                         ?? $singleProg?->paketPelatihan?->code
+                         ?? 0);
+    @endphp
+    <div class="flex items-center gap-2 text-sm text-gray-600">
+        <svg class="w-4 h-4 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <span>
+            Program: <strong>{{ $singleProg?->masterProgram?->name ?? '-' }}</strong>
+            — Batch <strong>{{ $batch > 0 ? \App\Helpers\Roman::convert($batch) : '-' }}</strong>
+        </span>
+    </div>
+    @endif
+</div>
     <!-- Tabel Riwayat -->
     <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div class="px-6 py-4 border-b bg-gray-50 flex items-center justify-between">
@@ -171,10 +205,22 @@
                         </td>
                         <td class="px-6 py-4">
                             <div class="text-sm text-gray-900 font-medium">
-                                {{ $attendance->program->masterProgram->name ?? $attendance->program->name ?? '-' }}
+                                {{ $attendance->program?->masterProgram?->name 
+                                ?? $attendance->participant?->program?->masterProgram?->name 
+                                ?? '-' }}
                             </div>
-                            @if(isset($attendance->program->batch))
-                            <div class="text-xs text-gray-400">{{ $attendance->program->batch }}</div>
+                            @php
+                                $batchNum = (int)($attendance->program?->paketPelatihan?->batch 
+                                            ?? $attendance->program?->paketPelatihan?->code 
+                                            ?? 0);
+                                $angkNum  = (int)($attendance->program?->masterProgram?->angkatan 
+                                            ?? $attendance->program?->angkatan 
+                                            ?? 0);
+                            @endphp
+                            @if($angkNum > 0)
+                            <div class="text-xs text-gray-400">
+                                Angkatan {{ \App\Helpers\Roman::convert($angkNum) }}
+                            </div>
                             @endif
                         </td>
                         <td class="px-6 py-4 text-center">

@@ -4,7 +4,7 @@
 
 @section('content')
 <!-- Welcome Card -->
-<div class="bg-gradient-to-r from-blue-600 to-blue-800 rounded-lg shadow-sm p-6 text-white">
+<div class="bg-gradient-to-r from-teal-600 to-blue-800 rounded-lg shadow-sm p-6 text-white">
     <div class="flex items-center justify-between">
         <div>
             <h1 class="text-2xl font-bold">
@@ -21,7 +21,22 @@
         </div>
     </div>
 </div>
-
+{{-- Program Switcher - tampil jika lebih dari 1 program --}}
+@if(isset($allParticipants) && $allParticipants->count() > 1)
+<div class="bg-white rounded-lg border shadow-sm p-4 flex items-center gap-3 flex-wrap">
+    <span class="text-sm font-medium text-gray-600 whitespace-nowrap">Program aktif:</span>
+    @foreach($allParticipants as $p)
+        <a href="{{ route('participant.dashboard', ['participant_id' => $p->id]) }}"
+           class="px-3 py-1 rounded-full text-xs font-medium transition
+               {{ $p->id === $participant->id
+                   ? 'bg-teal-600 text-white'
+                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200' }}">
+            {{ $p->program?->masterProgram?->name ?? 'Program' }}
+            · {{ ucfirst($p->status) }}
+        </a>
+    @endforeach
+</div>
+@endif
 @if(isset($participant) && isset($program))
 <!-- Stats Cards -->
 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -31,10 +46,12 @@
             <div>
                 <p class="text-gray-500 text-sm font-medium">Program Saya</p>
                 <h3 class="text-xl font-bold text-gray-800 mt-2">{{ $program->masterProgram->name ?? 'N/A' }}</h3>
-                <p class="text-sm text-gray-600 mt-1">{{ $program->batch }}</p>
+                <p class="text-sm text-gray-600 mt-1">
+                    Batch {{ \App\Helpers\Roman::convert((int)($program->paketPelatihan?->batch ?? $program->paketPelatihan?->code ?? 0)) }}
+                </p>
             </div>
             <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
                 </svg>
             </div>
@@ -88,7 +105,9 @@
             </div>
             <div class="flex justify-between">
                 <dt class="text-sm text-gray-600">Batch:</dt>
-                <dd class="text-sm font-medium text-gray-900">{{ $program->batch }}</dd>
+                <dd class="text-sm font-medium text-gray-900">
+                    {{ \App\Helpers\Roman::convert((int)($program->paketPelatihan?->batch ?? $program->paketPelatihan?->code ?? 0)) }}
+                </dd>
             </div>
             <div class="flex justify-between">
                 <dt class="text-sm text-gray-600">Periode:</dt>
@@ -119,7 +138,7 @@
     <div class="bg-white rounded-lg shadow-sm border p-6">
         <div class="flex items-center justify-between mb-4">
             <h3 class="text-lg font-semibold text-gray-800">Kehadiran Terbaru</h3>
-            <a href="{{ route('participant.attendance') }}" class="text-sm text-blue-600 hover:text-blue-800">Lihat Semua →</a>
+            <a href="{{ route('participant.attendance') }}" class="text-sm text-teal-600 hover:text-blue-800">Lihat Semua →</a>
         </div>
         <div class="space-y-3">
             @forelse($recentAttendances ?? [] as $attendance)
@@ -144,7 +163,7 @@
     <h3 class="text-lg font-semibold text-gray-800 mb-4">Aksi Cepat</h3>
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
         <a href="{{ route('participant.program') }}" class="p-4 border rounded-lg hover:bg-gray-50 transition text-center group">
-            <svg class="w-8 h-8 mx-auto text-blue-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-8 h-8 mx-auto text-teal-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
             </svg>
             <p class="text-sm font-medium text-gray-800">Lihat Program</p>
@@ -181,7 +200,7 @@
     </svg>
     <h3 class="text-lg font-semibold text-gray-800 mb-2">Belum Terdaftar di Program</h3>
     <p class="text-gray-600 mb-4">Anda belum terdaftar di program pelatihan manapun. Silakan hubungi admin untuk mendaftar.</p>
-    <a href="{{ route('participant.profile.edit') }}" class="inline-block px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+    <a href="{{ route('participant.profile.edit') }}" class="inline-block px-6 py-2 bg-teal-600 text-white rounded-lg hover:bg-blue-700 transition">
         Lengkapi Profil
     </a>
 </div>

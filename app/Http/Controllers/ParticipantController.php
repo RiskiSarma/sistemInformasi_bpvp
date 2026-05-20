@@ -79,6 +79,9 @@ class ParticipantController extends Controller
             // 'education'   => 'nullable|string|max:100',
             'pendidikan_id' => 'required|exists:pendidikans,id',
             'address'     => 'nullable|string',
+            'asal_kabupaten' => 'nullable|string|max:100',
+            'asal_kecamatan' => 'nullable|string|max:100',
+            'asal_kelurahan' => 'nullable|string|max:100',
             'status'      => 'required|in:active,graduated,dropout',
             'birth_place'  => 'nullable|string|max:100',
             'birth_date'   => 'nullable|date|before_or_equal:today',
@@ -137,6 +140,9 @@ class ParticipantController extends Controller
             'phone'      => 'nullable|string|max:20',
             // 'education'  => 'nullable|string|max:100',
             'address'    => 'nullable|string',
+            'asal_kabupaten' => 'nullable|string|max:100',
+            'asal_kecamatan' => 'nullable|string|max:100',
+            'asal_kelurahan' => 'nullable|string|max:100',
             'status'     => 'required|in:active,graduated,dropout',
             'birth_place'  => 'nullable|string|max:100',
             'birth_date'   => 'nullable|date|before_or_equal:today',
@@ -223,7 +229,33 @@ class ParticipantController extends Controller
     public function import(Request $request)
     {
         $request->validate([
-            'file'       => 'required|file|mimes:xlsx,xls,csv|max:5120',
+            'file' => [
+            'required',
+            'file',
+            'max:5120',
+            function ($attribute, $value, $fail) {
+                $allowedMimes = [
+                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // xlsx
+                    'application/vnd.ms-excel',                                           // xls
+                    'text/csv',
+                    'text/plain',
+                    'application/csv',
+                    'application/octet-stream', // Google Forms export kadang pakai ini
+                ];
+                $allowedExtensions = ['xlsx', 'xls', 'csv'];
+
+                $extension = strtolower($value->getClientOriginalExtension());
+                $mimeType  = $value->getMimeType();
+
+                if (!in_array($extension, $allowedExtensions)) {
+                    $fail('File harus berformat xlsx, xls, atau csv.');
+                }
+
+                if (!in_array($mimeType, $allowedMimes) && !in_array($extension, ['xlsx', 'xls', 'csv'])) {
+                    $fail('Tipe file tidak dikenali. Gunakan xlsx, xls, atau csv.');
+                }
+            },
+        ],
             'program_id' => 'required|exists:programs,id',
         ]);
 
@@ -283,14 +315,15 @@ class ParticipantController extends Controller
     public function downloadTemplate()
     {
         $headers = [
-            'nama', 'email', 'nik', 'telepon', 'jenis_kelamin',
-            'tempat_lahir', 'tanggal_lahir', 'pendidikan', 'alamat', 'status'
+            'email', 'nama', 'jenis_kelamin', 'tempat_lahir', 'tanggal_lahir', 
+            'pendidikan', 'nik', 'alamat', 'asal_kabupaten',  
+             'asal_kecamatan', 'asal_kelurahan', 'telepon', 'status'
         ];
 
         $contoh = [
-            'Budi Santoso', 'budi@email.com', '3201010101010001',
-            '081234567890', 'Laki-laki', 'Jakarta', '1995-08-17',
-            'S1', 'Jl. Contoh No. 1', 'active'
+            'budi@email.com','Budi Santoso', 'Laki-laki',  'Jakarta', '1995-08-17', 
+            'S1', '3201010101010001', 'Jl. Contoh No. 1', 'Banda Aceh', 
+            'Syiah Kuala', 'Kopelma Darussalam', '081234567890',  'active'
         ];
 
         $filename = 'template_import_peserta.csv';

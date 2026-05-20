@@ -18,8 +18,9 @@ class ScheduleController extends Controller
      */
     public function create(Instructor $instructor)
 {
-    $programs = Program::with(['masterProgram', 'paketPelatihan'])
-        ->orderBy('id', 'desc')        // atau sesuaikan urutan yang kamu inginkan
+    $programs = Program::whereIn('status', ['planned', 'ongoing'])  // ← tambahkan filter ini
+        ->with(['masterProgram', 'paketPelatihan'])
+        ->orderBy('start_date', 'desc')
         ->get();
 
     $days = [
@@ -96,76 +97,117 @@ class ScheduleController extends Controller
     /**
      * Show edit form
      */
-    public function edit(Schedule $schedule)
-    {
-        $instructor = $schedule->instructor;
-        
+    /**
+ * Show edit form
+ */
+public function edit(Schedule $schedule)
+{
+    $instructor = $schedule->instructor;
+
+    // Jika schedule milik pengajar eksternal, redirect ke halaman edit eksternal
+    if (!$instructor) {
+        $pengajarEksternal = $schedule->pengajarEksternal;
+
+        if (!$pengajarEksternal) {
+            abort(404, 'Instruktur tidak ditemukan');
+        }
+
         $programs = Program::whereIn('status', ['planned', 'ongoing'])
-            ->with('masterProgram')
+            ->with(['masterProgram', 'paketPelatihan'])
             ->get();
 
         $days = [
-            'monday' => 'Senin',
-            'tuesday' => 'Selasa',
+            'monday'    => 'Senin',
+            'tuesday'   => 'Selasa',
             'wednesday' => 'Rabu',
-            'thursday' => 'Kamis',
-            'friday' => 'Jumat',
-            'saturday' => 'Sabtu',
-            'sunday' => 'Minggu',
+            'thursday'  => 'Kamis',
+            'friday'    => 'Jumat',
+            'saturday'  => 'Sabtu',
+            'sunday'    => 'Minggu',
         ];
 
-        return view('schedules.edit', compact('schedule', 'instructor', 'programs', 'days'));
+        // Render view eksternal langsung
+        return view('pengajar-eksternal.schedules.edit', compact('schedule', 'programs', 'days'));
     }
 
-    /**
-     * Update schedule
-     */
-    public function update(Request $request, Schedule $schedule)
-    {
-        $validated = $request->validate([
-            'program_id' => 'required|exists:programs,id',
-            'day_of_week' => 'required|in:monday,tuesday,wednesday,thursday,friday,saturday,sunday',
-            'start_time' => 'required|date_format:H:i',
-            'end_time' => 'required|date_format:H:i|after:start_time',
-            'room' => 'nullable|string|max:255',
-            'notes' => 'nullable|string',
-            'is_active' => 'boolean',
-        ]);
+    $programs = Program::whereIn('status', ['planned', 'ongoing'])
+        ->with(['masterProgram', 'paketPelatihan'])
+        ->get();
 
-        // Check for time conflicts (exclude current schedule)
-        $conflict = Schedule::where('instructor_id', $schedule->instructor_id)
-            ->where('id', '!=', $schedule->id)
-            ->where('day_of_week', $validated['day_of_week'])
-            ->where('is_active', true)
-            ->where(function($query) use ($validated) {
-                $query->whereBetween('start_time', [$validated['start_time'], $validated['end_time']])
-                      ->orWhereBetween('end_time', [$validated['start_time'], $validated['end_time']])
-                      ->orWhere(function($q) use ($validated) {
-                          $q->where('start_time', '<=', $validated['start_time'])
-                            ->where('end_time', '>=', $validated['end_time']);
-                      });
-            })
-            ->exists();
+    $days = [
+        'monday'    => 'Senin',
+        'tuesday'   => 'Selasa',
+        'wednesday' => 'Rabu',
+        'thursday'  => 'Kamis',
+        'friday'    => 'Jumat',
+        'saturday'  => 'Sabtu',
+        'sunday'    => 'Minggu',
+    ];
 
-        if ($conflict) {
-            return redirect()->back()
-                ->withInput()
-                ->with('error', 'Jadwal bentrok dengan jadwal lain pada hari dan jam yang sama!');
-        }
+    return view('schedules.edit', compact('schedule', 'instructor', 'programs', 'days'));
+}
 
-        $schedule->update($validated);
+/**
+ * Update schedule
+ */
+public function update(Request $request, Schedule $schedule)
+{
+    $validated = $request->validate([
+        'program_id'  => 'required|exists:programs,id',
+        'day_of_week' => 'required|in:monday,tuesday,wednesday,thursday,friday,saturday,sunday',
+        'start_time'  => 'required|date_format:H:i',
+        'end_time'    => 'required|date_format:H:i|after:start_time',
+        'room'        => 'nullable|string|max:255',
+        'notes'       => 'nullable|string',
+        'is_active'   => 'boolean',
+    ]);
 
-        $admins = User::where('role', 'admin')->get();
-        Notification::send($admins, new ScheduleActivityNotification($schedule, Auth::user(), 'diperbarui'));
+    // Conflict check (exclude current schedule)
+    $conflict = Schedule::where('instructor_id', $schedule->instructor_id)
+        ->where('id', '!=', $schedule->id)
+        ->where('day_of_week', $validated['day_of_week'])
+        ->where('is_active', true)
+        ->where(function($query) use ($validated) {
+            $query->whereBetween('start_time', [$validated['start_time'], $validated['end_time']])
+                  ->orWhereBetween('end_time', [$validated['start_time'], $validated['end_time']])
+                  ->orWhere(function($q) use ($validated) {
+                      $q->where('start_time', '<=', $validated['start_time'])
+                        ->where('end_time', '>=', $validated['end_time']);
+                  });
+        })->exists();
 
-        // OTOMATIS update instruktur di program jika program_id berubah
-        $program = Program::find($validated['program_id']);
+    if ($conflict) {
+        return redirect()->back()
+            ->withInput()
+            ->with('error', 'Jadwal bentrok dengan jadwal lain pada hari dan jam yang sama!');
+    }
+
+    $schedule->update($validated);
+
+    $admins = User::where('role', 'admin')->get();
+    Notification::send($admins, new ScheduleActivityNotification($schedule, Auth::user(), 'diperbarui'));
+
+    $program = Program::find($validated['program_id']);
+    if ($program && $schedule->instructor_id) {
         $program->instructor_id = $schedule->instructor_id;
         $program->save();
+    }
 
-        return redirect()->route('admin.instructors.schedule', $schedule->instructor)
+    // Redirect sesuai tipe instruktur
+    $instructor = $schedule->fresh()->instructor;
+    if ($instructor) {
+        return redirect()->route('admin.instructors.schedule', $instructor)
             ->with('success', 'Jadwal mengajar berhasil diperbarui!');
     }
+
+    $pengajarEksternal = $schedule->fresh()->pengajarEksternal;
+    if ($pengajarEksternal) {
+        return redirect()->route('admin.pengajar-eksternal.schedule', $pengajarEksternal)
+            ->with('success', 'Jadwal mengajar berhasil diperbarui!');
+    }
+
+    return redirect()->back()->with('success', 'Jadwal mengajar berhasil diperbarui!');
+}
 
     /**
      * Delete schedule

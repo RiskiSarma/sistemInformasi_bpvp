@@ -1,11 +1,25 @@
-@extends('layouts.instructor') {{-- atau layouts.app jika belum ada layout khusus instruktur --}}
+@extends('layouts.instructor')
 
 @section('title', 'Dashboard Instruktur')
 
 @section('content')
+@php
+    $user = auth()->user();
+    $internal = \App\Models\Instructor::where('user_id', $user->id)->first();
+    $external = \App\Models\PengajarEksternal::where('user_id', $user->id)->first();
+    $currentInstructor = $internal ?? $external;
+@endphp
+
+@if(!$currentInstructor)
+    <div class="bg-red-100 border border-red-400 text-red-700 px-6 py-4 rounded-lg">
+        Data instruktur tidak ditemukan. Silakan hubungi administrator.
+    </div>
+@else
 <div class="space-y-6">
     <div>
-        <h2 class="text-2xl font-bold text-gray-800">Selamat Datang, {{ auth()->user()->name }}! 👋</h2>
+        <h2 class="text-2xl font-bold text-gray-800">
+            Selamat Datang, {{ $currentInstructor->name ?? $currentInstructor->nama }}! 👋
+        </h2>
         <p class="text-gray-600 mt-1">Berikut ringkasan program pelatihan yang Anda ajar</p>
     </div>
 
@@ -15,7 +29,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm text-gray-600">Total Program</p>
-                    <p class="text-3xl font-bold text-gray-800 mt-2">{{ $totalPrograms }}</p>
+                    <p class="text-3xl font-bold text-gray-800 mt-2">{{ $totalPrograms ?? 0 }}</p>
                 </div>
                 <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
                     <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -94,4 +108,5 @@
         </div>
     </div>
 </div>
+@endif
 @endsection

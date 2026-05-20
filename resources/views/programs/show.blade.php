@@ -379,39 +379,89 @@
     </div>
 
     <!-- Instruktur -->
-    <div class="bg-white rounded-lg shadow-sm border">
-        <div class="p-6 border-b">
-            <h3 class="text-lg font-semibold text-gray-800 flex items-center space-x-2">
-                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
-                </svg>
-                <span>Instruktur Pengajar ({{ $program->programInstructors->count() }})</span>
-            </h3>
-        </div>
-        <div class="p-6">
-            @if($program->programInstructors->count() > 0)
+<div class="bg-white rounded-lg shadow-sm border">
+    <div class="p-6 border-b">
+        <h3 class="text-lg font-semibold text-gray-800 flex items-center space-x-2">
+            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            <span>Instruktur Pengajar ({{ $program->programInstructors->count() }})</span>
+        </h3>
+    </div>
+
+    <div class="p-6">
+        @if($program->programInstructors->isEmpty())
+            <p class="text-gray-500 italic text-center py-8">
+                Belum ada instruktur ditugaskan.
+            </p>
+        @else
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
                 @foreach($program->programInstructors as $pi)
-                <div class="p-4 border rounded-lg {{ $pi->is_penanggung_jawab ? 'border-blue-500 bg-blue-50' : 'border-gray-200' }}">
-                    <div class="flex items-start justify-between">
-                        <div class="flex-1">
-                            <div class="flex items-center space-x-2">
-                                <div class="font-semibold text-gray-900">{{ $pi->instructor->name ?? '-' }}</div>
-                                @if($pi->is_penanggung_jawab)
-                                <span class="px-2 py-1 text-xs rounded-full bg-blue-600 text-white">Penanggung Jawab</span>
-                                @endif
-                            </div>
-                            <div class="text-sm text-gray-600 mt-1">{{ $pi->instructor->email ?? $pi->instructor->phone ?? '-' }}</div>
-                        </div>
-                    </div>
-                </div>
-                @endforeach
+
+    @php
+        // cek apakah instruktur internal atau eksternal
+        $isInternal = !is_null($pi->instructor);
+
+        // ambil data
+        if ($isInternal) {
+            $instructorName = $pi->instructor->name ?? 'Nama tidak ditemukan';
+            $instructorEmail = $pi->instructor->email ?? '-';
+        } else {
+            $instructorName = $pi->pengajarEksternal->nama ?? 'Nama tidak ditemukan';
+            $instructorEmail = $pi->pengajarEksternal->email ?? '-';
+        }
+    @endphp
+
+    <div class="flex items-center gap-4 bg-gray-50 p-4 rounded-lg border hover:border-blue-300 transition">
+
+        <!-- Avatar -->
+        <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
+            {{ strtoupper(substr($instructorName, 0, 1)) }}
+        </div>
+
+        <!-- Content -->
+        <div class="flex-1 min-w-0">
+
+            <!-- Nama -->
+            <div class="font-medium text-gray-800 truncate">
+                {{ $instructorName }}
             </div>
-            @else
-            <div class="text-center py-8 text-gray-500"><p>Belum ada instruktur ditugaskan</p></div>
-            @endif
+
+            <!-- Badge -->
+            <div class="flex items-center gap-2 mt-1">
+
+                @if($isInternal)
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        Internal
+                    </span>
+                @else
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                        Eksternal
+                    </span>
+                @endif
+
+                @if($pi->is_penanggung_jawab)
+                        <span class="px-3 py-1 text-xs font-semibold bg-green-600 text-white rounded-full">
+                            Penanggung Jawab
+                        </span>
+                    @endif
+            </div>
+
+            <!-- Email -->
+            <div class="text-xs text-gray-500 mt-1 truncate">
+                {{ $instructorEmail }}
+            </div>
+
         </div>
     </div>
+
+@endforeach
+            </div>
+        @endif
+    </div>
+</div>
 
         {{-- Peserta --}}
 @if($program->participants->count() > 0)

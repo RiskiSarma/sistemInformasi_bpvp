@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Surat Tugas Peserta - {{ $program->masterProgram->name ?? '' }}</title>
+    <link rel="icon" type="image/png" href="{{ asset('images/logo blk banda.png') }}">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -19,21 +20,34 @@
             padding: 20mm 20mm 20mm 25mm;
         }
 
-        /* KOP SURAT - RAPAT */
-        .kop {
+        /* ── KOP: format baru satu gambar ── */
+        .kop-wrap {
+            width: 100%;
+            border-bottom: 3px solid #000;
+            padding-bottom: 6px;
+            margin-bottom: 10px;
+        }
+        .kop-wrap img { width: 100%; height: auto; display: block; }
+
+        /* ── Fallback kop teks ── */
+        .kop-text-wrap {
             display: flex;
             align-items: flex-start;
             border-bottom: 3px solid #000;
             padding-bottom: 6px;
             margin-bottom: 10px;
         }
-        .kop-logo { width: 95px; flex-shrink: 0; margin-right: 12px; }
-        .kop-logo img { width: 85px; height: auto; display: block; }
-        .kop-text { flex: 1; text-align: center; padding-top: 4px; line-height: 1.05; }
-        .kop-text .instansi { font-size: 9.5pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; }
-        .kop-text .dirjen { font-size: 10pt; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
-        .kop-text .nama-pembinaan { font-size: 10pt; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
-        .kop-text .nama-lembaga { font-size: 12.5pt; font-weight: 900; text-transform: uppercase; letter-spacing: 1.8px; margin-top: 2px; }
+        .kop-logo-ph {
+            width: 95px; flex-shrink: 0; margin-right: 12px;
+            border: 1px solid #aaa; height: 85px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 8pt; color: #888; text-align: center;
+        }
+        .kop-tc { flex: 1; text-align: center; padding-top: 4px; line-height: 1.05; }
+        .kop-tc .instansi     { font-size: 9.5pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; }
+        .kop-tc .dirjen       { font-size: 10pt;  font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+        .kop-tc .nama-pembinaan { font-size: 10pt; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+        .kop-tc .nama-lembaga { font-size: 12.5pt; font-weight: 900; text-transform: uppercase; letter-spacing: 1.8px; margin-top: 2px; }
         .alamat-detail { text-align: center; font-size: 8pt; margin-top: 5px; line-height: 1.3; }
 
         /* JUDUL */
@@ -48,7 +62,6 @@
         .section-colon { display: table-cell; width: 20px; vertical-align: top; }
         .section-content { display: table-cell; vertical-align: top; text-align: justify; }
         .list-item { margin: 3px 0; padding-left: 24px; text-indent: -24px; }
-
         .memerintahkan { margin: 14px 0; text-align: center; font-weight: bold; }
 
         /* TTD */
@@ -59,9 +72,7 @@
         .ttd-placeholder {
             margin: 50px 0 15px 0;
             height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: flex; align-items: center; justify-content: center;
             font-size: 11.5pt;
         }
         .ttd-box .ttd-nama { font-weight: bold; text-decoration: underline; font-size: 11.5pt; }
@@ -69,15 +80,11 @@
 
         /* Tabel Peserta */
         .tabel-peserta {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 20px 0;
-            font-size: 10pt;
+            width: 100%; border-collapse: collapse;
+            margin: 20px 0; font-size: 10pt;
         }
         .tabel-peserta th, .tabel-peserta td {
-            border: 1px solid #000;
-            padding: 6px 8px;
-            vertical-align: middle;
+            border: 1px solid #000; padding: 6px 8px; vertical-align: middle;
         }
         .tabel-peserta th { background: #f5f5f5; font-weight: bold; text-align: center; }
 
@@ -96,17 +103,33 @@
 </div>
 
 @php
-    $tempat     = $settings->tempat_surat         ?? 'Banda Aceh';
-    $jabatan    = $settings->jabatan_penandatangan ?? 'Kepala Balai';
-    $logoPath   = $settings->logo_path             ?? null;
+    /* ── Embed kop sebagai base64 (sama seperti daftar-hadir) ── */
+    $kopBase64   = null;
+    $kopHasImage = false;
 
-    // === BULAN ROMAWI (VIII, IV, dll) seperti di template PDF ===
-    $romanMonths = [1 => 'I', 2 => 'II', 3 => 'III', 4 => 'IV', 5 => 'V', 
-                    6 => 'VI', 7 => 'VII', 8 => 'VIII', 9 => 'IX', 10 => 'X', 
+    if ($settings && $settings->logo_path) {
+        $imgDisk   = storage_path('app/public/' . $settings->logo_path);
+        $imgPublic = public_path('storage/' . $settings->logo_path);
+        $imgFile   = file_exists($imgDisk) ? $imgDisk : (file_exists($imgPublic) ? $imgPublic : null);
+        if ($imgFile) {
+            $mime        = mime_content_type($imgFile);
+            $kopBase64   = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($imgFile));
+            $kopHasImage = true;
+        }
+    }
+
+    /* ── Data dari settings ── */
+    $tempat      = $settings->tempat_surat  ?? 'Banda Aceh';
+    $jabatan     = $settings->jabatan_penandatangan ?? 'Kepala Balai';
+    $ttdPengirim = $settings->ttd_pengirim  ?? '';
+    $namaPengirim= $settings->nama_pengirim ?? '___________________________';
+    $nipPengirim = $settings->nip_pengirim  ?? '___________________________';
+
+    /* ── Nomor surat ── */
+    $romanMonths = [1 => 'I', 2 => 'II', 3 => 'III', 4 => 'IV', 5 => 'V',
+                    6 => 'VI', 7 => 'VII', 8 => 'VIII', 9 => 'IX', 10 => 'X',
                     11 => 'XI', 12 => 'XII'];
     $bulanRomawi = $romanMonths[now()->month];
-
-    // Nomor SK yang konsisten
     $nomorSurat  = str_replace(
         ['{nomor}', '{bulan}', '{tahun}'],
         ['2.8/7942', $bulanRomawi, now()->year],
@@ -116,29 +139,33 @@
 
 <div class="page">
 
-    <!-- KOP SURAT -->
-    <div class="kop">
-        <div class="kop-logo">
-            <img src="{{ asset('images/logo blk banda.png') }}" alt="Logo">
+    {{-- ══ KOP SURAT ══ --}}
+    @if($kopHasImage)
+        <div class="kop-wrap">
+            <img src="{{ $kopBase64 }}" alt="Kop Surat">
         </div>
-        <div class="kop-text">
-            <div class="instansi">KEMENTERIAN KETENAGAKERJAAN REPUBLIK INDONESIA</div>
-            <div class="dirjen">DIREKTORAT JENDERAL</div>
-            <div class="nama-pembinaan">PEMBINAAN PELATIHAN VOKASI DAN PRODUKTIVITAS</div>
-            <div class="nama-lembaga">BALAI PELATIHAN VOKASI DAN PRODUKTIVITAS</div>
-            <div class="alamat-detail">
-                Jalan Kesatria, Geuceu Komp. Banda Raya, Kota Banda Aceh 23239, Telepon (0651) 45298<br>
-                Laman : http://www.kemnaker.go.id Email : blkbandaaceh@kemnaker.go.id
+    @else
+        <div class="kop-text-wrap">
+            <div class="kop-logo-ph">LOGO</div>
+            <div class="kop-tc">
+                <div class="instansi">KEMENTERIAN KETENAGAKERJAAN REPUBLIK INDONESIA</div>
+                <div class="dirjen">DIREKTORAT JENDERAL</div>
+                <div class="nama-pembinaan">PEMBINAAN PELATIHAN VOKASI DAN PRODUKTIVITAS</div>
+                <div class="nama-lembaga">BALAI PELATIHAN VOKASI DAN PRODUKTIVITAS</div>
+                <div class="alamat-detail">
+                    Jalan Kesatria, Geuceu Komp. Banda Raya, Kota Banda Aceh 23239, Telepon (0651) 45298<br>
+                    Laman : http://www.kemnaker.go.id &nbsp;|&nbsp; Email : blkbandaaceh@kemnaker.go.id
+                </div>
             </div>
         </div>
-    </div>
+    @endif
 
     <!-- JUDUL & NOMOR -->
     <div class="judul-dok">
         <h2>SURAT TUGAS</h2>
     </div>
     <div class="nomor-st">
-        NOMOR {{ $nomorSurat }}
+         {{ $nomorSurat }}
     </div>
 
     <!-- MENIMBANG -->
@@ -160,31 +187,25 @@
             <div class="section-colon">:</div>
             <div class="section-content">
                 @php $dhCounter = 1; @endphp
-
-                <!-- Dasar 1-3 dari database -->
                 @for($i = 1; $i <= 3; $i++)
                     @php $field = "dasar_hukum_{$i}"; @endphp
                     @if(!empty($settings->{$field}))
                         <div class="list-item">{{ $dhCounter++ }}. {{ $settings->{$field} }};</div>
                     @endif
                 @endfor
-
-                <!-- Dasar 4 = SK Penyelenggara -->
-                <div class="list-item">{{ $dhCounter++ }}. Surat Keputusan Kepala Balai Pelatihan Vokasi dan Produktivitas 
-                    Nomor <strong>{{ $nomorSurat }}</strong> 
-                    tanggal <strong>{{ now()->format('d F Y') }}</strong> tentang Penyelenggaraan 
-                    {{ $program->paketPelatihan->jenisPelatihan->jenis_pelatihan ?? 'Pelatihan Berbasis Kompetensi (PBK)' }} 
-                    Batch {{ $program->angkatan ?? '-' }} Kejuruan 
-                    {{ $program->masterProgram->kejuruan->nama_kejuruan ?? '-' }} Program 
+                <div class="list-item">{{ $dhCounter++ }}. Surat Keputusan Kepala Balai Pelatihan Vokasi dan Produktivitas
+                    Nomor <strong>{{ $nomorSurat }}</strong>
+                    tanggal <strong>{{ now()->format('d F Y') }}</strong> tentang Penyelenggaraan
+                    {{ $program->paketPelatihan->jenisPelatihan->jenis_pelatihan ?? 'Pelatihan Berbasis Kompetensi (PBK)' }}
+                    Batch {{ $program->angkatan ?? '-' }} Kejuruan
+                    {{ $program->masterProgram->kejuruan->nama_kejuruan ?? '-' }} Program
                     {{ $program->masterProgram->name ?? '-' }} Tahun Anggaran {{ now()->year }};</div>
-
-                <!-- Dasar 5 = SP-DIPA -->
-                <div class="list-item">{{ $dhCounter++ }}. Daftar Isian Pelaksanaan Anggaran (SP-DIPA) Balai Pelatihan Vokasi dan Produktivitas Banda Aceh Tahun {{ now()->year }} Nomor : 026.13.2.065106/{{ now()->year - 1 }} tanggal 28 November {{ now()->year - 1 }}.</div>
+                <div class="list-item">{{ $dhCounter++ }}. Daftar Isian Pelaksanaan Anggaran (SP-DIPA) Balai Pelatihan Vokasi dan Produktivitas Banda Aceh Tahun {{ now()->year }} Nomor : 026.13.2.065106/{{ now()->year }} tanggal 24 November {{ now()->year - 1 }}.</div>
             </div>
         </div>
     </div>
 
-    <!-- MEMERINTAHKAN, KEPADA, UNTUK -->
+    <!-- MEMERINTAHKAN -->
     <div class="memerintahkan">Memerintahkan :</div>
 
     <div class="section">
@@ -217,13 +238,13 @@
         <div class="ttd-box">
             <div class="ttd-tempat-tgl">{{ $tempat }}, {{ now()->format('d F Y') }}</div>
             <div class="ttd-jabatan">{{ $jabatan }},</div>
-            <div class="ttd-placeholder">${ttd_pengirim}</div>
-            <div class="ttd-nama">${nama_pengirim}</div>
-            <div class="ttd-nip">NIP ${nip_pengirim}</div>
+            <div class="ttd-placeholder">{{ $ttdPengirim }}</div>
+            <div class="ttd-nama">{{ $namaPengirim }}</div>
+            <div class="ttd-nip">NIP {{ $nipPengirim }}</div>
         </div>
     </div>
 
-    <!-- LAMPIRAN -->
+    <!-- ══ LAMPIRAN: DAFTAR NAMA PESERTA ══ -->
     <div style="page-break-before: always; padding-top: 15mm;">
         <p style="text-align:right; margin-bottom:4px; font-size:10.5pt;">Lampiran Surat Perintah Peserta</p>
         <p style="text-align:right; margin-bottom:4px; font-size:10.5pt;">Nomor : {{ $nomorSurat }}</p>
@@ -250,8 +271,8 @@
                     <td>{{ $p->name ?? '-' }}</td>
                     <td style="font-size:10pt;">
                         @php
-                            $tempatlahir = $p->place_of_birth ?? $p->tempat_lahir ?? $p->birth_place ?? '-';
-                            $tanggallahir = $p->date_of_birth ?? $p->tanggal_lahir ?? $p->birth_date ?? null;
+                            $tempatlahir  = $p->place_of_birth ?? $p->tempat_lahir ?? $p->birth_place ?? '-';
+                            $tanggallahir = $p->date_of_birth  ?? $p->tanggal_lahir ?? $p->birth_date ?? null;
                         @endphp
                         {{ $tempatlahir }}
                         @if($tanggallahir)
@@ -261,7 +282,7 @@
                     <td style="text-align:center;">
                         @php
                             $gender = $p->gender ?? $p->jenis_kelamin ?? '-';
-                            echo strtoupper(substr($gender, 0, 4)) === 'LAKI' ? 'Laki-Laki' : 
+                            echo strtoupper(substr($gender, 0, 4)) === 'LAKI' ? 'Laki-Laki' :
                                  (strtoupper(substr($gender, 0, 4)) === 'PERE' ? 'Perempuan' : $gender);
                         @endphp
                     </td>
@@ -276,9 +297,9 @@
         <div class="ttd-area" style="margin-top:60px;">
             <div class="ttd-box">
                 <div class="ttd-jabatan">{{ $jabatan }},</div>
-                <div class="ttd-placeholder">${ttd_pengirim}</div>
-                <div class="ttd-nama">${nama_pengirim}</div>
-                <div class="ttd-nip">NIP ${nip_pengirim}</div>
+                <div class="ttd-placeholder">{{ $ttdPengirim }}</div>
+                <div class="ttd-nama">{{ $namaPengirim }}</div>
+                <div class="ttd-nip">NIP {{ $nipPengirim }}</div>
             </div>
         </div>
     </div>

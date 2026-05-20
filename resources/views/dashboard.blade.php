@@ -64,19 +64,22 @@
         </div>
     </div>
 
-    <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-200 hover:shadow-md transition-shadow">
+    <!-- Instruktur & Pengajar Aktif -->
+    <div class="bg-white rounded-lg shadow-sm p-6 border">
         <div class="flex items-center justify-between">
             <div>
-                <p class="text-gray-600 text-sm font-medium">Instruktur Aktif</p>
-                <h3 class="text-3xl font-bold text-gray-900 mt-2">{{ $stats['active_instructors'] ?? 0 }}</h3>
-                <p class="text-slate-600 text-xs mt-2 flex items-center">
+                <p class="text-gray-500 text-sm font-medium">Instruktur Aktif</p>
+                <h3 class="text-3xl font-bold text-gray-800 mt-2">
+                    {{ $stats['total_active_teaching_staff'] ?? 0 }}
+                </h3>
+                <p class="text-sm mt-1 text-emerald-600 flex items-center gap-1">
                     <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                     </svg>
                     Stabil
                 </p>
             </div>
-            <div class="w-14 h-14 bg-gradient-to-br from-violet-100 to-purple-100 rounded-xl flex items-center justify-center shadow-sm">
+            <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
                 <svg class="w-7 h-7 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                 </svg>

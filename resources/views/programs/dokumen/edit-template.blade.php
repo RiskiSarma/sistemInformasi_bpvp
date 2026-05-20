@@ -22,7 +22,12 @@
             'color' => 'purple',
             'desc'  => 'Surat Tugas Instruktur',
         ],
-        // ... tambahkan yang lain jika perlu
+        'biodata-peserta' => [
+            'label' => 'Nominatif Peserta',
+            'icon'  => '📊',
+            'color' => 'blue',
+            'desc'  => 'Daftar Nominatif Peserta Pelatihan',
+        ],
     ];
 
     $meta = $templateMeta[$template] ?? ['label' => ucwords(str_replace('-', ' ', $template)), 'icon' => '📄', 'color' => 'gray', 'desc' => ''];
@@ -130,27 +135,59 @@
         @endif
 
         {{-- 3. FORMAT SURAT & TEMPAT --}}
-        @if(in_array($template, ['sk-peserta', 'sk-penyelenggara', 'st-instruktur']))
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-            <h3 class="text-xl font-semibold text-gray-800 mb-6">🔢 Format Penomoran & Lokasi</h3>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Format Nomor Surat</label>
-                    <input type="text" name="format_nomor" 
-                           value="{{ old('format_nomor', $settings->format_nomor) }}"
-                           class="w-full px-5 py-4 border border-gray-300 rounded-2xl font-mono text-sm focus:ring-2 {{ $c['ring'] }}">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Kota / Tempat Surat</label>
-                    <input type="text" name="tempat_surat" 
-                           value="{{ old('tempat_surat', $settings->tempat_surat) }}"
-                           placeholder="Banda Aceh"
-                           class="w-full px-5 py-4 border border-gray-300 rounded-2xl focus:ring-2 {{ $c['ring'] }}">
-                </div>
-            </div>
+        {{-- Bagian Format Nomor — tambah biodata-peserta --}}
+@if(in_array($template, ['sk-peserta', 'sk-penyelenggara', 'st-instruktur', 'biodata-peserta']))
+<div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+    <h3 class="text-xl font-semibold text-gray-800 mb-6">🔢 Format Penomoran & Lokasi</h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+                @if($template === 'biodata-peserta') No Form @else Format Nomor Surat @endif
+            </label>
+            <input type="text" name="format_nomor"
+                   value="{{ old('format_nomor', $settings->format_nomor) }}"
+                   placeholder="{{ $template === 'biodata-peserta' ? 'BNA/PNY/15-36' : '{nomor}/LP.00.04/{bulan}/{tahun}' }}"
+                   class="w-full px-5 py-4 border border-gray-300 rounded-2xl font-mono text-sm focus:ring-2 {{ $c['ring'] }}">
+        </div>
+        @if($template !== 'biodata-peserta')
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Kota / Tempat Surat</label>
+            <input type="text" name="tempat_surat"
+                   value="{{ old('tempat_surat', $settings->tempat_surat) }}"
+                   placeholder="Banda Aceh"
+                   class="w-full px-5 py-4 border border-gray-300 rounded-2xl focus:ring-2 {{ $c['ring'] }}">
         </div>
         @endif
+    </div>
+
+    {{-- Khusus biodata-peserta: tambah Rev, Issue Date, Revision Date --}}
+    @if($template === 'biodata-peserta')
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Rev</label>
+            <input type="text" name="dasar_hukum_1"
+                   value="{{ old('dasar_hukum_1', $settings->dasar_hukum_1) }}"
+                   placeholder="00"
+                   class="w-full px-5 py-4 border border-gray-300 rounded-2xl font-mono text-sm focus:ring-2 {{ $c['ring'] }}">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Issue Date</label>
+            <input type="text" name="dasar_hukum_2"
+                   value="{{ old('dasar_hukum_2', $settings->dasar_hukum_2) }}"
+                   placeholder="26-03-2014"
+                   class="w-full px-5 py-4 border border-gray-300 rounded-2xl font-mono text-sm focus:ring-2 {{ $c['ring'] }}">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Revision Date</label>
+            <input type="text" name="dasar_hukum_3"
+                   value="{{ old('dasar_hukum_3', $settings->dasar_hukum_3) }}"
+                   placeholder="(kosongkan jika belum ada)"
+                   class="w-full px-5 py-4 border border-gray-300 rounded-2xl font-mono text-sm focus:ring-2 {{ $c['ring'] }}">
+        </div>
+    </div>
+    @endif
+</div>
+@endif
 
         {{-- 4. TANDA TANGAN --}}
         @if(in_array($template, ['sk-peserta', 'sk-penyelenggara', 'st-instruktur']))

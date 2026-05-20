@@ -102,7 +102,6 @@
                             </div>
                         </div>
                     </div>
-                    <!-- Hasil pilihan Master Program -->
                     <div x-show="selectedMaster" x-cloak class="mt-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2">
                         <svg class="w-4 h-4 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -171,7 +170,6 @@
                             </div>
                         </div>
                     </div>
-                    <!-- Hasil pilihan Paket Pelatihan -->
                     <div x-show="selectedPaket" x-cloak class="mt-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2">
                         <svg class="w-4 h-4 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -184,9 +182,7 @@
                 </div>
             </div>
 
-            <!-- ══════════════════════════════════════════ -->
-            <!-- Hasil pilihan + Angkatan (dengan margin top lebih besar) -->
-            <!-- ══════════════════════════════════════════ -->
+            <!-- Hasil pilihan + Angkatan -->
             <div x-show="selectedMaster && selectedPaket" x-cloak
                  class="mt-8 bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 rounded-xl p-6">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
@@ -233,9 +229,7 @@
                 <p class="text-sm text-gray-400">Pilih Master Program dan Paket Pelatihan untuk melanjutkan</p>
             </div>
 
-            <!-- ══════════════════════════════════════════ -->
-            <!-- Unit Kompetensi                           -->
-            <!-- ══════════════════════════════════════════ -->
+            <!-- Unit Kompetensi -->
             <div x-show="availableUnits.length > 0" x-cloak class="pt-2 border-t-2 border-gray-200">
                 <h3 class="text-lg font-semibold text-gray-800 mb-3">Unit Kompetensi (dari Master Program)</h3>
                 <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4 text-sm text-yellow-800">
@@ -355,34 +349,91 @@
 
             </div>{{-- end x-data --}}
 
-            <!-- Periode -->
-            <div class="grid grid-cols-2 gap-6 pt-2 border-t-2 border-gray-200">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Mulai <span class="text-red-500">*</span></label>
-                    <input type="date" name="start_date" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+            <!-- ══════════════════════════════════════════ -->
+            <!-- Periode & Status Otomatis                 -->
+            <!-- ══════════════════════════════════════════ -->
+            <div class="pt-2 border-t-2 border-gray-200" x-data="statusAutoCalc()">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Periode Pelatihan</h3>
+
+                <div class="grid grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Tanggal Mulai <span class="text-red-500">*</span>
+                        </label>
+                        <input type="date" name="start_date" id="start_date"
+                               x-model="startDate"
+                               @change="recalcStatus()"
+                               required
+                               class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Tanggal Selesai <span class="text-red-500">*</span>
+                        </label>
+                        <input type="date" name="end_date" id="end_date"
+                               x-model="endDate"
+                               @change="recalcStatus()"
+                               required
+                               class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Selesai <span class="text-red-500">*</span></label>
-                    <input type="date" name="end_date" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+
+                <!-- ✅ Tampilan Status Otomatis -->
+                <div x-show="startDate && endDate" x-cloak
+                     class="mb-6 rounded-xl border-2 p-5 transition-all"
+                     :class="{
+                         'bg-blue-50 border-blue-300':   autoStatus === 'planned',
+                         'bg-green-50 border-green-300': autoStatus === 'ongoing',
+                         'bg-gray-50 border-gray-300':   autoStatus === 'completed'
+                     }">
+                    <div class="flex items-center gap-4 flex-wrap">
+                        <div class="flex items-center gap-2">
+                            <svg class="w-5 h-5 flex-shrink-0"
+                                 :class="{
+                                     'text-blue-500':  autoStatus === 'planned',
+                                     'text-green-500': autoStatus === 'ongoing',
+                                     'text-gray-500':  autoStatus === 'completed'
+                                 }"
+                                 fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <span class="text-sm font-semibold text-gray-700">Status Otomatis:</span>
+                        </div>
+                        <span class="px-4 py-1.5 text-sm font-bold rounded-full"
+                              :class="{
+                                  'bg-blue-600 text-white':   autoStatus === 'planned',
+                                  'bg-green-600 text-white':  autoStatus === 'ongoing',
+                                  'bg-gray-600 text-white':   autoStatus === 'completed'
+                              }"
+                              x-text="autoStatusLabel">
+                        </span>
+                        <p class="text-xs text-gray-500 w-full mt-1" x-text="autoStatusDesc"></p>
+                    </div>
                 </div>
-            </div>
-            <div class="grid grid-cols-2 gap-6">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Status <span class="text-red-500">*</span></label>
-                    <select name="status" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
-                        <option value="planned">Rencana</option>
-                        <option value="ongoing">Berjalan</option>
-                        <option value="completed">Selesai</option>
-                    </select>
+
+                <div x-show="!startDate || !endDate" x-cloak
+                     class="mb-6 bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl p-4 text-center">
+                    <p class="text-sm text-gray-400">
+                        <svg class="w-4 h-4 inline mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                        Isi tanggal mulai & selesai — status akan dihitung otomatis
+                    </p>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Maks. Peserta</label>
-                    <input type="number" name="max_participants" min="1" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+
+                {{-- Hidden input status — nilai di-set otomatis oleh JS, dikirim ke server --}}
+                <input type="hidden" name="status" :value="autoStatus">
+
+                <div class="grid grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Maks. Peserta</label>
+                        <input type="number" name="max_participants" min="1" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">JP Harian (opsional)</label>
+                        <input type="number" name="jp_harian" min="0" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                    </div>
                 </div>
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">JP Harian (opsional)</label>
-                <input type="number" name="jp_harian" min="0" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
             </div>
 
             <!-- Submit -->
@@ -483,6 +534,50 @@ function programForm() {
                 if (v.length === 1) this.penanggungJawab = String(v[0]);
                 if (!v.map(String).includes(String(this.penanggungJawab))) this.penanggungJawab = '';
             });
+        }
+    };
+}
+
+/* ══════════════════════════════════════════════════════
+   ✅ STATUS OTOMATIS BERDASARKAN TANGGAL
+   ══════════════════════════════════════════════════════ */
+function statusAutoCalc() {
+    return {
+        startDate: '',
+        endDate: '',
+        autoStatus: 'planned',
+        autoStatusLabel: '',
+        autoStatusDesc: '',
+
+        recalcStatus() {
+            if (!this.startDate || !this.endDate) return;
+
+            // Normalisasi ke midnight lokal agar tidak ada isu timezone
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            const start = new Date(this.startDate + 'T00:00:00');
+            const end   = new Date(this.endDate   + 'T00:00:00');
+
+            if (start > today) {
+                this.autoStatus      = 'planned';
+                this.autoStatusLabel = '🗓 Rencana';
+                this.autoStatusDesc  = `Pelatihan belum dimulai. Akan dimulai pada ${this.formatDate(this.startDate)}.`;
+            } else if (end < today) {
+                this.autoStatus      = 'completed';
+                this.autoStatusLabel = '✅ Selesai';
+                this.autoStatusDesc  = `Pelatihan telah selesai sejak ${this.formatDate(this.endDate)}.`;
+            } else {
+                this.autoStatus      = 'ongoing';
+                this.autoStatusLabel = '🟢 Sedang Berjalan';
+                this.autoStatusDesc  = `Pelatihan sedang berlangsung. Berakhir pada ${this.formatDate(this.endDate)}.`;
+            }
+        },
+
+        formatDate(dateStr) {
+            if (!dateStr) return '-';
+            const d = new Date(dateStr + 'T00:00:00');
+            return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
         }
     };
 }

@@ -69,11 +69,15 @@
                         <div class="bg-gray-50 rounded-lg p-4 space-y-3">
                             <div>
                                 <p class="text-xs text-gray-500 mb-1">Program Pelatihan</p>
-                                <p class="text-lg font-semibold text-gray-800">{{ $certificate->program->masterProgram->name ?? 'N/A' }}</p>
+                                <p class="text-lg font-semibold text-gray-800">
+                                    {{ $certificate->program->masterProgram->name ?? 'N/A' }}
+                                </p>
                             </div>
                             <div>
                                 <p class="text-xs text-gray-500 mb-1">Batch</p>
-                                <p class="text-sm text-gray-700">{{ $certificate->program->batch ?? '-' }}</p>
+                                <p class="text-sm text-gray-700">
+                                    {{ $certificate->program->angkatan ?? $certificate->program->batch ?? '-' }}
+                                </p>
                             </div>
                             <div>
                                 <p class="text-xs text-gray-500 mb-1">Periode</p>

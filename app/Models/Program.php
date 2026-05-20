@@ -110,6 +110,11 @@ class Program extends Model
         return $this->belongsTo(MasterProgram::class, 'master_program_id');
     }
 
+    public function kejuruan()
+{
+    return $this->masterProgram?->kejuruan ?? null;
+}
+
     public function paketPelatihan()
     {
         return $this->belongsTo(PaketPelatihan::class, 'paket_pelatihan_id');
@@ -173,7 +178,38 @@ class Program extends Model
             ->wherePivot('is_penanggung_jawab', true)
             ->first();
     }
+    public function isInstructor($userId): bool
+    {
+        $internal = \App\Models\Instructor::where('user_id', $userId)->first();
+        $external = \App\Models\PengajarEksternal::where('user_id', $userId)->first();
 
+        return $this->programInstructors()
+            ->where(function($q) use ($internal, $external) {
+                if ($internal) {
+                    $q->where('instructor_id', $internal->id)
+                      ->where('instructor_type', 'internal');
+                }
+                if ($external) {
+                    $q->orWhere(function($subQ) use ($external) {
+                        $subQ->where('pengajar_eksternal_id', $external->id)
+                             ->where('instructor_type', 'external');
+                    });
+                }
+            })->exists();
+    }
+/**
+ * Accessor untuk nama kejuruan
+ */
+public function getKejuruanNamaAttribute()
+{
+    if ($this->relationLoaded('masterProgram') && $this->masterProgram?->relationLoaded('kejuruan')) {
+        return $this->masterProgram->kejuruan?->nama_kejuruan;
+    }
+
+    return $this->masterProgram?->kejuruan?->nama_kejuruan 
+        ?? $this->masterProgram?->kejuruan_id?->nama_kejuruan 
+        ?? 'KEJURUAN BELUM DISET';
+}
     /**
      * Get jenis pelatihan dari paket
      */

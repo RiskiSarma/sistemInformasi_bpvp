@@ -40,6 +40,8 @@ class InstructorAttendance extends Model
         'instructor_id',
         'schedule_id',
         'program_id',
+        'pengajar_eksternal_id', 
+        'instructor_type',
         'date',
         'check_in',
         'check_out',

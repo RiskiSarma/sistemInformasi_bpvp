@@ -60,7 +60,7 @@
 
 <div class="no-print" style="text-align:center; padding:12px; background:#ea580c;">
     <button onclick="window.print()" style="padding:10px 32px; background:#fff; color:#ea580c; font-weight:bold; border:none; border-radius:6px; cursor:pointer; font-size:14px;">🖨️ Cetak / Print</button>
-    <button onclick="window.history.back()" style="margin-left:12px; padding:10px 24px; background:transparent; color:#fff; border:1px solid #fff; border-radius:6px; cursor:pointer; font-size:14px;">← Kembali</button>
+    <button onclick="window.close(); if(!window.closed) { window.history.back(); }" style="margin-left:12px; padding:10px 24px; background:transparent; color:#fff; border:1px solid #fff; border-radius:6px; cursor:pointer; font-size:14px;">← Kembali</button>
 </div>
 
 <div class="page">

@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <title>SK Penyelenggara - {{ $program->masterProgram->name ?? '' }}</title>
+    <link rel="icon" type="image/png" href="{{ asset('images/logo blk banda.png') }}">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Times New Roman', Times, serif;
+            font-family: 'Arial Narrow', Times, serif;
             font-size: 11.5pt;
             color: #000;
             background: #fff;
@@ -19,89 +20,48 @@
             padding: 20mm 20mm 20mm 25mm;
         }
 
-        /* KOP SURAT */
-        .kop-wrapper {
+        .kop-wrap {
+            width: 100%;
             border-bottom: 3px solid #000;
             padding-bottom: 6px;
             margin-bottom: 16px;
         }
-        .kop {
-            display: flex;
-            align-items: flex-start;
-            margin-bottom: 4px;
-        }
-        .kop-logo {
-            width: 90px;
-            margin-right: 12px;
-            flex-shrink: 0;
-        }
-        .kop-logo img {
-            width: 80px;
-            height: auto;
-            display: block;
-        }
-        .kop-text {
-            flex: 1;
-            text-align: center;
-        }
-        .kop-text .instansi   { font-size: 9.5pt; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; line-height: 1.2; margin-bottom: 1px; }
-        .kop-text .dirjen     { font-size: 10pt;  font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; line-height: 1.2; margin-bottom: 1px; }
-        .kop-text .nama-pembinaan { font-size: 10pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; line-height: 1.2; margin-bottom: 1px; }
-        .kop-text .nama-lembaga   { font-size: 11pt; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; line-height: 1.2; margin-top: 2px; }
+        .kop-wrap img { width: 100%; height: auto; display: block; }
 
-        /* JUDUL */
         .judul-dok { text-align: center; margin: 14px 0 8px; }
         .judul-dok h2 { font-size: 12pt; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; }
         .nomor-sk { text-align: center; font-size: 11pt; font-weight: bold; margin-bottom: 14px; }
         .tentang { text-align: center; font-weight: bold; margin: 12px 0; text-transform: uppercase; }
         .jabatan-pembuka { text-align: center; font-weight: bold; margin: 12px 0; text-transform: uppercase; }
 
-        /* Section baris label : isi */
         .section { margin-bottom: 10px; }
         .section-row { display: table; width: 100%; margin-bottom: 3px; }
         .section-label { display: table-cell; width: 140px; vertical-align: top; font-weight: bold; }
         .section-colon { display: table-cell; width: 20px; vertical-align: top; }
         .section-content { display: table-cell; vertical-align: top; text-align: justify; }
-
-        /* Diktum MEMUTUSKAN */
         .memutuskan { margin: 12px 0; text-align: center; font-weight: bold; }
 
-        /* TTD */
         .ttd-area { margin-top: 24px; display: flex; justify-content: flex-end; }
         .ttd-box { text-align: center; min-width: 200px; }
-        .ttd-box div { font-size: 11pt; }
         .ttd-box .ttd-nama { font-weight: bold; text-decoration: underline; }
-        .ttd-box .ttd-nip { font-size: 10pt; }
+        .ttd-box .ttd-nip  { font-size: 10pt; }
 
-        /* Tabel lampiran */
         .tabel-instruktur, .tabel-peserta {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 14px 0;
-            font-size: 10pt;
+            width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 10pt;
         }
         .tabel-instruktur th, .tabel-peserta th {
-            background: #f5f5f5;
-            border: 1px solid #000;
-            padding: 6px 8px;
-            text-align: center;
-            font-weight: bold;
-            vertical-align: middle;
+            background: #f5f5f5; border: 1px solid #000;
+            padding: 6px 8px; text-align: center; font-weight: bold; vertical-align: middle;
         }
         .tabel-instruktur td, .tabel-peserta td {
-            border: 1px solid #000;
-            padding: 5px 8px;
-            vertical-align: top;
+            border: 1px solid #000; padding: 5px 8px; vertical-align: top;
         }
-        .tabel-instruktur td:first-child, .tabel-peserta td:first-child { text-align: center; width: 40px; }
-
         .bullet-check { display: block; margin: 3px 0; }
-        .bullet-check::before { content: "▪ "; margin-right: 4px; }
+        .bullet-check::before { content: "❖ "; margin-right: 4px; }
         .total-row td { font-weight: bold; background: #f9f9f9; }
 
         @media print {
             .no-print { display: none !important; }
-            .page { margin: 0; padding: 20mm 20mm 20mm 25mm; }
         }
     </style>
 </head>
@@ -117,95 +77,75 @@
 </div>
 
 @php
+    $kopBase64 = null;
+    if ($settings && $settings->logo_path) {
+        $imgPath = storage_path('app/public/' . $settings->logo_path);
+        if (file_exists($imgPath)) {
+            $mime = mime_content_type($imgPath);
+            $kopBase64 = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($imgPath));
+        }
+    }
+ 
     $tahunAnggaran = $program->paketPelatihan->tahun ?? now()->year;
-
-    // Ambil dari DocumentSetting — fallback ke nilai default jika belum diset
-    $nomorDipa   = optional($settings)->dasar_hukum_1 ?: ('026.13.2.065106/' . ($tahunAnggaran - 1));
-    $tanggalDipa = optional($settings)->dasar_hukum_2 ?: ('28 November ' . ($tahunAnggaran - 1));
-    $kotaSurat   = optional($settings)->tempat_surat  ?: 'Banda Aceh';
-    $ttdPengirim = optional($settings)->ttd_pengirim  ?: '${ttd_pengirim}';
-    $namaPengirim= optional($settings)->nama_pengirim ?: '${nama_pengirim}';
-    $nipPengirim = optional($settings)->nip_pengirim  ?: '${nip_pengirim}';
-
-    $logoPath = optional($settings)->logo_path
-        ? Storage::url($settings->logo_path)
-        : asset('images/logo blk banda.png');
+    
+    // ✅ PERBAIKAN: Ambil dari settings, bukan dari $program
+    $nomorSK       = $settings->format_nomor ?? '2.14/2190/LP.00.04/IV/2026';
+    
+    \Carbon\Carbon::setLocale('id');
+    $tanggalSK    = now()->locale('id')->isoFormat('D MMMM Y');
+    $kotaSurat     = $settings->tempat_surat ?? 'Banda Aceh';
+    $namaPengirim  = $settings->nama_pengirim ?? 'Rahmad Faisal';
+    $nipPengirim   = $settings->nip_pengirim ?? '198103302009011005';
+    $pj            = $program->programInstructors->where('is_penanggung_jawab', true)->first();
 @endphp
 
 <div class="page">
 
-    <!-- KOP SURAT -->
-    <div class="kop-wrapper">
-        <div class="kop">
-            <div class="kop-logo">
-                <img src="{{ asset('images/logo blk banda.png') }}" alt="Logo">
-            </div>
-            <div class="kop-text">
-                <div class="instansi">KEMENTERIAN KETENAGAKERJAAN REPUBLIK INDONESIA</div>
-                <div class="dirjen">DIREKTORAT JENDERAL</div>
-                <div class="nama-pembinaan">PEMBINAAN PELATIHAN VOKASI DAN PRODUKTIVITAS</div>
-                <div class="nama-lembaga">BALAI PELATIHAN VOKASI DAN PRODUKTIVITAS BANDA ACEH</div>
-            </div>
+    @if($kopBase64)
+        <div class="kop-wrap">
+            <img src="{{ $kopBase64 }}" alt="Kop Surat">
         </div>
-    </div>
+    @endif
 
-    <!-- JUDUL -->
     <div class="judul-dok">
-        <h2>KEPUTUSAN KEPALA BALAI PELATIHAN VOKASI DAN PRODUKTIVITAS BANDA ACEH</h2>
+        <h2>{{ strtoupper($settings->kop_surat ?? 'KEPUTUSAN KEPALA BALAI PELATIHAN VOKASI DAN PRODUKTIVITAS BANDA ACEH') }}</h2>
     </div>
-
-    <div class="nomor-sk">NOMOR ${nomor_naskah}</div>
-
+    <div class="nomor-sk">NOMOR {{ $nomorSK }}</div>
     <div class="tentang">TENTANG</div>
-
     <p style="text-align:center; font-weight:bold; margin-bottom:12px; text-transform:uppercase;">
-        PENYELENGGARAAN {{ strtoupper($program->paketPelatihan->jenisPelatihan->jenis_pelatihan ?? 'PELATIHAN BERBASIS KOMPETENSI (PBK)') }} BATCH {{ $program->angkatan ?? '-' }}
-        KEJURUAN {{ strtoupper($program->masterProgram->kejuruan->nama_kejuruan ?? '-') }}
-        PROGRAM {{ strtoupper($program->masterProgram->name ?? '-') }}
-        TAHUN ANGGARAN {{ $tahunAnggaran }}
+        PENYELENGGARAAN PELATIHAN BERBASIS KOMPETENSI (PBK) DURASI PENDEK BATCH {{ $program->angkatan ?? 'IV' }}
+        KEJURUAN TEKNOLOGI INFORMASI KOMUNIKASI<br>
+        PROGRAM {{ strtoupper($program->masterProgram->name ?? 'AI FOR AUTOMATION I') }} TAHUN ANGGARAN {{ $tahunAnggaran }}
     </p>
 
-    <div class="jabatan-pembuka">
-        KEPALA BALAI PELATIHAN VOKASI DAN PRODUKTIVITAS BANDA ACEH
-    </div>
+    <div class="jabatan-pembuka">KEPALA BALAI PELATIHAN VOKASI DAN PRODUKTIVITAS BANDA ACEH</div>
 
-    <!-- MENIMBANG -->
+    <!-- Menimbang -->
     <div class="section">
         <div class="section-row">
             <div class="section-label">Menimbang</div>
             <div class="section-colon">:</div>
             <div class="section-content">
-                <ol style="margin:0; padding-left:0; list-style-position:inside; text-align:justify; counter-reset:list-item;">
-                    <li style="margin-bottom:4px;">
-                        bahwa dalam rangka Penyiapan Tenaga Kerja yang Kompeten perlu diadakan
-                        {{ $program->paketPelatihan->jenisPelatihan->jenis_pelatihan ?? 'Pelatihan Berbasis Kompetensi (PBK)' }}
-                        Batch {{ $program->angkatan ?? '-' }} Kejuruan {{ $program->masterProgram->kejuruan->nama_kejuruan ?? '-' }}
-                        Program {{ $program->masterProgram->name ?? '-' }} Balai Pelatihan Vokasi dan Produktivitas Banda Aceh
-                        pada Daftar Isian Pelaksanaan Anggaran (DIPA) Kementerian Ketenagakerjaan Tahun Anggaran {{ $tahunAnggaran }};
-                    </li>
-                    <li>
-                        bahwa untuk itu perlu dikeluarkan Surat Keputusan Kepala Balai Pelatihan Vokasi dan Produktivitas Banda Aceh
-                        tentang Penyelenggaraan {{ $program->paketPelatihan->jenisPelatihan->jenis_pelatihan ?? 'Pelatihan Berbasis Kompetensi (PBK)' }}
-                        Batch {{ $program->angkatan ?? '-' }} Kejuruan {{ $program->masterProgram->kejuruan->nama_kejuruan ?? '-' }}
-                        Program {{ $program->masterProgram->name ?? '-' }} Tahun Anggaran {{ $tahunAnggaran }}.
-                    </li>
+                <ol style="padding-left:0; list-style-position:inside;">
+                    <li style="margin-bottom:4px;">bahwa dalam rangka Penyiapan Tenaga Kerja yang Kompeten perlu diadakan Pelatihan Berbasis Kompetensi (PBK) Durasi Pendek Batch {{ $program->angkatan ?? 'IV' }} Kejuruan Teknologi Informasi Komunikasi Program {{ $program->masterProgram->name ?? 'AI For Automation I' }} Balai Pelatihan Vokasi dan Produktivitas Banda Aceh pada Daftar Isian Pelaksanaan Anggaran (DIPA) Kementerian Ketenagakerjaan Tahun Anggaran {{ $tahunAnggaran }};</li>
+                    <li>bahwa untuk itu perlu dikeluarkan Surat Keputusan Kepala Balai Pelatihan Vokasi dan Produktivitas Banda Aceh tentang Penyelenggaraan Pelatihan tersebut.</li>
                 </ol>
             </div>
         </div>
     </div>
 
-    <!-- MENGINGAT -->
+    <!-- Mengingat -->
     <div class="section">
         <div class="section-row">
             <div class="section-label">Mengingat</div>
             <div class="section-colon">:</div>
             <div class="section-content">
-                <ol style="margin:0; padding-left:0; list-style-position:inside; text-align:justify; counter-reset:list-item;">
+                <ol style="padding-left:0; list-style-position:inside;">
                     <li>Undang-Undang Nomor 13 Tahun 2003 tentang Ketenagakerjaan;</li>
                     <li>Undang-Undang Nomor 17 Tahun 2003 tentang Keuangan Negara;</li>
                     <li>Undang-Undang Nomor 1 Tahun 2004 tentang Perbendaharaan Negara;</li>
                     <li>Undang-Undang Nomor 15 Tahun 2004 tentang Pemeriksaan Pengelolaan dan Tanggung Jawab Keuangan Negara;</li>
-                    <li>Peraturan Pemerintah Nomor 45 Tahun 2013 tentang Tata Cara Pelaksanaan Anggaran Pendapatan dan Belanja Negara (Lembaran Negara Republik Indonesia Tahun 2013 Nomor 103);</li>
+                    <li>Peraturan Pemerintah Nomor 45 Tahun 2013 tentang Tata Cara Pelaksanaan Anggaran Pendapatan dan Belanja Negara;</li>
                     <li>Peraturan Menteri Keuangan Nomor 217/PMK.05/2022 tentang Sistem Akuntansi dan Pelaporan Keuangan Pemerintah Pusat;</li>
                     <li>Peraturan Menteri Keuangan Nomor 210/PMK.05/2022 tentang Tata Cara Pembayaran Dalam Rangka Pelaksanaan Anggaran Pendapatan dan Belanja Negara;</li>
                     <li>Peraturan Menteri Ketenagakerjaan Nomor 8 Tahun 2014 tentang Pedoman Penyelenggaraan Pelatihan Berbasis Kompetensi;</li>
@@ -216,45 +156,16 @@
         </div>
     </div>
 
-    <!-- PAGE BREAK -->
     <div style="page-break-before: always;"></div>
-
-    <!-- MEMPERHATIKAN — menggunakan $nomorDipa dan $tanggalDipa dari settings -->
-    <div class="section">
-        <div class="section-row">
-            <div class="section-label">Memperhatikan</div>
-            <div class="section-colon">:</div>
-            <div class="section-content">
-                <ol style="margin:0; padding-left:0; list-style-position:inside; text-align:justify; counter-reset:list-item;">
-                    <li style="margin-bottom:4px;">
-                        Surat Pengesahan Daftar Isian Pelaksanaan Anggaran (SP-DIPA) Balai Pelatihan Vokasi dan Produktivitas
-                        Banda Aceh Tahun {{ $tahunAnggaran }} Nomor : {{ $nomorDipa }} tanggal {{ $tanggalDipa }};
-                    </li>
-                    <li>
-                        Keputusan Menteri Ketenagakerjaan Nomor 195 Tahun 2021 tentang Pengangkatan Pejabat Perbendaharaan Negara
-                        pada Satuan Kerja Pusat dan Satuan Kerja Unit Pelaksana Teknis Pusat Kementerian Ketenagakerjaan.
-                    </li>
-                </ol>
-            </div>
-        </div>
-    </div>
 
     <div class="memutuskan">MEMUTUSKAN :</div>
 
-    <!-- MENETAPKAN -->
     <div class="section">
         <div class="section-row">
             <div class="section-label">Menetapkan</div>
             <div class="section-colon">:</div>
             <div class="section-content">
-                <strong>
-                    KEPUTUSAN KEPALA BALAI PELATIHAN VOKASI DAN PRODUKTIVITAS BANDA ACEH TENTANG
-                    PENYELENGGARAAN {{ strtoupper($program->paketPelatihan->jenisPelatihan->jenis_pelatihan ?? 'PELATIHAN BERBASIS KOMPETENSI (PBK)') }}
-                    BATCH {{ $program->angkatan ?? '-' }}
-                    KEJURUAN {{ strtoupper($program->masterProgram->kejuruan->nama_kejuruan ?? '-') }}
-                    PROGRAM {{ strtoupper($program->masterProgram->name ?? '-') }}
-                    TAHUN ANGGARAN {{ $tahunAnggaran }}.
-                </strong>
+                <strong>KEPUTUSAN KEPALA BALAI PELATIHAN VOKASI DAN PRODUKTIVITAS BANDA ACEH TENTANG PENYELENGGARAAN PELATIHAN BERBASIS KOMPETENSI (PBK) DURASI PENDEK BATCH {{ $program->angkatan ?? 'IV' }} KEJURUAN TEKNOLOGI INFORMASI KOMUNIKASI PROGRAM {{ strtoupper($program->masterProgram->name ?? 'AI FOR AUTOMATION I') }} TAHUN ANGGARAN {{ $tahunAnggaran }}.</strong>
             </div>
         </div>
     </div>
@@ -265,10 +176,7 @@
             <div class="section-label">KESATU</div>
             <div class="section-colon">:</div>
             <div class="section-content">
-                Menyelenggarakan {{ $program->paketPelatihan->jenisPelatihan->jenis_pelatihan ?? 'Pelatihan Berbasis Kompetensi (PBK)' }}
-                Batch {{ $program->angkatan ?? '-' }} Kejuruan {{ $program->masterProgram->kejuruan->nama_kejuruan ?? '-' }}
-                Program {{ $program->masterProgram->name ?? '-' }} Balai Pelatihan Vokasi dan Produktivitas Banda Aceh
-                Tahun Anggaran {{ $tahunAnggaran }}, dengan ketentuan sebagaimana disebutkan pada pasal-pasal tersebut dibawah ini :
+                Menyelenggarakan Pelatihan Berbasis Kompetensi (PBK) Durasi Pendek Batch {{ $program->angkatan ?? 'IV' }} Kejuruan Teknologi Informasi Komunikasi Program {{ $program->masterProgram->name ?? 'AI For Automation I' }} Balai Pelatihan Vokasi dan Produktivitas Banda Aceh Tahun Anggaran {{ $tahunAnggaran }}, dengan ketentuan sebagai berikut:
             </div>
         </div>
     </div>
@@ -279,26 +187,10 @@
             <div class="section-label">Pasal 1</div>
             <div class="section-colon">:</div>
             <div class="section-content">
-                <ol style="margin:0; padding-left:0; list-style-position:inside; text-align:justify;">
-                    <li style="margin-bottom:4px;">
-                        Pelatihan diselenggarakan mulai tanggal
-                        <strong>{{ $program->start_date ? $program->start_date->format('d F Y') : '-' }}</strong>
-                        sampai dengan
-                        <strong>{{ $program->end_date ? $program->end_date->format('d F Y') : '-' }}</strong>
-                        dengan jumlah jam pelatihan sebanyak <strong>{{ $program->jp ?? '-' }} @45 menit</strong>
-                        dengan jumlah peserta sebanyak <strong>{{ $program->participants->count() }} orang</strong> (daftar peserta terlampir);
-                    </li>
-                    <li style="margin-bottom:4px;">
-                        Lokasi {{ $program->paketPelatihan->jenisPelatihan->jenis_pelatihan ?? 'Pelatihan Berbasis Kompetensi (PBK)' }}
-                        Batch {{ $program->angkatan ?? '-' }} Kejuruan {{ $program->masterProgram->kejuruan->nama_kejuruan ?? '-' }}
-                        Program {{ $program->masterProgram->name ?? '-' }} bertempat di Balai Pelatihan Vokasi dan Produktivitas Banda Aceh,
-                        Jalan Kesatria Desa Geuceu Komplek, Kota Banda Aceh, Provinsi Aceh;
-                    </li>
-                    <li>
-                        Pengajar/Instruktur yang berstatus Pegawai Negeri Sipil di Balai Pelatihan Vokasi dan Produktivitas Banda Aceh
-                        untuk Pengajar Outsourcing sebesar Rp. 40.000,- / JP, Pengajar Soft Skill dan Pengajar dari Industri diberikan
-                        honorarium sebesar Rp. 100.000,- / JP.
-                    </li>
+                <ol style="padding-left:0; list-style-position:inside;">
+                    <li>Pelatihan diselenggarakan mulai tanggal <strong>{{ $program->start_date?->format('d F Y') ?? '20 April 2026' }}</strong> sampai dengan <strong>{{ $program->end_date?->format('d F Y') ?? '23 April 2026' }}</strong> dengan jumlah jam pelatihan sebanyak <strong>{{ $program->jp ?? '40' }} JP @45 menit</strong> dengan jumlah peserta sebanyak <strong>{{ $program->participants->count() ?? '14' }} orang</strong> (daftar peserta terlampir);</li>
+                    <li>Lokasi pelatihan bertempat di Balai Pelatihan Vokasi dan Produktivitas Banda Aceh, Jalan Kesatria Desa Geuceu Komplek, Kota Banda Aceh, Provinsi Aceh;</li>
+                    <li>Pengajar/Instruktur yang berstatus Pegawai Negeri Sipil di Balai Pelatihan Vokasi dan Produktivitas Banda Aceh.</li>
                 </ol>
             </div>
         </div>
@@ -310,39 +202,28 @@
             <div class="section-label">Pasal 2</div>
             <div class="section-colon">:</div>
             <div class="section-content">
-                <ol style="margin:0; padding-left:0; list-style-position:inside; text-align:justify;">
-                    @php $pj = $program->programInstructors->where('is_penanggung_jawab', true)->first(); @endphp
-                    <li style="margin-bottom:4px;">
-                        Menunjuk Saudara <strong>{{ $pj->instructor->name ?? '-' }}</strong> sebagai Penanggung Jawab Kelas;
-                    </li>
+                <ol style="padding-left:0; list-style-position:inside;">
+                    <li>Menunjuk Saudara <strong>{{ $program->programInstructors->where('is_penanggung_jawab', true)->first()?->instructor->name ?? 'Shaidul Maula, S.Tr.T.' }}</strong> sebagai Penanggung Jawab Kelas dan Instruktur;</li>
                     <li>Unit kompetensi teori/praktek, jumlah jam pelatihan dan nama Pengajar/Instruktur sebagaimana terlampir.</li>
                 </ol>
             </div>
         </div>
     </div>
 
-    <!-- KEDUA — menggunakan $nomorDipa dan $tanggalDipa dari settings -->
+    <!-- KEDUA & KETIGA -->
     <div class="section">
         <div class="section-row">
             <div class="section-label">KEDUA</div>
             <div class="section-colon">:</div>
-            <div class="section-content">
-                Segala biaya yang timbul akibat dikeluarkannya Keputusan ini dibebankan pada Surat Pengesahan Daftar Isian
-                Pelaksanaan Anggaran (SP-DIPA) Balai Pelatihan Vokasi dan Produktivitas Banda Aceh
-                Nomor : {{ $nomorDipa }} tanggal {{ $tanggalDipa }}.
-            </div>
+            <div class="section-content">Segala biaya yang timbul akibat dikeluarkannya Keputusan ini dibebankan pada Surat Pengesahan Daftar Isian Pelaksanaan Anggaran (SP-DIPA) Balai Pelatihan Vokasi dan Produktivitas Banda Aceh Nomor : 026.13.2.065106/2026 tanggal 24 November 2025.</div>
         </div>
     </div>
 
-    <!-- KETIGA -->
     <div class="section">
         <div class="section-row">
             <div class="section-label">KETIGA</div>
             <div class="section-colon">:</div>
-            <div class="section-content">
-                Keputusan ini berlaku sejak tanggal ditetapkan, dengan ketentuan apabila dikemudian hari terdapat kekeliruan
-                dalam keputusan ini akan diperbaiki sebagaimana mestinya.
-            </div>
+            <div class="section-content">Keputusan ini berlaku sejak tanggal ditetapkan, dengan ketentuan apabila dikemudian hari terdapat kekeliruan dalam keputusan ini akan diperbaiki sebagaimana mestinya.</div>
         </div>
     </div>
 
@@ -350,15 +231,15 @@
     <div class="ttd-area">
         <div class="ttd-box">
             <div>Ditetapkan di {{ $kotaSurat }}</div>
-            <div>Pada tanggal ${tanggal_naskah}</div>
-            <div style="margin-top:8px;">Kepala Balai,</div>
-            <div style="margin:60px 0 10px;">{{ $ttdPengirim }}</div>
+            <div>Pada tanggal {{ $tanggalSK }}</div>
+            <div style="margin-top: 1px;">Kepala Balai,</div>
+            <div style="margin: 60px 0 8px;"></div>
             <div class="ttd-nama">{{ $namaPengirim }}</div>
             <div class="ttd-nip">NIP {{ $nipPengirim }}</div>
         </div>
     </div>
 
-    <!-- ===== LAMPIRAN I: INSTRUKTUR ===== -->
+    <!-- ══ LAMPIRAN I: INSTRUKTUR ══ -->
     <div style="page-break-before: always; padding-top: 10mm;">
         <p style="text-align:right; margin-bottom:4px; font-size:10pt; font-weight:bold;">LAMPIRAN I</p>
         <p style="text-align:right; margin-bottom:4px; font-size:10pt;">KEPUTUSAN KEPALA BALAI PELATIHAN VOKASI</p>
@@ -395,7 +276,7 @@
                 @forelse($instructors as $idx => $instructor)
                     @php
                         $totalUnits = $unitsData->count();
-                        $rowspan = $totalUnits > 0 ? $totalUnits : 1;
+                        $rowspan    = $totalUnits > 0 ? $totalUnits : 1;
                     @endphp
                     <tr>
                         <td rowspan="{{ $rowspan }}">{{ $idx + 1 }}.</td>
@@ -424,17 +305,20 @@
             </tbody>
         </table>
 
-        <div class="ttd-area" style="margin-top:24px;">
+        <!-- TTD -->
+        <div class="ttd-area">
             <div class="ttd-box">
-                <div>Kepala Balai,</div>
-                <div style="margin:60px 0 10px;">{{ $ttdPengirim }}</div>
+                <div>Ditetapkan di {{ $kotaSurat }}</div>
+                <div>Pada tanggal {{ $tanggalSK }}</div>
+                <div style="margin-top: 50px;">Kepala Balai,</div>
+                <div style="margin: 70px 0 8px 0;"></div>
                 <div class="ttd-nama">{{ $namaPengirim }}</div>
                 <div class="ttd-nip">NIP {{ $nipPengirim }}</div>
             </div>
         </div>
     </div>
 
-    <!-- ===== LAMPIRAN II: PESERTA ===== -->
+    <!-- ══ LAMPIRAN II: PESERTA ══ -->
     <div style="page-break-before: always; padding-top: 10mm;">
         <p style="text-align:right; margin-bottom:4px; font-size:10pt; font-weight:bold;">LAMPIRAN II</p>
         <p style="text-align:right; margin-bottom:4px; font-size:10pt;">KEPUTUSAN KEPALA BALAI PELATIHAN VOKASI</p>
@@ -468,10 +352,17 @@
                     <td>{{ $i + 1 }}</td>
                     <td>{{ $p->name ?? '-' }}</td>
                     <td style="font-size:9.5pt;">
-                        @if(isset($p->tempat_lahir) || isset($p->tanggal_lahir))
-                            {{ $p->tempat_lahir ?? '-' }}
-                            {{ isset($p->tanggal_lahir) ? \Carbon\Carbon::parse($p->tanggal_lahir)->format('d/m/Y') : '' }}
-                        @else -
+                        @php
+                            $tl = $p->place_of_birth ?? $p->tempat_lahir ?? $p->birth_place ?? null;
+                            $dl = $p->date_of_birth  ?? $p->tanggal_lahir ?? $p->birth_date  ?? null;
+                        @endphp
+                        @if($tl || $dl)
+                            {{ $tl ?? '-' }}
+                            @if($dl)
+                                , {{ is_string($dl) ? \Carbon\Carbon::parse($dl)->format('d F Y') : $dl->format('d F Y') }}
+                            @endif
+                        @else
+                            -
                         @endif
                     </td>
                     <td style="text-align:center;">{{ $p->gender ?? $p->jenis_kelamin ?? '-' }}</td>
@@ -483,10 +374,13 @@
             </tbody>
         </table>
 
-        <div class="ttd-area" style="margin-top:24px;">
+        <!-- TTD -->
+        <div class="ttd-area">
             <div class="ttd-box">
-                <div>Kepala Balai,</div>
-                <div style="margin:60px 0 10px;">{{ $ttdPengirim }}</div>
+                <div>Ditetapkan di {{ $kotaSurat }}</div>
+                <div>Pada tanggal {{ $tanggalSK }}</div>
+                <div style="margin-top: 50px;">Kepala Balai,</div>
+                <div style="margin: 70px 0 8px 0;"></div>
                 <div class="ttd-nama">{{ $namaPengirim }}</div>
                 <div class="ttd-nip">NIP {{ $nipPengirim }}</div>
             </div>

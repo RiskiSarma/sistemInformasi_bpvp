@@ -4,85 +4,65 @@ namespace App\Http\Controllers\Participant;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\Program;
 use App\Models\Participant;
 use App\Models\Attendance;
-use App\Models\Certificate;
 
 class DashboardController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $user = auth()->user();
-        
-        // Cari data participant dari tabel participants dengan eager loading
-        $participant = Participant::with('program.masterProgram', 'program.instructor')
+
+        $allParticipants = Participant::with('program.masterProgram')
             ->where('user_id', $user->id)
-            ->first();
-        
-        if (!$participant) {
+            ->get();
+
+        if ($allParticipants->isEmpty()) {
             return view('participant-area.dashboard', [
-                'participant' => null,
-                'program' => null,
+                'participant'          => null,
+                'allParticipants'      => collect(),
+                'program'              => null,
                 'attendancePercentage' => 0,
-                'totalAttendances' => 0,
-                'presentCount' => 0,
-                'absentCount' => 0,
-                'lateCount' => 0,
-                'excusedCount' => 0,
-                'recentAttendances' => collect([]),
-                'certificates' => collect([]),
-                'error' => 'Data peserta tidak ditemukan. Hubungi administrator.'
+                'totalAttendances'     => 0,
+                'presentCount'         => 0,
+                'absentCount'          => 0,
+                'lateCount'            => 0,
+                'excusedCount'         => 0,
+                'recentAttendances'    => collect(),
             ]);
         }
-        
-        // Program yang diikuti dari tabel programs
+
+        // Pilih participant aktif: dari query param, atau status active, atau yang pertama
+        $selectedId  = $request->get('participant_id');
+        $participant = $selectedId
+            ? ($allParticipants->firstWhere('id', $selectedId) ?? $allParticipants->first())
+            : ($allParticipants->firstWhere('status', 'active') ?? $allParticipants->first());
+
         $program = $participant->program;
-        
-        // Statistik kehadiran dari tabel attendances
-        $totalAttendances = Attendance::where('participant_id', $participant->id)->count();
-        
-        $presentCount = Attendance::where('participant_id', $participant->id)
-            ->where('status', 'present')
-            ->count();
-        
-        $absentCount = Attendance::where('participant_id', $participant->id)
-            ->where('status', 'absent')
-            ->count();
-        
-        $lateCount = Attendance::where('participant_id', $participant->id)
-            ->where('status', 'late')
-            ->count();
-        
-        $excusedCount = Attendance::where('participant_id', $participant->id)
-            ->where('status', 'excused')
-            ->count();
-        
-        $attendancePercentage = $totalAttendances > 0 
-            ? round(($presentCount / $totalAttendances) * 100, 2) 
+        $program?->load(['masterProgram', 'instructor']);
+
+        $base = Attendance::where('participant_id', $participant->id);
+
+        $totalAttendances     = (clone $base)->count();
+        $presentCount         = (clone $base)->where('status', 'present')->count();
+        $absentCount          = (clone $base)->where('status', 'absent')->count();
+        $lateCount            = (clone $base)->where('status', 'late')->count();
+        $excusedCount         = (clone $base)->where('status', 'excused')->count();
+        $attendancePercentage = $totalAttendances > 0
+            ? round(($presentCount / $totalAttendances) * 100, 2)
             : 0;
-        
-        // Recent attendances (5 terbaru)
+
         $recentAttendances = Attendance::where('participant_id', $participant->id)
             ->with('program.masterProgram')
             ->latest('date')
             ->take(5)
             ->get();
-        
-        // Sertifikat dari tabel certificates
-        $certificates = Certificate::where('participant_id', $participant->id)->get();
-        
+
         return view('participant-area.dashboard', compact(
-            'participant',
-            'program',
-            'attendancePercentage',
-            'totalAttendances',
-            'presentCount',
-            'absentCount',
-            'lateCount',
-            'excusedCount',
-            'recentAttendances',
-            'certificates'
+            'participant', 'allParticipants', 'program',
+            'attendancePercentage', 'totalAttendances',
+            'presentCount', 'absentCount', 'lateCount', 'excusedCount',
+            'recentAttendances'
         ));
     }
 }

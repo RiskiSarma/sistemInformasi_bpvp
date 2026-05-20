@@ -40,6 +40,9 @@ class ProfileController extends Controller
             'birth_date'  => 'nullable|date|before_or_equal:today',
             'pendidikan_id' => 'nullable|exists:pendidikans,id',
             'gender'        => 'nullable|in:LAKI-LAKI,PEREMPUAN',
+            'asal_kabupaten' => 'nullable|string|max:100',
+            'asal_kecamatan' => 'nullable|string|max:100',
+            'asal_kelurahan' => 'nullable|string|max:100',
         ]);
 
         // Update user

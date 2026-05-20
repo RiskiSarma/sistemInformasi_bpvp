@@ -96,6 +96,20 @@
                     <dt class="text-sm font-medium text-gray-500">Alamat</dt>
                     <dd class="mt-1 text-sm text-gray-900">{{ $participant->address ?? '-' }}</dd>
                 </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Asal Kabupaten/Kota</dt>
+                        <dd class="mt-1 text-sm text-gray-900">{{ $participant->asal_kabupaten ?? '-' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Asal Kecamatan</dt>
+                        <dd class="mt-1 text-sm text-gray-900">{{ $participant->asal_kecamatan ?? '-' }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Asal Kelurahan/Desa</dt>
+                        <dd class="mt-1 text-sm text-gray-900">{{ $participant->asal_kelurahan ?? '-' }}</dd>
+                    </div>
+                </div>
                 <div>
                     <dt class="text-sm font-medium text-gray-500">Tanggal Daftar</dt>
                     <dd class="mt-1 text-sm text-gray-900">{{ $participant->created_at->format('d F Y') }}</dd>

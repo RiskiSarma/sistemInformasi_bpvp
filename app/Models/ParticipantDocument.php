@@ -9,6 +9,7 @@ class ParticipantDocument extends Model
 {
     protected $fillable = [
         'user_id',
+        'programs_id',
         'document_type',
         'document_label',
         'file_path',
@@ -24,16 +25,17 @@ class ParticipantDocument extends Model
         'verified_at' => 'datetime',
     ];
 
-    // Daftar jenis dokumen yang wajib diupload
     public static function requiredDocuments(): array
     {
         return [
             'ktp'         => 'KTP (Kartu Tanda Penduduk)',
             'kk'          => 'KK (Kartu Keluarga)',
             'ijazah'      => 'Ijazah Terakhir',
-            'foto'        => 'Pas Foto 3×4',
-            'skck'        => 'SKCK (Surat Keterangan Catatan Kepolisian)',
-            'surat_sehat' => 'Surat Keterangan Sehat',
+            'foto'        => 'Pas Foto 3x4',
+            // 'skck'        => 'SKCK (Surat Keterangan Catatan Kepolisian)',
+            'bukti buat akun'   => 'Bukti Buat Akun Siap Kerja',
+            'bukti assessment'  => 'Bukti Assessment Online',
+            // 'surat_sehat' => 'Surat Keterangan Sehat',
             'cv'          => 'Curriculum Vitae (CV)',
         ];
     }
@@ -41,6 +43,15 @@ class ParticipantDocument extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Relasi ke ProgramPelatihan.
+     * Sesuaikan nama model jika berbeda (misal: Program, ProgramPelatihan, dll).
+     */
+    public function program()
+    {
+        return $this->belongsTo(\App\Models\Program::class, 'programs_id');
     }
 
     public function verifiedBy(): BelongsTo

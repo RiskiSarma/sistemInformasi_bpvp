@@ -39,8 +39,16 @@
         $initTypes       = $program->selected_units_config
             ? collect($program->selected_units_config)->pluck('type', 'unit_id')->toArray()
             : [];
-        $initInstructors = $program->programInstructors->pluck('instructor_id')->toArray();
-        $initPJ          = $program->programInstructors->where('is_penanggung_jawab', true)->first()->instructor_id ?? '';
+        $initInstructors = $program->programInstructors->map(function($pi) {
+        return $pi->instructor_id ?? $pi->pengajar_eksternal_id;
+        })->filter()->values()->toArray();
+
+        $initPJ = $program->programInstructors->where('is_penanggung_jawab', true)->first();
+        $initPJ = $initPJ ? ($initPJ->instructor_id ?? $initPJ->pengajar_eksternal_id) : '';
+
+        // Tanggal yang sudah ada
+        $initStartDate = old('start_date', $program->start_date->format('Y-m-d'));
+        $initEndDate   = old('end_date',   $program->end_date->format('Y-m-d'));
     @endphp
 
     <script>
@@ -61,6 +69,8 @@
             totalJP:      {{ $program->total_jp_from_selected_units ?? 0 }},
             adaIndustri:  "{{ old('ada_industri', $program->ada_industri) }}",
             excludeId:    "{{ $program->id }}",
+            startDate:    "{{ $initStartDate }}",
+            endDate:      "{{ $initEndDate }}",
         };
     </script>
 
@@ -80,6 +90,7 @@
             <input type="hidden" name="master_program_id" :value="selectedMaster">
             <input type="hidden" name="paket_pelatihan_id" :value="selectedPaket">
             <input type="hidden" name="angkatan" :value="angkatan">
+            <input type="hidden" name="penanggung_jawab" :value="penanggungJawab">
 
             <!-- ══════════════════════════════════════════ -->
             <!-- Searchable Dropdowns                      -->
@@ -143,7 +154,6 @@
                             </div>
                         </div>
                     </div>
-                    <!-- Hasil pilihan Master Program -->
                     <div x-show="selectedMaster" x-cloak class="mt-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2">
                         <svg class="w-4 h-4 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -212,7 +222,6 @@
                             </div>
                         </div>
                     </div>
-                    <!-- Hasil pilihan Paket Pelatihan -->
                     <div x-show="selectedPaket" x-cloak class="mt-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2">
                         <svg class="w-4 h-4 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -225,9 +234,7 @@
                 </div>
             </div>
 
-            <!-- ══════════════════════════════════════════ -->
-            <!-- Hasil pilihan + Angkatan (dengan margin top lebih besar) -->
-            <!-- ══════════════════════════════════════════ -->
+            <!-- Hasil pilihan + Angkatan -->
             <div class="mt-8 bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 rounded-xl p-6">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                     <div>
@@ -269,9 +276,7 @@
                 </div>
             </div>
 
-            <!-- ══════════════════════════════════════════ -->
-            <!-- Unit Kompetensi                           -->
-            <!-- ══════════════════════════════════════════ -->
+            <!-- Unit Kompetensi -->
             <div x-show="availableUnits.length > 0" x-cloak class="pt-2 border-t-2 border-gray-200">
                 <h3 class="text-lg font-semibold text-gray-800 mb-3">Unit Kompetensi (dari Master Program)</h3>
                 <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4 text-sm text-yellow-800">
@@ -345,79 +350,170 @@
                 </div>
             </div>
 
-            <!-- Instruktur -->
+            <!-- Instruktur Pengajar -->
+                        <!-- Instruktur Pengajar -->
             <div class="pt-2 border-t-2 border-gray-200">
                 <h3 class="text-lg font-semibold text-gray-800 mb-3">
-                    Instruktur Pengajar
-                    <span class="text-sm text-gray-500 font-normal">(minimal 1)</span>
+                    Instruktur Pengajar <span class="text-sm text-gray-500 font-normal">(minimal 1)</span>
                 </h3>
-                <div class="space-y-2 max-h-64 overflow-y-auto border rounded-lg p-3 bg-gray-50">
+                
+                <div class="space-y-3 max-h-80 overflow-y-auto border rounded-lg p-4 bg-gray-50">
                     @foreach($instructors as $instructor)
-                    <label class="flex items-center justify-between p-3 bg-white border rounded-lg hover:border-blue-400 cursor-pointer"
-                           :class="selectedInstructors.includes({{ $instructor->id }}) ? 'border-blue-500 bg-blue-50' : ''">
-                        <div class="flex items-center gap-3 flex-1">
-                            <input type="checkbox" name="instructors[]" value="{{ $instructor->id }}"
-                                   x-model="selectedInstructors" class="h-5 w-5 text-blue-600 rounded">
+                    <div class="flex items-center justify-between p-4 bg-white border rounded-xl hover:border-blue-400 transition-all"
+                         :class="selectedInstructors.includes({{ $instructor->id }}) ? 'border-blue-500 ring-1 ring-blue-200' : ''">
+                        
+                        <div class="flex items-center gap-4 flex-1">
+                            <input type="checkbox" 
+                                   name="instructors[]" 
+                                   value="{{ $instructor->id }}"
+                                   x-model="selectedInstructors" 
+                                   class="h-5 w-5 text-blue-600 rounded focus:ring-blue-500">
+
                             <div>
-                                <div class="font-medium">{{ $instructor->name }}</div>
-                                <div class="text-sm text-gray-500">{{ $instructor->email ?? '-' }}</div>
+                                <div class="font-medium text-gray-900 flex items-center gap-2">
+                                    {{ $instructor->name ?? $instructor->nama ?? '-' }}
+                                    @if($instructor->type === 'external')
+                                        <span class="text-xs px-2.5 py-1 bg-amber-100 text-amber-700 rounded-full font-medium">Eksternal</span>
+                                    @endif
+                                </div>
+                                <div class="text-sm text-gray-500">
+                                    {{ $instructor->email ?? '-' }}
+                                </div>
                             </div>
                         </div>
-                        <div x-show="selectedInstructors.includes({{ $instructor->id }})" style="display:none">
-                            <label class="flex items-center gap-2 px-3 py-1.5 rounded cursor-pointer transition"
-                                   :class="penanggungJawab == {{ $instructor->id }} ? 'bg-green-600 text-white' : 'bg-green-50 border border-green-300 text-green-800 hover:bg-green-100'">
-                                <input type="radio" name="penanggung_jawab" value="{{ $instructor->id }}"
-                                       x-model="penanggungJawab" class="h-4 w-4 text-green-600">
-                                <span class="text-xs font-medium">
-                                    <span x-show="penanggungJawab == {{ $instructor->id }}">✓ </span>Penanggung Jawab
-                                </span>
+
+                        <div x-show="selectedInstructors.includes({{ $instructor->id }})" class="ml-4">
+                            <label class="flex items-center gap-2 px-4 py-2 rounded-xl cursor-pointer transition-all hover:bg-green-50"
+                                   :class="penanggungJawab == {{ $instructor->id }} ? 'bg-green-600 text-white' : 'bg-white border border-gray-300'">
+                                <input type="radio" 
+                                       name="penanggung_jawab" 
+                                       value="{{ $instructor->id }}"
+                                       x-model="penanggungJawab" 
+                                       class="h-4 w-4 text-green-600 focus:ring-green-500">
+                                <span class="text-sm font-medium">Penanggung Jawab</span>
                             </label>
                         </div>
-                    </label>
+                    </div>
                     @endforeach
                 </div>
+
                 @error('instructors')
-                <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                    <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
                 @enderror
                 @error('penanggung_jawab')
-                <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                    <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
                 @enderror
             </div>
 
             </div>{{-- end x-data --}}
 
-            <!-- Periode -->
-            <div class="grid grid-cols-2 gap-6 pt-2 border-t-2 border-gray-200">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Mulai <span class="text-red-500">*</span></label>
-                    <input type="date" name="start_date" value="{{ old('start_date', $program->start_date->format('Y-m-d')) }}"
-                           required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+            <!-- ══════════════════════════════════════════ -->
+            <!-- Periode & Status Otomatis (Edit)          -->
+            <!-- ══════════════════════════════════════════ -->
+            <div class="pt-2 border-t-2 border-gray-200"
+                 x-data="statusAutoCalcEdit('{{ $initStartDate }}', '{{ $initEndDate }}', '{{ $program->status }}')">
+
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Periode Pelatihan</h3>
+
+                <div class="grid grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Tanggal Mulai <span class="text-red-500">*</span>
+                        </label>
+                        <input type="date" name="start_date"
+                               x-model="startDate"
+                               @change="recalcStatus()"
+                               required
+                               class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Tanggal Selesai <span class="text-red-500">*</span>
+                        </label>
+                        <input type="date" name="end_date"
+                               x-model="endDate"
+                               @change="recalcStatus()"
+                               required
+                               class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal Selesai <span class="text-red-500">*</span></label>
-                    <input type="date" name="end_date" value="{{ old('end_date', $program->end_date->format('Y-m-d')) }}"
-                           required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+
+                <!-- ✅ Tampilan Status Otomatis + Info Perubahan -->
+                <div class="mb-6 rounded-xl border-2 p-5 transition-all"
+                     :class="{
+                         'bg-blue-50 border-blue-300':   autoStatus === 'planned',
+                         'bg-green-50 border-green-300': autoStatus === 'ongoing',
+                         'bg-gray-50 border-gray-300':   autoStatus === 'completed'
+                     }">
+                    <div class="flex items-center gap-4 flex-wrap">
+                        <div class="flex items-center gap-2">
+                            <svg class="w-5 h-5 flex-shrink-0"
+                                 :class="{
+                                     'text-blue-500':  autoStatus === 'planned',
+                                     'text-green-500': autoStatus === 'ongoing',
+                                     'text-gray-500':  autoStatus === 'completed'
+                                 }"
+                                 fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <span class="text-sm font-semibold text-gray-700">Status Otomatis:</span>
+                        </div>
+                        <span class="px-4 py-1.5 text-sm font-bold rounded-full"
+                              :class="{
+                                  'bg-blue-600 text-white':   autoStatus === 'planned',
+                                  'bg-green-600 text-white':  autoStatus === 'ongoing',
+                                  'bg-gray-600 text-white':   autoStatus === 'completed'
+                              }"
+                              x-text="autoStatusLabel">
+                        </span>
+                        <!-- ✅ Indikator perubahan status -->
+                        <span x-show="statusChanged"
+                              class="text-xs text-amber-700 bg-amber-50 border border-amber-200 px-2 py-1 rounded-full font-medium">
+                            ⚠ Status berubah dari "<span x-text="originalStatusLabel"></span>"
+                        </span>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2 flex items-center gap-1">
+                        <svg class="w-3.5 h-3.5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <span x-text="autoStatusDesc"></span>
+                    </p>
                 </div>
-            </div>
-            <div class="grid grid-cols-2 gap-6">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Status <span class="text-red-500">*</span></label>
-                    <select name="status" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
-                        <option value="planned" {{ $program->status == 'planned' ? 'selected' : '' }}>Rencana</option>
-                        <option value="ongoing" {{ $program->status == 'ongoing' ? 'selected' : '' }}>Berjalan</option>
-                        <option value="completed" {{ $program->status == 'completed' ? 'selected' : '' }}>Selesai</option>
-                    </select>
+
+                {{-- Hidden input status — nilai di-set otomatis oleh JS, dikirim ke server --}}
+                <input type="hidden" name="status" :value="autoStatus">
+
+                <div class="grid grid-cols-2 gap-6 mt-2">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Status Program</label>
+                        <select name="status" required
+                                class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-100 text-gray-500 cursor-not-allowed"
+                                disabled>
+                            <option value="planned" {{ $program->status == 'planned' ? 'selected' : '' }}>Rencana</option>
+                            <option value="ongoing" {{ $program->status == 'ongoing' ? 'selected' : '' }}>Berjalan</option>
+                            <option value="completed" {{ $program->status == 'completed' ? 'selected' : '' }}>Selesai</option>
+                        </select>
+                        <p class="text-xs text-gray-400 mt-1">
+                            <svg class="w-3 h-3 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                            </svg>
+                            Diatur otomatis berdasarkan tanggal
+                        </p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Maks. Peserta</label>
+                        <input type="number" name="max_participants"
+                               value="{{ old('max_participants', $program->max_participants) }}"
+                               min="1" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Maks. Peserta</label>
-                    <input type="number" name="max_participants" value="{{ old('max_participants', $program->max_participants) }}"
-                           min="1" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+
+                <div class="mt-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">JP Harian (opsional)</label>
+                    <input type="number" name="jp_harian"
+                           value="{{ old('jp_harian', $program->jp_harian) }}"
+                           min="0" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
                 </div>
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">JP Harian (opsional)</label>
-                <input type="number" name="jp_harian" value="{{ old('jp_harian', $program->jp_harian) }}"
-                       min="0" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
             </div>
 
             <!-- Submit -->
@@ -518,15 +614,88 @@ function programEditForm() {
         penanggungJawab: String(d.pj || ''),
 
         init() {
-            /* Load units dari master yang sudah dipilih */
-            if (this.selectedMaster) {
-                const found = this.masterOptions.find(o => o.id === String(this.selectedMaster));
-                if (found) this.availableUnits = found.units || [];
+    if (this.selectedMaster) {
+        const found = this.masterOptions.find(o => o.id === String(this.selectedMaster));
+        if (found) this.availableUnits = found.units || [];
+    }
+
+    this.$nextTick(() => {
+        if (this.selectedInstructors.length > 0) {
+            this.penanggungJawab = String(this.selectedInstructors[0]);
+        }
+    });
+
+    this.$watch('selectedInstructors', (newVal) => {
+        if (newVal.length > 0) {
+            this.penanggungJawab = String(newVal[0]);
+        } else {
+            this.penanggungJawab = '';
+        }
+    });
+}
+    };
+}
+
+/* ══════════════════════════════════════════════════════
+   ✅ STATUS OTOMATIS BERDASARKAN TANGGAL (EDIT MODE)
+   ══════════════════════════════════════════════════════ */
+function statusAutoCalcEdit(initStart, initEnd, currentStatus) {
+    const statusLabels = {
+        planned:   'Rencana',
+        ongoing:   'Sedang Berjalan',
+        completed: 'Selesai',
+    };
+
+    return {
+        startDate: initStart || '',
+        endDate:   initEnd   || '',
+        autoStatus: currentStatus || 'planned',
+        autoStatusLabel: '',
+        autoStatusDesc: '',
+        originalStatus: currentStatus || 'planned',
+        originalStatusLabel: statusLabels[currentStatus] || currentStatus,
+        statusChanged: false,
+
+        init() {
+            // Hitung status awal dari tanggal yang sudah ada
+            this.recalcStatus();
+            // Reset flag perubahan setelah init (bukan perubahan user)
+            this.$nextTick(() => { this.statusChanged = false; });
+        },
+
+        recalcStatus() {
+            if (!this.startDate || !this.endDate) return;
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            const start = new Date(this.startDate + 'T00:00:00');
+            const end   = new Date(this.endDate   + 'T00:00:00');
+
+            let newStatus;
+            if (start > today) {
+                newStatus            = 'planned';
+                this.autoStatusLabel = '🗓 Rencana';
+                this.autoStatusDesc  = `Tanggal mulai (${this.formatDate(this.startDate)}) belum tiba. Status otomatis: Rencana.`;
+            } else if (end < today) {
+                newStatus            = 'completed';
+                this.autoStatusLabel = '✅ Selesai';
+                this.autoStatusDesc  = `Tanggal selesai (${this.formatDate(this.endDate)}) sudah lewat. Status otomatis: Selesai.`;
+            } else {
+                newStatus            = 'ongoing';
+                this.autoStatusLabel = '🟢 Sedang Berjalan';
+                this.autoStatusDesc  = `Pelatihan sedang berlangsung (${this.formatDate(this.startDate)} – ${this.formatDate(this.endDate)}).`;
             }
-            this.$watch('selectedInstructors', v => {
-                if (v.length === 1) this.penanggungJawab = String(v[0]);
-                if (!v.map(String).includes(String(this.penanggungJawab))) this.penanggungJawab = '';
-            });
+
+            // Tandai perubahan jika berbeda dari status asli
+            this.statusChanged = newStatus !== this.originalStatus;
+            this.autoStatus    = newStatus;
+        },
+
+        formatDate(dateStr) {
+            if (!dateStr) return '-';
+            const d = new Date(dateStr + 'T00:00:00');
+            return d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
         }
     };
 }

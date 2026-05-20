@@ -6,59 +6,98 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Program;
 use App\Models\Instructor;
+use App\Models\PengajarEksternal;
 
 class ProgramController extends Controller
 {
-    public function index(Request $request)
+    private function getInstructorAccess()
     {
         $user = auth()->user();
-        
-        // Cari instructor berdasarkan user_id dari tabel instructors
-        $instructor = Instructor::where('user_id', $user->id)->first();
-        
-        if (!$instructor) {
+
+        $internal = Instructor::where('user_id', $user->id)->first();
+        $external = PengajarEksternal::where('user_id', $user->id)
+                    ->orWhere('email', $user->email)
+                    ->first();
+
+        return [$internal, $external];
+    }
+
+    private function applyInstructorConstraint($query, $internal, $external)
+    {
+        return $query->where(function($main) use ($internal, $external) {
+            if ($internal) {
+                $main->where(function($sub) use ($internal) {
+                    $sub->where('instructor_id', $internal->id)
+                        ->where('instructor_type', 'internal');
+                });
+            }
+            if ($external) {
+                $main->orWhere(function($sub) use ($external) {
+                    $sub->where('pengajar_eksternal_id', $external->id);
+                });
+            }
+        });
+    }
+
+    public function index(Request $request)
+    {
+        [$internal, $external] = $this->getInstructorAccess();
+
+        if (!$internal && !$external) {
             return redirect()->route('instructor.dashboard')
                 ->with('error', 'Data instruktur tidak ditemukan');
         }
-        
-        // Query programs dari tabel programs
-        $query = Program::where('instructor_id', $instructor->id);
-        
-        // Filter by status
+
+        $query = Program::whereHas('programInstructors', function($q) use ($internal, $external) {
+            $this->applyInstructorConstraint($q, $internal, $external);
+        });
+
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
-        
-        // Search
+
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('code', 'like', "%{$search}%");
+                $q->whereHas('masterProgram', function($subQ) use ($search) {
+                    $subQ->where('name', 'like', "%{$search}%");
+                })->orWhere('angkatan', 'like', "%{$search}%");
             });
         }
-        
-        $programs = $query->with(['participants', 'masterProgram'])
+
+        $programs = $query->with(['participants', 'masterProgram', 'paketPelatihan'])
             ->orderBy('start_date', 'desc')
             ->paginate(9);
-        
+
         return view('instructor-area.programs.index', compact('programs'));
     }
-    
+
     public function show(Program $program)
     {
-        $user = auth()->user();
-        
-        // Cari instructor dari tabel instructors
-        $instructor = Instructor::where('user_id', $user->id)->first();
-        
-        // Pastikan program ini diajar oleh instructor yang login
-        if (!$instructor || $program->instructor_id !== $instructor->id) {
+        [$internal, $external] = $this->getInstructorAccess();
+
+        if (!$internal && !$external) {
+            abort(403, 'Data instruktur tidak ditemukan');
+        }
+
+        $hasAccess = $program->programInstructors()
+            ->where(function($q) use ($internal, $external) {
+                $this->applyInstructorConstraint($q, $internal, $external);
+            })->exists();
+
+        if (!$hasAccess) {
             abort(403, 'Anda tidak memiliki akses ke program ini');
         }
-        
-        $program->load(['participants.user', 'participants.attendances', 'masterProgram', 'instructor', 'attendances']);
-        
+
+        $program->load([
+            'participants.user',
+            'participants.attendances',
+            'masterProgram',
+            'programInstructors.instructor',
+            'programInstructors.pengajarEksternal',
+            'paketPelatihan',
+        ]);
+
         return view('instructor-area.programs.show', compact('program'));
     }
 }

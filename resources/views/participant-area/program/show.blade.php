@@ -9,6 +9,29 @@
         <p class="text-gray-600 mt-1">Detail program pelatihan yang Anda ikuti</p>
     </div>
 
+    {{-- Tombol kembali ke list (selalu tampil) --}}
+    <div class="flex items-center gap-3 flex-wrap">
+        <a href="{{ route('participant.program') }}"
+            class="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1">
+            ← Kembali ke Program Saya
+        </a>
+
+        {{-- Switcher hanya tampil jika lebih dari 1 program --}}
+        @if(isset($allParticipants) && $allParticipants->count() > 1)
+        <span class="text-gray-300">|</span>
+        @foreach($allParticipants as $p)
+            <a href="{{ route('participant.program.show', $p) }}"
+                class="px-3 py-1 rounded-full text-xs font-medium transition
+                    {{ $p->id === $participant->id
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200' }}">
+                {{ $p->program?->masterProgram?->name ?? 'Program' }}
+                ({{ $p->program?->angkatan ?? '-' }})
+            </a>
+        @endforeach
+        @endif
+    </div>
+
     @if($program ?? false)
     <!-- Info Program -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -21,7 +44,9 @@
                 </div>
                 <div class="flex justify-between">
                     <dt class="text-gray-600">Batch</dt>
-                    <dd class="font-medium">{{ $program->batch ?? '-' }}</dd>
+                    <dd class="font-medium">
+                        {{ \App\Helpers\Roman::convert((int)($program->paketPelatihan?->batch ?? $program->paketPelatihan?->code ?? 0)) }}
+                    </dd>
                 </div>
                 <div class="flex justify-between">
                     <dt class="text-gray-600">Periode</dt>

@@ -109,6 +109,9 @@
                     <span>• <code>tanggal_lahir</code></span>
                     <span>• <code>pendidikan</code></span>
                     <span>• <code>alamat</code></span>
+                    <span>• <code>asal_kabupaten</code></span>   
+                    <span>• <code>asal_kecamatan</code></span>   
+                    <span>• <code>asal_kelurahan</code></span>   
                     <span>• <code>status</code> (active/graduated/dropout)</span>
                 </div>
             </div>

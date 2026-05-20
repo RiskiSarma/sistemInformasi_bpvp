@@ -3,6 +3,29 @@
 @section('title', 'Jadwal Pengajar Eksternal')
 
 @section('content')
+
+    {{-- PERHITUNGAN TOTAL JAM - HARUS PALING ATAS --}}
+    @php
+        $schedules = $pengajarEksternal->schedules()
+            ->with('program.masterProgram')
+            ->get();
+
+        $groupedSchedules = $schedules->groupBy('day_of_week');
+        $days = ['monday' => 'Senin', 'tuesday' => 'Selasa', 'wednesday' => 'Rabu', 'thursday' => 'Kamis', 'friday' => 'Jumat', 'saturday' => 'Sabtu', 'sunday' => 'Minggu'];
+
+        // Hitung total jam mengajar
+        $totalHours = 0;
+        foreach ($schedules as $schedule) {
+            if ($schedule->start_time && $schedule->end_time) {
+                $start = \Carbon\Carbon::parse($schedule->start_time);
+                $end   = \Carbon\Carbon::parse($schedule->end_time);
+                $totalHours += $start->diffInHours($end);
+            }
+        }
+
+        $totalPrograms = $schedules->pluck('program_id')->unique()->count();
+    @endphp
+
 <div class="space-y-6">
     <!-- Back Button & Header -->
     <div class="flex items-center justify-between">
@@ -35,36 +58,34 @@
             <div class="flex-1">
                 <h3 class="text-xl font-bold text-gray-800">{{ $pengajarEksternal->nama }}</h3>
                 <p class="text-purple-600 mt-1">{{ $pengajarEksternal->keahlian ?? 'Pengajar Eksternal' }}</p>
+                
                 <div class="mt-3 flex items-center space-x-6 text-sm text-gray-600">
                     <div class="flex items-center space-x-2">
+                        <span class="text-green-600">●</span>
+                        <span class="font-medium">
+                            {{ ($pengajarEksternal->status ?? 'active') === 'active' ? 'Aktif' : 'Tidak Aktif' }}
+                        </span>
+                    </div>
+                    @if($pengajarEksternal->email)
+                    <div class="flex items-center space-x-2 text-gray-600">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
                         </svg>
-                        <span>{{ $pengajarEksternal->email }}</span>
+                        <span class="truncate">{{ $pengajarEksternal->email }}</span>
                     </div>
+                    @endif
                     <div class="flex items-center space-x-2">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                         </svg>
-                        <span>{{ $pengajarEksternal->weekly_teaching_hours ?? 0 }} jam/minggu</span>
+                        <span><strong>{{ $totalHours ?? 0 }}</strong> jam/minggu</span>
                     </div>
                 </div>
-            </div>
-            <div class="text-right">
-                <span class="px-3 py-1 text-sm rounded-full {{ $pengajarEksternal->status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' }}">
-                    {{ $pengajarEksternal->status === 'active' ? 'Aktif' : 'Tidak Aktif' }}
-                </span>
             </div>
         </div>
     </div>
 
     <!-- Weekly Schedule Table -->
-    @php
-        $schedules = $pengajarEksternal->schedules()->with('program.masterProgram')->active()->ordered()->get();
-        $groupedSchedules = $schedules->groupBy('day_of_week');
-        $days = ['monday' => 'Senin', 'tuesday' => 'Selasa', 'wednesday' => 'Rabu', 'thursday' => 'Kamis', 'friday' => 'Jumat', 'saturday' => 'Sabtu', 'sunday' => 'Minggu'];
-    @endphp
-
     @if($schedules->count() > 0)
     <div class="bg-white rounded-lg shadow-sm border overflow-hidden">
         <div class="p-6 border-b bg-blue-50">
@@ -76,7 +97,7 @@
                     <h3 class="text-lg font-semibold text-gray-800">Jadwal Mengajar Mingguan</h3>
                 </div>
                 <div class="text-sm text-gray-600">
-                    Total: {{ $pengajarEksternal->weekly_teaching_hours ?? 0 }} jam per minggu
+                    Total: <strong>{{ $totalHours }}</strong> jam per minggu
                 </div>
             </div>
         </div>
@@ -109,25 +130,16 @@
                                     {{ \Carbon\Carbon::parse($schedule->start_time)->format('H:i') }} - {{ \Carbon\Carbon::parse($schedule->end_time)->format('H:i') }}
                                 </td>
                                 <td class="px-6 py-4">
-                                    <div class="font-medium text-gray-900">{{ $schedule->program->masterProgram->name ?? 'N/A' }}</div>
-                                    <div class="text-xs text-gray-500">{{ $schedule->program->batch }}</div>
+                                    <div class="font-medium text-gray-900">{{ $schedule->program?->masterProgram?->name ?? 'N/A' }}</div>
+                                    <div class="text-xs text-gray-500">{{ $schedule->program?->angkatan ?? $schedule->program?->batch ?? '-' }}</div>
                                 </td>
-                                <td class="px-6 py-4 text-sm text-gray-600">
-                                    {{ $schedule->room ?? '-' }}
-                                </td>
-                                <td class="px-6 py-4 text-sm text-gray-600">
-                                    {{ $schedule->notes ?? '-' }}
-                                </td>
+                                <td class="px-6 py-4 text-sm text-gray-600">{{ $schedule->room ?? '-' }}</td>
+                                <td class="px-6 py-4 text-sm text-gray-600">{{ $schedule->notes ?? '-' }}</td>
 
                                 @if($index === 0)
                                 <td class="px-6 py-4 text-xs text-gray-600 align-top" rowspan="{{ $groupedSchedules[$dayKey]->count() }}">
                                     <div class="font-medium">Dibuat: {{ $schedule->creator?->name ?? 'Sistem' }}</div>
                                     <div class="text-gray-500 text-xs">{{ $schedule->created_at->format('d/m/Y H:i') }}</div>
-                                    
-                                    @if($schedule->updater && $schedule->updated_at->gt($schedule->created_at))
-                                    <div class="font-medium mt-2">Update: {{ $schedule->updater?->name ?? 'Sistem' }}</div>
-                                    <div class="text-gray-500 text-xs">{{ $schedule->updated_at->format('d/m/Y H:i') }}</div>
-                                    @endif
                                 </td>
                                 @endif
 
@@ -162,17 +174,6 @@
             </table>
         </div>
     </div>
-    @else
-    <div class="bg-white rounded-lg shadow-sm border p-12 text-center">
-        <svg class="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-        </svg>
-        <h3 class="text-lg font-semibold text-gray-800 mb-2">Belum Ada Jam Mengajar</h3>
-        <p class="text-gray-600 mb-4">Pengajar ini belum memiliki jadwal mengajar mingguan</p>
-        <a href="{{ route('admin.pengajar-eksternal.schedules.create', $pengajarEksternal) }}" class="inline-block px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-            Tambah Jadwal Mengajar
-        </a>
-    </div>
     @endif
 
     <!-- Statistik Program -->
@@ -181,20 +182,18 @@
             <div class="text-sm text-gray-600">Total Program</div>
             <div class="text-2xl font-bold">{{ $totalPrograms ?? 0 }}</div>
         </div>
-        
+        <!-- lainnya bisa diisi 0 dulu -->
         <div class="bg-green-50 p-4 rounded-lg shadow">
             <div class="text-sm text-green-600">Sedang Berjalan</div>
-            <div class="text-2xl font-bold text-green-600">{{ $ongoingPrograms ?? 0 }}</div>
+            <div class="text-2xl font-bold text-green-600">0</div>
         </div>
-        
         <div class="bg-blue-50 p-4 rounded-lg shadow">
             <div class="text-sm text-blue-600">Akan Datang</div>
-            <div class="text-2xl font-bold text-blue-600">{{ $plannedPrograms ?? 0 }}</div>
+            <div class="text-2xl font-bold text-blue-600">0</div>
         </div>
-        
         <div class="bg-gray-50 p-4 rounded-lg shadow">
             <div class="text-sm text-gray-600">Selesai</div>
-            <div class="text-2xl font-bold">{{ $completedPrograms ?? 0 }}</div>
+            <div class="text-2xl font-bold">0</div>
         </div>
     </div>
 </div>

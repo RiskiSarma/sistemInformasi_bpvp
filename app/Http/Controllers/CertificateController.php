@@ -207,7 +207,8 @@ class CertificateController extends Controller
 
     private function generatePDF(Certificate $certificate)
     {
-        $certificate->load(['participant', 'program.masterProgram', 'program.independentCompetencyUnits']);
+        $certificate->load(['participant', 'program.masterProgram.kejuruan', 'program.masterProgram.bidangPelatihan', 
+        'program.paketPelatihan.jenisPelatihan', 'program.independentCompetencyUnits']);
 
         $pdf = new Pdf('L', 'mm', 'A4', true, 'UTF-8', false);
         $pdf->SetMargins(0, 0, 0);
@@ -288,32 +289,40 @@ class CertificateController extends Controller
         $pdf->Cell(0, 5, ': ' . $birthPlace . ', ' . $birthDate, 0, 0, 'L', false, '', 0, false, 'T', 'M');
 
         // ========== DESKRIPSI PELATIHAN ==========
-        $startDate = $certificate->program->start_date 
-            ? \Carbon\Carbon::parse($certificate->program->start_date)->isoFormat('DD MMMM YYYY') 
-            : '27 Oktober 2025';
-        $endDate = $certificate->program->end_date 
-            ? \Carbon\Carbon::parse($certificate->program->end_date)->isoFormat('DD MMMM YYYY') 
-            : '01 Desember 2025';
-        $duration = $certificate->program->duration ?? '260';
-        $programName = strtoupper($certificate->program->masterProgram->name ?? 'N/A');
+            $masterProgram  = $certificate->program->masterProgram;
+    $paketPelatihan = $certificate->program->paketPelatihan;
 
-        // Nama program + angkatan (contoh: Hydroponic Automatic System I)
-        $programName = $certificate->program->masterProgram->name . ' ' . $certificate->program->angkatan;
+    $startDate = $certificate->program->start_date 
+        ? \Carbon\Carbon::parse($certificate->program->start_date)->isoFormat('DD MMMM YYYY') 
+        : '-';
+    $endDate = $certificate->program->end_date 
+        ? \Carbon\Carbon::parse($certificate->program->end_date)->isoFormat('DD MMMM YYYY') 
+        : '-';
+    $duration = $certificate->program->duration ?? '-';
 
-        // Ambil data dinamis dari master program
-        $kejuruan       = $certificate->program->masterProgram->kejuruan ?? 'Tidak Diketahui';
-        $bidang         = $certificate->program->masterProgram->bidang ?? 'Tidak Diketahui';
-        $jenisPelatihan = $certificate->program->masterProgram->jenis_pelatihan_full ?? 
-                        $certificate->program->masterProgram->jenis_pelatihan ?? 'Tidak Diketahui';
+    // Nama program + angkatan
+    $programName = ($masterProgram->name ?? 'N/A') . ' ' . ($certificate->program->angkatan ?? '');
 
-        // Teks deskripsi sepenuhnya dinamis (termasuk kejuruan)
-        $fullText = 'telah menyelesaikan Pelatihan ' . $jenisPelatihan . 
-                    ' Bidang ' . $bidang . 
-                    ' untuk program <b>' . $programName . 
-                    ' Kejuruan ' . $kejuruan . 
-                    '</b> yang dilaksanakan pada tanggal ' . 
-                    $startDate . ' sampai dengan ' . $endDate . 
-                    ' selama ' . $duration . ' Jam Pelatihan dan dinyatakan <b>LULUS</b>';
+    // ✅ Kejuruan — field 'kejuruan' di tabel kejuruan (sudah benar dari sesi sebelumnya)
+    $kejuruan = $masterProgram->kejuruan->kejuruan ?? 'Tidak Diketahui';
+
+    // ✅ Bidang — field 'bidang_pelatihan' (dari tinker: "bidang_pelatihan" => "Smart Farming")
+    $bidang = $masterProgram->bidangPelatihan->bidang_pelatihan ?? 'Tidak Diketahui';
+
+    // ✅ Jenis Pelatihan — dari paketPelatihan->jenisPelatihan->jenis_pelatihan
+    // (sesuai accessor getJenisPelatihanAttribute() di Program model)
+    $jenisPelatihan = $paketPelatihan->jenisPelatihan->jenis_pelatihan
+                   ?? $paketPelatihan->jenis_pelatihan
+                   ?? 'Tidak Diketahui';
+
+    // ========== DESKRIPSI PELATIHAN (tidak berubah) ==========
+    $fullText = 'telah menyelesaikan Pelatihan ' . $jenisPelatihan . 
+                ' Bidang ' . $bidang . 
+                ' untuk program <b>' . $programName . 
+                ' Kejuruan ' . $kejuruan . 
+                '</b> yang dilaksanakan pada tanggal ' . 
+                $startDate . ' sampai dengan ' . $endDate . 
+                ' selama ' . $duration . ' Jam Pelatihan dan dinyatakan <b>LULUS</b>';
         
         $pdf->SetFont('times', '', 14);
         $pdf->SetXY(50, 95);

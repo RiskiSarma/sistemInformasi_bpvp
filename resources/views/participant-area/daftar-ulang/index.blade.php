@@ -6,7 +6,7 @@
 <div class="space-y-6">
 
     {{-- Header --}}
-    <div class="bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl p-6 text-white">
+    <div class="bg-gradient-to-r from-teal-600 to-blue-700 rounded-2xl p-6 text-white">
         <div class="flex items-center justify-between">
             <div>
                 <h1 class="text-2xl font-bold">Daftar Ulang</h1>
@@ -50,7 +50,7 @@
         </svg>
         <div class="text-sm text-blue-700">
             <p class="font-semibold mb-1">Ketentuan Upload Berkas:</p>
-            <ul class="list-disc list-inside space-y-1 text-blue-600">
+            <ul class="list-disc list-inside space-y-1 text-teal-600">
                 <li>Format file yang diterima: <strong>JPG, PNG, PDF</strong></li>
                 <li>Ukuran maksimal per file: <strong>5 MB</strong></li>
                 <li>Pastikan file terbaca dengan jelas</li>
@@ -145,7 +145,7 @@
                                 {{-- Ganti / Upload Ulang --}}
                                 @if(!$isApproved)
                                     <button @click="showUpload = !showUpload"
-                                            class="inline-flex items-center px-3 py-1.5 text-sm bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg transition">
+                                            class="inline-flex items-center px-3 py-1.5 text-sm bg-blue-50 hover:bg-blue-100 text-teal-600 rounded-lg transition">
                                         <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                   d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
@@ -171,7 +171,7 @@
                             @else
                                 {{-- Upload Pertama Kali --}}
                                 <button @click="showUpload = !showUpload"
-                                        class="inline-flex items-center px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition font-medium">
+                                        class="inline-flex items-center px-4 py-2 text-sm bg-teal-600 hover:bg-blue-700 text-white rounded-lg transition font-medium">
                                     <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                               d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
@@ -202,10 +202,10 @@
                                            name="file"
                                            accept=".jpg,.jpeg,.png,.pdf"
                                            required
-                                           class="block w-full text-sm text-gray-500 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100">
+                                           class="block w-full text-sm text-gray-500 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-teal-600 hover:file:bg-blue-100">
 
                                     <button type="submit"
-                                            class="flex-shrink-0 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition">
+                                            class="flex-shrink-0 px-4 py-2 bg-teal-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition">
                                         Simpan
                                     </button>
                                     <button type="button" @click="showUpload = false"

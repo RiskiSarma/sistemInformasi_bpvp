@@ -28,7 +28,7 @@
                         @foreach($participants as $participant)
                         <option value="{{ $participant->id }}" 
                                 data-program="{{ $participant->program->masterProgram->name ?? 'N/A' }}"
-                                data-batch="{{ $participant->program->batch ?? '' }}"
+                                data-batch="{{ $participant->program->angkatan ?? $participant->program->batch ?? '' }}"
                                 data-attendance="{{ $participant->calculated_percentage ?? $participant->getAttendancePercentage() ?? '0.00' }}" 
                                 {{ old('participant_id') == $participant->id ? 'selected' : '' }}>
                             {{ $participant->name }} - {{ $participant->program->masterProgram->name ?? 'N/A' }}
@@ -145,13 +145,21 @@ document.addEventListener('DOMContentLoaded', function() {
         const selectedOption = this.options[this.selectedIndex];
         
         if (this.value) {
-            const program = selectedOption.getAttribute('data-program');
-            const batch = selectedOption.getAttribute('data-batch');
-            const attendance = selectedOption.getAttribute('data-attendance');
+            const program = selectedOption.getAttribute('data-program') || '-';
+            let batch = selectedOption.getAttribute('data-batch') || '-';
+            
+            batch = batch.trim();
+            
+            // Kosongkan jika hanya spasi atau null
+            if (batch === '' || batch.toLowerCase() === 'null') {
+                batch = '-';
+            }
+
+            const attendance = selectedOption.getAttribute('data-attendance') || '0.00';
 
             infoProgram.textContent = program;
-            infoBatch.textContent = batch || '-';
-            infoAttendance.textContent = attendance;
+            infoBatch.textContent = batch;
+            infoAttendance.textContent = attendance + '%';
 
             participantInfo.classList.remove('hidden');
         } else {
@@ -159,7 +167,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Trigger on page load if old value exists
+    // Trigger jika ada nilai yang sudah terpilih saat load
     if (participantSelect.value) {
         participantSelect.dispatchEvent(new Event('change'));
     }
