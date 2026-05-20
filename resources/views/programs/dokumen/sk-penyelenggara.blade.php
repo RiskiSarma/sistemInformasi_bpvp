@@ -85,13 +85,17 @@
             $kopBase64 = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($imgPath));
         }
     }
+    \Carbon\Carbon::setLocale('id');
  
+    $kejuruan = $program->masterProgram?->kejuruan?->kejuruan 
+            ?? $program->masterProgram?->kejuruan?->nama_kejuruan 
+            ?? 'KEJURUAN BELUM DISET';
+            
     $tahunAnggaran = $program->paketPelatihan->tahun ?? now()->year;
     
     // ✅ PERBAIKAN: Ambil dari settings, bukan dari $program
     $nomorSK       = $settings->format_nomor ?? '2.14/2190/LP.00.04/IV/2026';
     
-    \Carbon\Carbon::setLocale('id');
     $tanggalSK    = now()->locale('id')->isoFormat('D MMMM Y');
     $kotaSurat     = $settings->tempat_surat ?? 'Banda Aceh';
     $namaPengirim  = $settings->nama_pengirim ?? 'Rahmad Faisal';
@@ -113,8 +117,8 @@
     <div class="nomor-sk">NOMOR {{ $nomorSK }}</div>
     <div class="tentang">TENTANG</div>
     <p style="text-align:center; font-weight:bold; margin-bottom:12px; text-transform:uppercase;">
-        PENYELENGGARAAN PELATIHAN BERBASIS KOMPETENSI (PBK) DURASI PENDEK BATCH {{ $program->angkatan ?? 'IV' }}
-        KEJURUAN TEKNOLOGI INFORMASI KOMUNIKASI<br>
+        PENYELENGGARAAN PELATIHAN BERBASIS KOMPETENSI (PBK) BATCH {{ $program->angkatan ?? 'IV' }}
+        KEJURUAN {{ strtoupper($kejuruan) }}<br>
         PROGRAM {{ strtoupper($program->masterProgram->name ?? 'AI FOR AUTOMATION I') }} TAHUN ANGGARAN {{ $tahunAnggaran }}
     </p>
 
@@ -127,7 +131,7 @@
             <div class="section-colon">:</div>
             <div class="section-content">
                 <ol style="padding-left:0; list-style-position:inside;">
-                    <li style="margin-bottom:4px;">bahwa dalam rangka Penyiapan Tenaga Kerja yang Kompeten perlu diadakan Pelatihan Berbasis Kompetensi (PBK) Durasi Pendek Batch {{ $program->angkatan ?? 'IV' }} Kejuruan Teknologi Informasi Komunikasi Program {{ $program->masterProgram->name ?? 'AI For Automation I' }} Balai Pelatihan Vokasi dan Produktivitas Banda Aceh pada Daftar Isian Pelaksanaan Anggaran (DIPA) Kementerian Ketenagakerjaan Tahun Anggaran {{ $tahunAnggaran }};</li>
+                    <li style="margin-bottom:4px;">bahwa dalam rangka Penyiapan Tenaga Kerja yang Kompeten perlu diadakan Pelatihan Berbasis Kompetensi (PBK) Batch {{ $program->angkatan ?? 'IV' }} Kejuruan {{ strtoupper($kejuruan) }} Program {{ $program->masterProgram->name ?? 'AI For Automation I' }} Balai Pelatihan Vokasi dan Produktivitas Banda Aceh pada Daftar Isian Pelaksanaan Anggaran (DIPA) Kementerian Ketenagakerjaan Tahun Anggaran {{ $tahunAnggaran }};</li>
                     <li>bahwa untuk itu perlu dikeluarkan Surat Keputusan Kepala Balai Pelatihan Vokasi dan Produktivitas Banda Aceh tentang Penyelenggaraan Pelatihan tersebut.</li>
                 </ol>
             </div>
@@ -165,7 +169,7 @@
             <div class="section-label">Menetapkan</div>
             <div class="section-colon">:</div>
             <div class="section-content">
-                <strong>KEPUTUSAN KEPALA BALAI PELATIHAN VOKASI DAN PRODUKTIVITAS BANDA ACEH TENTANG PENYELENGGARAAN PELATIHAN BERBASIS KOMPETENSI (PBK) DURASI PENDEK BATCH {{ $program->angkatan ?? 'IV' }} KEJURUAN TEKNOLOGI INFORMASI KOMUNIKASI PROGRAM {{ strtoupper($program->masterProgram->name ?? 'AI FOR AUTOMATION I') }} TAHUN ANGGARAN {{ $tahunAnggaran }}.</strong>
+                <strong>KEPUTUSAN KEPALA BALAI PELATIHAN VOKASI DAN PRODUKTIVITAS BANDA ACEH TENTANG PENYELENGGARAAN PELATIHAN BERBASIS KOMPETENSI (PBK) BATCH {{ $program->angkatan ?? 'IV' }} KEJURUAN {{ strtoupper($kejuruan) }} PROGRAM {{ strtoupper($program->masterProgram->name ?? 'AI FOR AUTOMATION I') }} TAHUN ANGGARAN {{ $tahunAnggaran }}.</strong>
             </div>
         </div>
     </div>
@@ -176,7 +180,7 @@
             <div class="section-label">KESATU</div>
             <div class="section-colon">:</div>
             <div class="section-content">
-                Menyelenggarakan Pelatihan Berbasis Kompetensi (PBK) Durasi Pendek Batch {{ $program->angkatan ?? 'IV' }} Kejuruan Teknologi Informasi Komunikasi Program {{ $program->masterProgram->name ?? 'AI For Automation I' }} Balai Pelatihan Vokasi dan Produktivitas Banda Aceh Tahun Anggaran {{ $tahunAnggaran }}, dengan ketentuan sebagai berikut:
+                Menyelenggarakan Pelatihan Berbasis Kompetensi (PBK) Batch {{ $program->angkatan ?? 'IV' }} Kejuruan {{ strtoupper($kejuruan) }} Program {{ $program->masterProgram->name ?? 'AI For Automation I' }} Balai Pelatihan Vokasi dan Produktivitas Banda Aceh Tahun Anggaran {{ $tahunAnggaran }}, dengan ketentuan sebagai berikut:
             </div>
         </div>
     </div>
@@ -248,7 +252,7 @@
         <p style="text-align:right; margin-bottom:14px; font-size:9.5pt;">
             TENTANG PENYELENGGARAAN {{ strtoupper($program->paketPelatihan->jenisPelatihan->jenis_pelatihan ?? '') }}
             BATCH {{ $program->angkatan ?? '-' }}
-            KEJURUAN {{ strtoupper($program->masterProgram->kejuruan->nama_kejuruan ?? '') }}
+            KEJURUAN {{ strtoupper($kejuruan) }}
             PROGRAM {{ strtoupper($program->masterProgram->name ?? '') }}
             TAHUN ANGGARAN {{ $tahunAnggaran }}.
         </p>
@@ -327,7 +331,7 @@
         <p style="text-align:right; margin-bottom:14px; font-size:9.5pt;">
             TENTANG PENYELENGGARAAN {{ strtoupper($program->paketPelatihan->jenisPelatihan->jenis_pelatihan ?? '') }}
             BATCH {{ $program->angkatan ?? '-' }}
-            KEJURUAN {{ strtoupper($program->masterProgram->kejuruan->nama_kejuruan ?? '') }}
+            KEJURUAN {{ strtoupper($kejuruan) }}
             PROGRAM {{ strtoupper($program->masterProgram->name ?? '') }}
             TAHUN ANGGARAN {{ $tahunAnggaran }}.
         </p>

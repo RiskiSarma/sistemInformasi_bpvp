@@ -117,6 +117,11 @@
             $kopHasImage = true;
         }
     }
+    \Carbon\Carbon::setLocale('id');
+
+    $kejuruan = $program->masterProgram?->kejuruan?->kejuruan 
+            ?? $program->masterProgram?->kejuruan?->nama_kejuruan 
+            ?? 'KEJURUAN BELUM DISET';
 
     /* ── Data dari settings ── */
     $tempat      = $settings->tempat_surat  ?? 'Banda Aceh';
@@ -198,7 +203,7 @@
                     tanggal <strong>{{ now()->format('d F Y') }}</strong> tentang Penyelenggaraan
                     {{ $program->paketPelatihan->jenisPelatihan->jenis_pelatihan ?? 'Pelatihan Berbasis Kompetensi (PBK)' }}
                     Batch {{ $program->angkatan ?? '-' }} Kejuruan
-                    {{ $program->masterProgram->kejuruan->nama_kejuruan ?? '-' }} Program
+                    {{ strtoupper($kejuruan) }} Program
                     {{ $program->masterProgram->name ?? '-' }} Tahun Anggaran {{ now()->year }};</div>
                 <div class="list-item">{{ $dhCounter++ }}. Daftar Isian Pelaksanaan Anggaran (SP-DIPA) Balai Pelatihan Vokasi dan Produktivitas Banda Aceh Tahun {{ now()->year }} Nomor : 026.13.2.065106/{{ now()->year }} tanggal 24 November {{ now()->year - 1 }}.</div>
             </div>
@@ -223,7 +228,7 @@
             <div class="section-content">
                 Mengikuti kegiatan sebagai Peserta <strong>{{ $program->paketPelatihan->jenisPelatihan->jenis_pelatihan ?? 'Pelatihan Berbasis Kompetensi (PBK)' }}</strong>
                 Batch <strong>{{ $program->angkatan ?? '-' }}</strong>
-                Kejuruan <strong>{{ $program->masterProgram->kejuruan->nama_kejuruan ?? '-' }}</strong>
+                Kejuruan <strong>{{ strtoupper($kejuruan) }}</strong>
                 Program <strong>{{ $program->masterProgram->name ?? '-' }}</strong>
                 bertempat di Balai Pelatihan Vokasi dan Produktivitas Banda Aceh, Jalan Kesatria Geuceu Komplek, Kecamatan Banda Raya, Kota Banda Aceh
                 selama <strong>{{ $program->jp ?? '-' }} Jam Pelatihan</strong> mulai tanggal

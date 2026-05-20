@@ -55,6 +55,11 @@
             $kopBase64 = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($imgPath));
         }
     }
+    \Carbon\Carbon::setLocale('id');
+
+    $kejuruan = $program->masterProgram?->kejuruan?->kejuruan 
+            ?? $program->masterProgram?->kejuruan?->nama_kejuruan 
+            ?? 'KEJURUAN BELUM DISET';
 
     $nomorST      = $program->nomor_st ?? '2.14/2191/LP.00.04/IV/2026';
     $tanggalST    = $program->tanggal_sk ?? '17 April 2026';
@@ -75,7 +80,7 @@
     </div>
     <div class="nomor-st">Nomor {{ $nomorST }}</div>
 
-    <p>Kepala Balai Pelatihan Vokasi dan Produktivitas Banda Aceh dengan ini menginstruksikan Saudara/i yang tersebut namanya di bawah ini untuk melaksanakan Pelatihan Durasi Pendek Batch {{ $program->angkatan ?? 'IV' }} Kejuruan TIK Program <strong>{{ $program->masterProgram->name ?? 'AI for Automation I' }}</strong> selama <strong>{{ $program->jp ?? '40' }} JP</strong>.</p>
+    <p>Kepala Balai Pelatihan Vokasi dan Produktivitas Banda Aceh dengan ini menginstruksikan Saudara/i yang tersebut namanya di bawah ini untuk melaksanakan Pelatihan Batch {{ $program->angkatan ?? 'IV' }} Kejuruan {{ strtoupper($kejuruan) }} Program <strong>{{ $program->masterProgram->name ?? 'AI for Automation I' }}</strong> selama <strong>{{ $program->jp ?? '40' }} JP</strong>.</p>
     <p>Dimulai tanggal <strong>{{ $program->start_date?->format('d F Y') ?? '20 April 2026' }}</strong> sampai dengan <strong>{{ $program->end_date?->format('d F Y') ?? '23 April 2026' }}</strong> bertempat di BPVP Banda Aceh dengan menunjuk Saudara/i <strong>{{ $namaPJ }}</strong> sebagai Instruktur dan Wali Kelas Program {{ $program->masterProgram->name ?? 'AI for Automation I' }}.</p>
 
     <table class="tabel-unit">
