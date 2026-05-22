@@ -1,0 +1,15 @@
+akun admin
+usn : admin@bpvp.ac.id
+pw : password
+
+akun instruktur 
+usn : fadly1@gmail.com
+pw : password
+
+akun peserta 
+usn : farhan@blk.ac.id
+pw : password
+
+*note
+semua user passwordnya sama yaitu password. kalau untuk peserta ada beberapa akun peserta yang password akunnya 
+itu nik peserta.
